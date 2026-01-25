@@ -1,0 +1,2 @@
+# Python dependencies
+# Flask, pyserial, firebase-admin, etc.
