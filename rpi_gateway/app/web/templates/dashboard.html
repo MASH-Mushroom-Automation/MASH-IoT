@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M.A.S.H. Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-color: #f1f8e9;
+            --card-bg: #ffffff;
+            --primary-green: #81c784;
+            --hover-green: #66bb6a;
+            --text-dark: #2e7d32;
+            --text-muted: #558b2f;
+            --border-color: #c5e1a5;
+        }
+        
+        /* Optimized for 7" Raspberry Pi Touchscreen (800x480) */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding: 10px;
+            overflow-x: hidden;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
+        }
+        
+        header h1 { color: var(--text-dark); margin-bottom: 5px; font-size: 1.3rem; }
+        header p { color: var(--text-muted); font-size: 12px; }
+        
+        /* Navigation for settings */
+        .nav-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        
+        .nav-btn {
+            padding: 8px 16px;
+            background: var(--primary-green);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* Stack vertically on very small screens */
+        @media (max-width: 600px) {
+            .room-grid { grid-template-columns: 1fr; }
+        }
+        
+        .room-card {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
+            border: 2px solid var(--border-color);
+        }
+        
+        .room-card h2 {
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sensor-reading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 6px 0;
+            background: #e8f5e9;
+            border-radius: 8px;
+        }
+        
+        .sensor-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .sensor-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+        
+        .controls {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid var(--border-color);
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0;
+        }
+        
+        .control-label {
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Touch-friendly buttons (min 44x44px for touch targets) */
+        .btn {
+            padding: 10px 20px;
+            min-height: 44px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        
+        .btn-on {
+            background: var(--primary-green);
+            color: white;
+        }
+        
+        .btn-on:hover { background: var(--hover-green); }
+        
+        .btn-off {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .btn-off:hover { background: #d0d0d0; }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .status.online { border-left: 4px solid #4caf50; }
+        .status.offline { border-left: 4px solid #f44336; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .updating { animation: pulse 1s infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="/settings" class="nav-btn"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+        
+        <header>
+            <h1>🍄 M.A.S.H. IoT Dashboard</h1>
+            <p>Mushroom Automation Smart Home</p>
+        </header>
+        
+        <div class="status online" id="connectionStatus">
+            <strong>System Status:</strong> Connected
+        </div>
+        
+        <div class="room-grid">
+            <!-- Fruiting Room Card -->
+            <div class="room-card">
+                <h2><i class="fas fa-seedling"></i> Fruiting Room</h2>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-thermometer-half"></i> Temperature
+                    </span>
+                    <span class="sensor-value" id="fruiting-temp">--°C</span>
+                </div>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-tint"></i> Humidity
+                    </span>
+                    <span class="sensor-value" id="fruiting-humidity">--%</span>
+                </div>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-wind"></i> CO2
+                    </span>
+                    <span class="sensor-value" id="fruiting-co2">-- ppm</span>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-row">
+                        <span class="control-label">Fan</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('fruiting', 'fan', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('fruiting', 'fan', 'off')">OFF</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-row">
+                        <span class="control-label">Mist</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('fruiting', 'mist', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('fruiting', 'mist', 'off')">OFF</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-row">
+                        <span class="control-label">Light</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('fruiting', 'light', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('fruiting', 'light', 'off')">OFF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Spawning Room Card -->
+            <div class="room-card">
+                <h2><i class="fas fa-layer-group"></i> Spawning Room</h2>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-thermometer-half"></i> Temperature
+                    </span>
+                    <span class="sensor-value" id="spawning-temp">--°C</span>
+                </div>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-tint"></i> Humidity
+                    </span>
+                    <span class="sensor-value" id="spawning-humidity">--%</span>
+                </div>
+                
+                <div class="sensor-reading">
+                    <span class="sensor-label">
+                        <i class="fas fa-wind"></i> CO2
+                    </span>
+                    <span class="sensor-value" id="spawning-co2">-- ppm</span>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-row">
+                        <span class="control-label">Fan</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('spawning', 'fan', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('spawning', 'fan', 'off')">OFF</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-row">
+                        <span class="control-label">Mist</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('spawning', 'mist', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('spawning', 'mist', 'off')">OFF</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-label">Light</span>
+                        <div class="button-group">
+                            <button class="btn btn-on" onclick="sendCommand('spawning', 'light', 'on')">ON</button>
+                            <button class="btn btn-off" onclick="sendCommand('spawning', 'light', 'off')">OFF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Fetch sensor data every 2 seconds
+        setInterval(updateSensorData, 2000);
+        
+        // Initial fetch
+        updateSensorData();
+        
+        async function updateSensorData() {
+            try {
+                const response = await fetch('/api/sensor-data');
+                const data = await response.json();
+                
+                // Update fruiting room
+                if (data.fruiting) {
+                    document.getElementById('fruiting-temp').textContent = data.fruiting.temp + '°C';
+                    document.getElementById('fruiting-humidity').textContent = data.fruiting.humidity + '%';
+                    document.getElementById('fruiting-co2').textContent = data.fruiting.co2 + ' ppm';
+                }
+                
+                // Update spawning room
+                if (data.spawning) {
+                    document.getElementById('spawning-temp').textContent = data.spawning.temp + '°C';
+                    document.getElementById('spawning-humidity').textContent = data.spawning.humidity + '%';
+                    document.getElementById('spawning-co2').textContent = data.spawning.co2 + ' ppm';
+                }
+                
+                // Update status
+                document.getElementById('connectionStatus').className = 'status online';
+                document.getElementById('connectionStatus').innerHTML = '<strong>System Status:</strong> Connected';
+                
+            } catch (error) {
+                console.error('Failed to fetch sensor data:', error);
+                document.getElementById('connectionStatus').className = 'status offline';
+                document.getElementById('connectionStatus').innerHTML = '<strong>System Status:</strong> Disconnected';
+            }
+        }
+        
+        async function sendCommand(room, actuator, action) {
+            try {
+                const response = await fetch('/api/send-command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ room, actuator, action })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Command sent:', result.command);
+                } else {
+                    alert('Failed to send command: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Command error:', error);
+                alert('Failed to send command');
+            }
+        }
+    </script>
+</body>
+</html>

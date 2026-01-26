@@ -1,3 +1,9 @@
 /.history
 rpi_gateway/config/.env
 /.vscode
+/rpi_gateway/venv
+/rpi_gateway/app/__pycache__
+/rpi_gateway/app/core/__pycache__
+/rpi_gateway/app/database/__pycache__
+/rpi_gateway/app/utils/__pycache__
+/rpi_gateway/app/web/__pycache__
