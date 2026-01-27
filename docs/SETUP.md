@@ -226,20 +226,30 @@ After installing these, delete the `venv` folder, create a new one, activate it,
 
 #### Kiosk Mode Browser Does Not Start
 
-If you reboot and the Raspberry Pi goes to the desktop instead of launching the full-screen browser, the autostart configuration may be incorrect.
+If you reboot and the Raspberry Pi goes to the desktop instead of launching the full-screen browser, there may be an issue with the autostart configuration.
 
-**Solution: Check the `autostart` file**
+**Solution: Check the `autostart` file and launch script**
 
-1.  Open a terminal on the Raspberry Pi.
-2.  View the contents of the LXDE autostart file:
+1.  **Check the Autostart File:**
+    Open a terminal and view the contents of the LXDE autostart file.
     ```bash
     cat ~/.config/lxsession/LXDE-pi/autostart
     ```
-3.  Ensure that a line similar to the following exists in the file. It starts with `@` and points to `chromium-browser`:
-    ```bash
-    @/usr/bin/chromium-browser --password-store=basic --kiosk ... http://localhost:5000
+    Ensure a line exists that points to the project's launch script, like this:
     ```
-4.  If that line is missing, the setup script may have failed. You can try running it again:
+    @/home/mash/MASH-IoT/scripts/launch_kiosk.sh
+    ```
+    *(The path will depend on where you cloned the project).*
+
+2.  **Check the Launch Script:**
+    Make sure the launch script is present and executable.
+    ```bash
+    ls -l ~/MASH-IoT/scripts/launch_kiosk.sh
+    ```
+    The output should show that the file exists and has execute (`x`) permissions.
+
+3.  **Re-run the Setup Script:**
+    If either of the above is incorrect, the easiest fix is to run the setup script again. It is safe to run multiple times.
     ```bash
     cd ~/MASH-IoT/scripts
     ./setup_kiosk.sh

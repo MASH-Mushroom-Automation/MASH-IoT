@@ -49,8 +49,12 @@ echo "Service created: ${SERVICE_NAME}.service"
 # 2. Configure kiosk mode autostart
 echo "[2/4] Setting up Chromium kiosk mode..."
 
+LAUNCH_SCRIPT_PATH="$PROJECT_DIR/scripts/launch_kiosk.sh"
 AUTOSTART_FILE="$HOME/.config/lxsession/LXDE-pi/autostart"
-KIOSK_COMMAND="@/usr/bin/chromium-browser --password-store=basic --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --enable-features=OverscrollHistoryNavigation --disable-translate http://localhost:5000"
+KIOSK_COMMAND="@$LAUNCH_SCRIPT_PATH"
+
+# First, make the launch script executable
+chmod +x "$LAUNCH_SCRIPT_PATH"
 
 # Ensure the directory and file exist
 mkdir -p "$(dirname "$AUTOSTART_FILE")"
