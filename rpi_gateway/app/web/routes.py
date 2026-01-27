@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app
+from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request
 from app.core.logic_engine import MushroomAI
 
 # Create Flask Blueprint
@@ -54,18 +54,35 @@ def dashboard():
 
 @web_bp.route('/controls')
 def controls():
-    """Renders the manual controls page."""
-    return render_template('controls.html')
+    """Renders the manual controls page with current actuator states."""
+    # We can reuse the get_live_data function to get the current state
+    context = get_live_data()
+    return render_template('controls.html', 
+                           fruiting_actuators=context.get('fruiting_actuators', {}),
+                           spawning_actuators=context.get('spawning_actuators', {}))
 
 @web_bp.route('/alerts')
 def alerts():
     """Renders the alerts and notifications page."""
-    return render_template('alerts.html')
+    # In a real app, this data would come from the database
+    dummy_alerts = [
+        {"timestamp": "2026-01-27 10:30:00", "room": "fruiting", "level": "CRITICAL", "message": "CO2 levels exceeded 1200 ppm."},
+        {"timestamp": "2026-01-27 09:15:23", "room": "fruiting", "level": "WARNING", "message": "Humidity dropped below 85% threshold."},
+        {"timestamp": "2026-01-26 22:05:10", "room": "spawning", "level": "WARNING", "message": "Temperature is slightly above target at 26.5°C."}
+    ]
+    return render_template('alerts.html', alerts=dummy_alerts)
 
 @web_bp.route('/ai_insights')
 def ai_insights():
     """Renders the AI/ML insights page."""
-    return render_template('ai_insights.html')
+    # Check if the ML libraries were imported successfully
+    try:
+        from sklearn.ensemble import IsolationForest
+        ml_enabled = True
+    except ImportError:
+        ml_enabled = False
+        
+    return render_template('ai_insights.html', ml_enabled=ml_enabled)
 
 @web_bp.route('/settings')
 def settings():
@@ -92,3 +109,36 @@ def api_latest_data():
     """
     data = get_live_data()
     return jsonify(data)
+
+@web_bp.route('/api/control_actuator', methods=['POST'])
+def control_actuator():
+    """
+    API endpoint to manually control an actuator.
+    Receives a JSON object like: {"room": "fruiting", "actuator": "exhaust_fan", "state": "ON"}
+    """
+    data = request.get_json()
+    if not all(key in data for key in ['room', 'actuator', 'state']):
+        return jsonify({"status": "error", "message": "Missing data"}), 400
+
+    room = data['room'].upper()
+    actuator = data['actuator'].upper()
+    state = data['state'].upper()
+
+    # Construct the command string for the Arduino
+    command = f"{room}_{actuator}_{state}"
+    
+    # Get the serial comm object from the app context
+    # Note: This requires the serial object to be stored in `current_app`
+    # In main.py, you would do: app.serial_comm = ArduinoSerialComm(...)
+    serial_comm = getattr(current_app, 'serial_comm', None)
+
+    if serial_comm and serial_comm.is_connected:
+        success = serial_comm.send_command(command)
+        if success:
+            return jsonify({"status": "success", "command": command})
+        else:
+            return jsonify({"status": "error", "message": "Failed to send command"}), 500
+    else:
+        # This will be the response in our current test environment
+        print(f"SERIAL COMMAND (DEMO): {command}")
+        return jsonify({"status": "success", "message": "Demo mode, command printed.", "command": command})

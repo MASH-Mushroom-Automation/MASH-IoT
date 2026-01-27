@@ -2,7 +2,31 @@
 {% block title %}Alerts{% endblock %}
 {% block content %}
 <h1 class="page-title">System Alerts</h1>
-<div class="content-area">
-    <p>Alerts and notifications will be displayed here.</p>
+
+<div class="alerts-container">
+    <table class="alerts-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Room</th>
+                <th>Level</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alert in alerts %}
+            <tr class="alert-level-{{ alert.level | lower }}">
+                <td>{{ alert.timestamp }}</td>
+                <td>{{ alert.room | capitalize }}</td>
+                <td>{{ alert.level | capitalize }}</td>
+                <td>{{ alert.message }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 20px;">No alerts to display. System is nominal.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

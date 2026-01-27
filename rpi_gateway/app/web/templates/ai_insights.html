@@ -1,8 +1,29 @@
 {% extends "base.html" %}
 {% block title %}AI Insights{% endblock %}
 {% block content %}
-<h1 class="page-title">AI Insights</h1>
-<div class="content-area">
-    <p>Machine learning insights and predictions will be available here.</p>
+<h1 class="page-title">AI & Machine Learning Insights</h1>
+
+<div class="insights-container">
+    <div class="insight-card">
+        <h2>System Status</h2>
+        <p>The machine learning system is currently <span class="status-{{ 'ok' if ml_enabled else 'error' }}">{{ 'ENABLED' if ml_enabled else 'DISABLED' }}</span>.</p>
+        {% if not ml_enabled %}
+        <p class="insight-note">The `scikit-learn` library is not installed. The system has fallen back to rule-based logic.</p>
+        {% endif %}
+    </div>
+
+    <div class="insight-card">
+        <h2>Stage 1: Anomaly Detection</h2>
+        <p>This stage uses an <span class="insight-highlight">Isolation Forest</span> algorithm to identify and filter out sensor readings that are unrealistic or indicative of a hardware fault (e.g., a sudden temperature spike to 70°C).</p>
+        <p>By filtering anomalies, we prevent the system from taking incorrect actions based on faulty data.</p>
+        <p><b>Status:</b> {{ 'Active' if ml_enabled else 'Inactive (using basic range checks)' }}</p>
+    </div>
+
+    <div class="insight-card">
+        <h2>Stage 2: Actuation Control</h2>
+        <p>This stage uses a <span class="insight-highlight">Decision Tree Classifier</span> to predict the optimal state for each actuator (fans, mist, etc.) based on the current environmental conditions and the time of day.</p>
+        <p>The model is trained on data from ideal growth cycles to make intelligent, automated decisions.</p>
+        <p><b>Status:</b> {{ 'Active' if ml_enabled else 'Inactive (using rule-based thresholds)' }}</p>
+    </div>
 </div>
 {% endblock %}

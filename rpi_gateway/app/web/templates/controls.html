@@ -1,8 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Controls{% endblock %}
 {% block content %}
-<h1 class="page-title">Actuator Controls</h1>
-<div class="content-area">
-    <p>Manual actuator controls will be available here.</p>
+<h1 class="page-title">Manual Actuator Controls</h1>
+
+<div class="controls-container">
+    <!-- Fruiting Room Controls -->
+    <div class="control-room-section">
+        <h2 class="room-title">Fruiting Room</h2>
+        <div class="actuator-list">
+            <div class="actuator-item">
+                <span><i class="fas fa-wind"></i> Exhaust Fan</span>
+                <label class="switch">
+                    <input type="checkbox" id="fruiting-exhaust_fan" data-room="fruiting" data-actuator="exhaust_fan" {% if fruiting_actuators.exhaust_fan %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="actuator-item">
+                <span><i class="fas fa-arrow-down"></i> Intake Fan</span>
+                <label class="switch">
+                    <input type="checkbox" id="fruiting-intake_fan" data-room="fruiting" data-actuator="intake_fan" {% if fruiting_actuators.intake_fan %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="actuator-item">
+                <span><i class="fas fa-tint"></i> Humidity System</span>
+                <label class="switch">
+                    <input type="checkbox" id="fruiting-humidity_system" data-room="fruiting" data-actuator="humidity_system" {% if fruiting_actuators.humidity_system %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spawning Room Controls -->
+    <div class="control-room-section">
+        <h2 class="room-title">Spawning Room</h2>
+        <div class="actuator-list">
+            <div class="actuator-item">
+                <span><i class="fas fa-wind"></i> Exhaust Fan</span>
+                <label class="switch">
+                    <input type="checkbox" id="spawning-exhaust_fan" data-room="spawning" data-actuator="exhaust_fan" {% if spawning_actuators.exhaust_fan %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

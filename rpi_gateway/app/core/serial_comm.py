@@ -83,29 +83,27 @@ class ArduinoSerialComm:
     
     def send_command(self, command: str) -> bool:
         """
-        Send command to Arduino.
+        Send a command string to the Arduino.
         
         Args:
-            command: Plain text command (e.g., "FRUITING_FAN_ON")
+            command: The command to send (e.g., "FRUITING_FAN_ON").
             
         Returns:
-            True if sent successfully
+            True if successful, False otherwise.
         """
         if not self.is_connected or not self.serial_conn:
-            logger.warning("[SERIAL] Cannot send command - not connected")
+            logger.warning(f"Cannot send command '{command}': Not connected.")
             return False
         
         try:
-            # Commands must end with newline
-            cmd_bytes = f"{command}\n".encode('utf-8')
-            self.serial_conn.write(cmd_bytes)
-            self.serial_conn.flush()
-            
-            logger.info(f"[SERIAL] Sent command: {command}")
+            # Ensure command ends with a newline character, as Arduino expects
+            cmd_with_newline = f"{command}\n".encode('utf-8')
+            self.serial_conn.write(cmd_with_newline)
+            self.serial_conn.flush() # Wait until all data is written
+            logger.info(f"Sent command to Arduino: {command}")
             return True
-            
         except Exception as e:
-            logger.error(f"[SERIAL] Send failed: {e}")
+            logger.error(f"Failed to send command '{command}': {e}")
             return False
     
     def read_line(self) -> Optional[str]:
@@ -212,6 +210,31 @@ class ArduinoSerialComm:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager cleanup."""
         self.disconnect()
+
+    def send_command(self, command: str) -> bool:
+        """
+        Send a command string to the Arduino.
+        
+        Args:
+            command: The command to send (e.g., "FRUITING_FAN_ON").
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not self.is_connected or not self.serial_conn:
+            logger.warning(f"Cannot send command '{command}': Not connected.")
+            return False
+        
+        try:
+            # Ensure command ends with a newline character, as Arduino expects
+            cmd_with_newline = f"{command}\n".encode('utf-8')
+            self.serial_conn.write(cmd_with_newline)
+            self.serial_conn.flush() # Wait until all data is written
+            logger.info(f"Sent command to Arduino: {command}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send command '{command}': {e}")
+            return False
 
 
 # ==================== CONVENIENCE FUNCTIONS ====================

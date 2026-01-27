@@ -71,3 +71,41 @@ async function updateDashboardData() {
 // Update data every 5 seconds
 // setInterval(updateDashboardData, 5000);
 */
+
+// --- Manual Controls Page Logic ---
+const controlSwitches = document.querySelectorAll('.controls-container input[type="checkbox"]');
+
+controlSwitches.forEach(sw => {
+    sw.addEventListener('change', function() {
+        const room = this.dataset.room;
+        const actuator = this.dataset.actuator;
+        const state = this.checked ? 'ON' : 'OFF';
+
+        // Send the command to the backend
+        sendCommand(room, actuator, state);
+    });
+});
+
+async function sendCommand(room, actuator, state) {
+    try {
+        const response = await fetch('/api/control_actuator', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ room, actuator, state }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Command sent successfully:', result);
+        // Optionally, provide user feedback here
+            
+    } catch (error) {
+        console.error('Failed to send command:', error);
+        // Optionally, revert the switch state and show an error to the user
+    }
+}
