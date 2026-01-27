@@ -17,12 +17,14 @@ fi
 # Launch Chromium in kiosk mode using the found path
 $CHROMIUM_CMD \
     --disable-gpu \
+    --enable-features=TouchUI \
     --touch-events=enabled \
-    --password-store=basic \
+    --disable-pinch \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
-    --enable-features=OverscrollHistoryNavigation \
+    --password-store=basic \
     --disable-translate \
+    --overscroll-history-navigation=0 \
     http://localhost:5000
