@@ -249,18 +249,17 @@ If you reboot and the Raspberry Pi goes to the desktop instead of launching the 
     ```bash
     cat ~/.config/lxsession/LXDE-pi/autostart
     ```
-    Ensure a line exists that points to the project's launch script, like this:
-    ```
+    Ensure that a line similar to the following exists in the file. It starts with `@` and points to the launch script.
+    ```bash
     @/home/mash/MASH-IoT/scripts/launch_kiosk.sh
     ```
-    *(The path will depend on where you cloned the project).*
+    *(The path will depend on where you cloned the project).
 
 2.  **Check the Launch Script:**
-    Make sure the launch script is present and executable.
+    Make sure the launch script is present and executable. Check its contents to ensure it includes the `--disable-gpu` flag, which is critical for stability on a Raspberry Pi.
     ```bash
-    ls -l ~/MASH-IoT/scripts/launch_kiosk.sh
+    cat ~/MASH-IoT/scripts/launch_kiosk.sh
     ```
-    The output should show that the file exists and has execute (`x`) permissions.
 
 3.  **Re-run the Setup Script:**
     If either of the above is incorrect, the easiest fix is to run the setup script again. It is safe to run multiple times.
