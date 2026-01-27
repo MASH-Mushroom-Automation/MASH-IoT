@@ -3,11 +3,17 @@
 
 {% block content %}
 <div class="system-info-bar">
-    <span>System Status: <span class="status-ok">Online</span></span>
-    <span>Uptime: <span id="uptime">--</span></span>
+    <div class="view-toggle">
+        <button id="show-fruiting" class="toggle-btn active">Fruiting Room</button>
+        <button id="show-spawning" class="toggle-btn">Spawning Room</button>
+    </div>
+    <div class="system-status">
+        <span>Status: <span class="status-ok">Online</span></span>
+        <span>Uptime: <span id="uptime">--</span></span>
+    </div>
 </div>
 
-<div class="room-container">
+<div id="fruiting-view" class="room-view">
     <!-- Fruiting Room Section -->
     <div class="room-header">
         <h2 class="room-title">Fruiting Room</h2>
@@ -59,7 +65,9 @@
             </div>
         </div>
     </div>
+</div>
 
+<div id="spawning-view" class="room-view" style="display: none;">
     <!-- Spawning Room Section -->
     <div class="room-header">
         <h2 class="room-title">Spawning Room</h2>
