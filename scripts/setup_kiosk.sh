@@ -63,17 +63,21 @@ KIOSK_COMMAND="@$LAUNCH_SCRIPT_PATH"
 # First, make the launch script executable
 chmod +x "$LAUNCH_SCRIPT_PATH"
 
-# Ensure the directory and file exist
+# Ensure the directory exists
 mkdir -p "$(dirname "$AUTOSTART_FILE")"
-touch "$AUTOSTART_FILE"
 
-# Add the command to the autostart file if it's not already there
+# Use tee to add the command with sudo to avoid permission issues,
+# then ensure the file has the correct owner.
 if ! grep -qF "$KIOSK_COMMAND" "$AUTOSTART_FILE"; then
-    echo "$KIOSK_COMMAND" >> "$AUTOSTART_FILE"
+    echo "$KIOSK_COMMAND" | sudo tee -a "$AUTOSTART_FILE" > /dev/null
+    sudo chown "$USER":"$USER" "$AUTOSTART_FILE"
     echo "Chromium kiosk autostart configured."
 else
     echo "Chromium kiosk autostart already configured."
 fi
+
+# Ensure the autostart file is executable
+chmod +x "$AUTOSTART_FILE"
 
 # 3. Disable screen blanking
 echo "[3/4] Disabling screen blanking..."
