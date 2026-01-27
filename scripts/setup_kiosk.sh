@@ -46,23 +46,23 @@ sudo systemctl enable ${SERVICE_NAME}.service
 
 echo "Service created: ${SERVICE_NAME}.service"
 
-# 2. Create autostart entry for Chromium kiosk
+# 2. Configure kiosk mode autostart
 echo "[2/4] Setting up Chromium kiosk mode..."
 
-AUTOSTART_DIR="$HOME/.config/autostart"
-mkdir -p "$AUTOSTART_DIR"
+AUTOSTART_FILE="$HOME/.config/lxsession/LXDE-pi/autostart"
+KIOSK_COMMAND="@/usr/bin/chromium-browser --password-store=basic --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --enable-features=OverscrollHistoryNavigation --disable-translate http://localhost:5000"
 
-cat > "$AUTOSTART_DIR/mash-dashboard.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=M.A.S.H. Dashboard
-Exec=/usr/bin/chromium-browser --password-store=basic --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --enable-features=OverscrollHistoryNavigation --disable-translate http://localhost:5000
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-EOF
+# Ensure the directory and file exist
+mkdir -p "$(dirname "$AUTOSTART_FILE")"
+touch "$AUTOSTART_FILE"
 
-echo "Chromium kiosk autostart configured"
+# Add the command to the autostart file if it's not already there
+if ! grep -qF "$KIOSK_COMMAND" "$AUTOSTART_FILE"; then
+    echo "$KIOSK_COMMAND" >> "$AUTOSTART_FILE"
+    echo "Chromium kiosk autostart configured."
+else
+    echo "Chromium kiosk autostart already configured."
+fi
 
 # 3. Disable screen blanking
 echo "[3/4] Disabling screen blanking..."

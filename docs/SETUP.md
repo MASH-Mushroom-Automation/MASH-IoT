@@ -34,70 +34,65 @@ This guide provides step-by-step instructions for setting up the M.A.S.H. IoT sy
 
 ### 2. Raspberry Pi Gateway Setup
 
-These steps configure the main control application on the Raspberry Pi. Since the repository is private, you must first set up an SSH "Deploy Key" to give the Raspberry Pi secure, read-only access.
+These steps configure the main control application on the Raspberry Pi. Since the repository is private and the organization disables Deploy Keys, you must use a **Personal Access Token (PAT)** to grant the Raspberry Pi secure access.
 
-#### 2.1. Set Up GitHub Access (Deploy Key)
+#### 2.1. Set Up GitHub Access (Personal Access Token)
 
 This is a **one-time setup** to grant the Raspberry Pi access to the private repository.
 
-1.  **Generate an SSH Key on the Raspberry Pi**
-    Open a terminal on your Raspberry Pi and run the following command. When prompted, press Enter to accept the default file location and **leave the passphrase empty**.
-    ```bash
-    ssh-keygen -t ed25519 -C "mash-iot-deploy-key"
-    ```
+1.  **Generate a Personal Access Token on GitHub**
+    *   Log in to your GitHub account.
+    *   Go to **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**.
+    *   Click **Generate new token** and select **Generate new token (classic)**.
+    *   In the **Note** field, give your token a descriptive name, like `MASH IoT RPi Access`.
+    *   Set an **Expiration** date for the token (e.g., 30 or 90 days).
+    *   Under **Select scopes**, check the box next to **`repo`**. This will grant the token permission to access your private repository.
+    *   Scroll down and click **Generate token**.
 
-2.  **Display the Public Key**
-    Use the `cat` command to display the contents of your new public key file.
-    ```bash
-    cat ~/.ssh/id_ed25519.pub
-    ```
-    This will output a long string starting with `ssh-ed25519`. Copy this entire string to your clipboard.
-
-3.  **Add the Deploy Key to GitHub**
-    *   Navigate to your repository on GitHub: `MASH-Mushroom-Automation/MASH-IoT`.
-    *   Go to **Settings** > **Deploy Keys** (in the "Security" section of the sidebar).
-    *   Click **Add deploy key**.
-    *   Give it a **Title**, for example, `MASH IoT Raspberry Pi`.
-    *   Paste the public key you copied from the Pi into the **Key** field.
-    *   **Important:** Do **NOT** check the "Allow write access" box. This ensures the key can only be used to pull code, not push changes.
-    *   Click **Add key**.
+2.  **Copy Your New Token**
+    *   **CRITICAL:** GitHub will show you the token only once. Copy the token string immediately and save it in a secure place temporarily. You will need it for the next step.
 
 #### 2.2. Clone the Repository and Install Dependencies
 
-1.  **Clone the Repository via SSH**
-    Now that the key is in place, you can securely clone the repository. Open a terminal on your Pi and run:
+1.  **Clone the Repository via HTTPS**
+    Open a terminal on your Raspberry Pi and run the standard clone command:
     ```bash
-    # Note: This command uses the SSH URL, not HTTPS
-    git clone git@github.com:MASH-Mushroom-Automation/MASH-IoT.git
+    git clone https://github.com/MASH-Mushroom-Automation/MASH-IoT.git
     cd MASH-IoT
     ```
 
-2.  **Navigate to the Gateway Directory**
+2.  **Authenticate When Prompted**
+    *   When the terminal prompts you for a **Username**, enter your GitHub username and press Enter.
+    *   When it prompts you for a **Password**, **paste the Personal Access Token** you just created. Do not enter your normal GitHub password.
+
+    Git will now clone the repository. It should also automatically cache your token, so you won't need to enter it again for future updates.
+
+3.  **Navigate to the Gateway Directory**
     ```bash
     cd rpi_gateway
     ```
 
-3.  **Create a Python Virtual Environment**
+4.  **Create a Python Virtual Environment**
     ```bash
     python3 -m venv venv
     ```
 
-4.  **Activate the Virtual Environment**
+5.  **Activate the Virtual Environment**
     ```bash
     source venv/bin/activate
     ```
 
-5.  **Upgrade Build Tools**
+6.  **Upgrade Build Tools**
     ```bash
     pip install --upgrade pip setuptools wheel
     ```
 
-6.  **Install Dependencies**
+7.  **Install Dependencies**
     ```bash
     pip install -r requirements.txt
     ```
 
-7.  **Run the Application**
+8.  **Run the Application**
     ```bash
     python -m app.main
     ```
@@ -187,7 +182,7 @@ This step makes the Raspberry Pi automatically launch the dashboard in a full-sc
 
 ### 6. Updating the Application
 
-Now that your setup uses a cloned repository, you can easily update it.
+Because you authenticated with a Personal Access Token when you cloned, the `update.sh` script will work without any changes.
 
 1.  **Navigate to the Scripts Directory**
     ```bash
@@ -228,3 +223,25 @@ sudo apt-get update
 sudo apt-get install build-essential python3-dev libatlas-base-dev
 ```
 After installing these, delete the `venv` folder, create a new one, activate it, and try running `pip install -r requirements.txt` again.
+
+#### Kiosk Mode Browser Does Not Start
+
+If you reboot and the Raspberry Pi goes to the desktop instead of launching the full-screen browser, the autostart configuration may be incorrect.
+
+**Solution: Check the `autostart` file**
+
+1.  Open a terminal on the Raspberry Pi.
+2.  View the contents of the LXDE autostart file:
+    ```bash
+    cat ~/.config/lxsession/LXDE-pi/autostart
+    ```
+3.  Ensure that a line similar to the following exists in the file. It starts with `@` and points to `chromium-browser`:
+    ```bash
+    @/usr/bin/chromium-browser --password-store=basic --kiosk ... http://localhost:5000
+    ```
+4.  If that line is missing, the setup script may have failed. You can try running it again:
+    ```bash
+    cd ~/MASH-IoT/scripts
+    ./setup_kiosk.sh
+    ```
+    Then reboot the Raspberry Pi.
