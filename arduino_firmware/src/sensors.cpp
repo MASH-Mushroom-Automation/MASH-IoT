@@ -3,16 +3,18 @@
 
 #include "sensors.h"
 #include "config.h"
+
 #include <Wire.h>
-#include <SoftWire.h>
+// #include <SoftWire.h> // No longer needed for single sensor setup
 #include <SensirionI2CScd4x.h>
 
 // Hardware I2C sensor (Fruiting Room)
 SensirionI2CScd4x scd41_hw;
 
-// Software I2C sensor (Spawning Room)
-SoftWire softWire(SENSOR2_SDA_PIN, SENSOR2_SCL_PIN);
-SensirionI2CScd4x scd41_sw(softWire);
+// Software I2C sensor (Spawning Room) - DISABLED
+// SoftWire softWire(SENSOR2_SDA_PIN, SENSOR2_SCL_PIN);
+// SensirionI2CScd4x scd41_sw; // This was causing the error, Sensirion lib doesn't support SoftWire directly
+
 
 // ==================== MOVING AVERAGE FILTER ====================
 MovingAverageFilter::MovingAverageFilter(int filterSize) {
@@ -67,19 +69,19 @@ SensorManager::SensorManager() {
     // Initialize filters for both sensors
     tempFilter1 = new MovingAverageFilter(FILTER_SIZE);
     humidityFilter1 = new MovingAverageFilter(FILTER_SIZE);
-    tempFilter2 = new MovingAverageFilter(FILTER_SIZE);
-    humidityFilter2 = new MovingAverageFilter(FILTER_SIZE);
+    // tempFilter2 = new MovingAverageFilter(FILTER_SIZE);
+    // humidityFilter2 = new MovingAverageFilter(FILTER_SIZE);
     
     // Initialize last readings
     lastReading1 = {0, 0, 0, false, 0};
-    lastReading2 = {0, 0, 0, false, 0};
+    // lastReading2 = {0, 0, 0, false, 0};
 }
 
 SensorManager::~SensorManager() {
     delete tempFilter1;
     delete humidityFilter1;
-    delete tempFilter2;
-    delete humidityFilter2;
+    // delete tempFilter2;
+    // delete humidityFilter2;
 }
 
 bool SensorManager::begin() {
@@ -87,35 +89,34 @@ bool SensorManager::begin() {
     Wire.begin();
     scd41_hw.begin(Wire);
     
-    // Initialize Software I2C
-    softWire.begin();
-    scd41_sw.begin(softWire);
+    // Initialize Software I2C - DISABLED
+    // softWire.begin();
+    // scd41_sw.begin(softWire);
     
     // Stop potentially running measurements
     scd41_hw.stopPeriodicMeasurement();
-    scd41_sw.stopPeriodicMeasurement();
+    // scd41_sw.stopPeriodicMeasurement();
     
     delay(100);
     
     // Start periodic measurements
     uint16_t error1 = scd41_hw.startPeriodicMeasurement();
-    uint16_t error2 = scd41_sw.startPeriodicMeasurement();
+    // uint16_t error2 = scd41_sw.startPeriodicMeasurement();
     
     if (error1 != 0) {
         Serial.println(F("[ERROR] Failed to start sensor 1 (fruiting)"));
         return false;
     }
     
-    if (error2 != 0) {
-        Serial.println(F("[ERROR] Failed to start sensor 2 (spawning)"));
-        return false;
-    }
+    // if (error2 != 0) {
+    //     Serial.println(F("[ERROR] Failed to start sensor 2 (spawning)"));
+    //     return false;
+    // }
     
-    Serial.println(F("[OK] Both sensors initialized"));
+    Serial.println(F("[OK] Fruiting sensor initialized"));
     
     // Wait for sensors to warm up
     delay(SENSOR_WARMUP_TIME);
-    
     return true;
 }
 
@@ -161,6 +162,7 @@ SensorReading SensorManager::readSensor1() {
     return reading;
 }
 
+/*
 SensorReading SensorManager::readSensor2() {
     SensorReading reading;
     reading.timestamp = millis();
@@ -193,6 +195,7 @@ SensorReading SensorManager::readSensor2() {
     
     return reading;
 }
+*/
 
 void SensorManager::printReading(const char* room, SensorReading reading) {
     if (!reading.isValid) {

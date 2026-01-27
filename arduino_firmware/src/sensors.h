@@ -38,12 +38,12 @@ private:
     // Filters for anomaly detection
     MovingAverageFilter* tempFilter1;
     MovingAverageFilter* humidityFilter1;
-    MovingAverageFilter* tempFilter2;
-    MovingAverageFilter* humidityFilter2;
+    // MovingAverageFilter* tempFilter2;
+    // MovingAverageFilter* humidityFilter2;
     
     // Last valid readings
     SensorReading lastReading1;
-    SensorReading lastReading2;
+    // SensorReading lastReading2;
     
     // Validation helper
     bool validateReading(float temp, float humidity, uint16_t co2);
@@ -57,7 +57,7 @@ public:
     
     // Read from sensors
     SensorReading readSensor1(); // Fruiting room (Hardware I2C)
-    SensorReading readSensor2(); // Spawning room (Software I2C)
+    // SensorReading readSensor2(); // Spawning room (Software I2C)
     
     // Get filtered readings
     void printReading(const char* room, SensorReading reading);

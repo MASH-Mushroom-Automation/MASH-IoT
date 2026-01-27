@@ -140,94 +140,102 @@ class MushroomAI:
         is_anomaly, _ = self.detect_anomaly(sensor_data)
         if is_anomaly:
             logger.warning(f"Skipping actuation for anomalous {room} data")
-            return {"fan": "off", "mist": "off", "light": "off"}  # Safe state
-        
-        if self.ml_enabled and self.actuator_model is not None:
-            return self._ml_based_actuation(room, sensor_data)
-        else:
-            return self._rule_based_actuation(room, sensor_data)
-    
-    def _ml_based_actuation(self, room: str, sensor_data: Dict) -> Dict[str, str]:
-        """ML-powered actuation decisions"""
-        try:
-            # Feature engineering: [temp, humidity, co2, hour_of_day]
-            hour = datetime.now().hour
-            features = np.array([[
-                sensor_data.get('temp', 0),
-                sensor_data.get('humidity', 0),
-                sensor_data.get('co2', 0),
-                hour
-            ]])
-            
-            # Predict [fan_state, mist_state, light_state] (0=off, 1=on)
-            predictions = self.actuator_model.predict(features)[0]
-            
+            # Return a safe state for all possible actuators
             return {
-                "fan": "on" if predictions[0] == 1 else "off",
-                "mist": "on" if predictions[1] == 1 else "off",
-                "light": "on" if predictions[2] == 1 else "off"
+                "exhaust_fan": "OFF", "intake_fan": "OFF", 
+                "humidity_system": "OFF", "light": "OFF"
             }
-            
-        except Exception as e:
-            logger.error(f"ML actuation failed: {e}, falling back to rules")
-            return self._rule_based_actuation(room, sensor_data)
-    
-    def _rule_based_actuation(self, room: str, sensor_data: Dict) -> Dict[str, str]:
-        """Fallback rule-based automation (threshold logic)"""
-        room_config = self.config.get(f"{room}_room", {})
         
+        # Route to the correct logic based on the room
+        if room == "fruiting":
+            return self._rule_based_fruiting_actuation(sensor_data)
+        elif room == "spawning":
+            return self._rule_based_spawning_actuation(sensor_data)
+        else:
+            logger.warning(f"Unknown room '{room}', returning safe state.")
+            return {
+                "exhaust_fan": "OFF", "intake_fan": "OFF", 
+                "humidity_system": "OFF", "light": "OFF"
+            }
+
+    def _rule_based_fruiting_actuation(self, sensor_data: Dict) -> Dict[str, str]:
+        """Rule-based logic for the fruiting room."""
+        config = self.config.get("fruiting_room", {})
         temp = sensor_data.get('temp', 0)
         humidity = sensor_data.get('humidity', 0)
         co2 = sensor_data.get('co2', 0)
+
+        # Exhaust Fan: Controlled by CO2 levels
+        co2_max = config.get('co2_max', 1000)
+        exhaust_fan_state = "ON" if co2 > co2_max else "OFF"
+
+        # Humidity System: Controlled by humidity levels
+        humidity_target = config.get('humidity_target', 90)
+        humidity_system_state = "ON" if humidity < humidity_target else "OFF"
         
-        # Fan Control: Turn on if CO2 exceeds threshold
-        fan_threshold = room_config.get('fan_control', {}).get('co2_threshold', 1000)
-        fan_state = "on" if co2 > fan_threshold else "off"
-        
-        # Mist Control: Turn on if humidity drops below threshold
-        mist_threshold = room_config.get('mist_control', {}).get('humidity_threshold', 85)
-        mist_state = "on" if humidity < mist_threshold else "off"
-        
-        # Light Control: Based on time and room type
-        hour = datetime.now().hour
-        light_duration = room_config.get('light', {}).get('duration', 0)
-        
-        # Simple photoperiod: Light on from 8 AM to (8 AM + duration)
-        if room == "fruiting" and light_duration > 0:
-            light_state = "on" if 8 <= hour < (8 + light_duration) else "off"
-        else:
-            light_state = "off"  # Spawning room stays dark
-        
-        logger.info(f"{room.capitalize()} Room - Rule-based: Fan={fan_state}, Mist={mist_state}, Light={light_state}")
-        
+        # For now, intake_fan can mirror the exhaust_fan or have its own logic.
+        # Let's assume it works in tandem with the exhaust fan.
+        intake_fan_state = exhaust_fan_state
+
         return {
-            "fan": fan_state,
-            "mist": mist_state,
-            "light": light_state
+            "exhaust_fan": exhaust_fan_state,
+            "intake_fan": intake_fan_state,
+            "humidity_system": humidity_system_state,
         }
-    
-    def process_sensor_reading(self, room: str, sensor_data: Dict) -> List[str]:
+
+    def _rule_based_spawning_actuation(self, sensor_data: Dict) -> Dict[str, str]:
         """
-        Main entry point: Process sensor reading and generate commands.
+        Rule-based logic for the spawning room.
+        - Timed exhaust fan for air exchange.
+        - Emergency exhaust fan activation if temperature is too high.
+        """
+        config = self.config.get("spawning_room", {})
+        temp = sensor_data.get('temp', 0)
+        
+        # Emergency Temperature Flush
+        temp_emergency_threshold = config.get('temp_emergency', 28)
+        if temp > temp_emergency_threshold:
+            logger.warning(f"SPAWNING EMERGENCY: Temp at {temp}°C. Forcing exhaust fan ON.")
+            return {"exhaust_fan": "ON"}
+
+        # Timed Air Cycle Logic (placeholder)
+        # This logic is more complex as it requires state (last run time).
+        # For now, we'll keep it simple and turn it off. A real implementation
+        # would use a timestamp to decide when to run the timed cycle.
+        # For example, run for 5 minutes every 4 hours.
+        exhaust_fan_state = "OFF" 
+
+        return {
+            "exhaust_fan": exhaust_fan_state
+        }
+
+    def process_sensor_reading(self, room_data: Dict) -> List[str]:
+        """
+        Main entry point: Process sensor readings for all rooms and generate commands.
         
         Args:
-            room: "fruiting" or "spawning"
-            sensor_data: Dict with {temp, humidity, co2}
+            room_data: Dict with "fruiting" and "spawning" keys.
+                       e.g., {"fruiting": {"temp":...}, "spawning": {"temp":...}}
         
         Returns:
-            List of command strings to send to Arduino (e.g., ["FRUITING_FAN_ON"])
+            List of command strings to send to Arduino (e.g., ["FRUITING_EXHAUST_FAN_ON"])
         """
-        actuator_states = self.predict_actuator_states(room, sensor_data)
+        all_commands = []
         
-        # Convert states to Arduino commands
-        commands = []
-        room_prefix = room.upper()
-        
-        for actuator, state in actuator_states.items():
-            command = f"{room_prefix}_{actuator.upper()}_{state.upper()}"
-            commands.append(command)
-        
-        return commands
+        for room, sensor_data in room_data.items():
+            if room not in ["fruiting", "spawning"]:
+                continue
+
+            actuator_states = self.predict_actuator_states(room, sensor_data)
+            
+            # Convert states to Arduino commands
+            room_prefix = room.upper()
+            
+            for actuator, state in actuator_states.items():
+                command = f"{room_prefix}_{actuator.upper()}_{state.upper()}"
+                all_commands.append(command)
+                
+        return all_commands
 
 
 # Training utilities (for baseline data generation)

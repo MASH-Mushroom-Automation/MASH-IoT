@@ -69,7 +69,7 @@ void loop() {
         
         // Read both sensors
         SensorReading fruiting = sensors.readSensor1();
-        SensorReading spawning = sensors.readSensor2();
+        // SensorReading spawning = sensors.readSensor2();
         
         // Create JSON output
         StaticJsonDocument<JSON_BUFFER_SIZE> doc;
@@ -84,7 +84,8 @@ void loop() {
             fruitingObj["error"] = "invalid_reading";
         }
         
-        // Spawning room data
+        // Spawning room data - DISABLED
+        /*
         JsonObject spawningObj = doc.createNestedObject("spawning");
         if (spawning.isValid) {
             spawningObj["temp"] = round(spawning.temperature * 10) / 10.0;
@@ -93,6 +94,7 @@ void loop() {
         } else {
             spawningObj["error"] = "invalid_reading";
         }
+        */
         
         // Send JSON to RPi
         serializeJson(doc, Serial);
