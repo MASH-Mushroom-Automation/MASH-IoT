@@ -29,6 +29,10 @@ This guide provides step-by-step instructions for setting up the M.A.S.H. IoT sy
 *   [Visual Studio Code](https://code.visualstudio.com/) with the following extensions:
     *   **PlatformIO IDE:** For compiling and uploading Arduino firmware.
     *   **Python:** For Raspberry Pi development.
+*   **Chromium Browser:** The kiosk mode interface. Install on the Raspberry Pi with:
+    ```bash
+    sudo apt-get update && sudo apt-get install -y chromium-browser
+    ```
 
 ---
 
@@ -65,34 +69,38 @@ This is a **one-time setup** to grant the Raspberry Pi access to the private rep
     *   When the terminal prompts you for a **Username**, enter your GitHub username and press Enter.
     *   When it prompts you for a **Password**, **paste the Personal Access Token** you just created. Do not enter your normal GitHub password.
 
-    Git will now clone the repository. It should also automatically cache your token, so you won't need to enter it again for future updates.
+3.  **Configure Git to Store Your Credentials**
+    Run the following command to tell Git to save your token so you don't have to enter it again. This needs to be done only once.
+    ```bash
+    git config --global credential.helper store
+    ```
 
-3.  **Navigate to the Gateway Directory**
+4.  **Navigate to the Gateway Directory**
     ```bash
     cd rpi_gateway
     ```
 
-4.  **Create a Python Virtual Environment**
+5.  **Create a Python Virtual Environment**
     ```bash
     python3 -m venv venv
     ```
 
-5.  **Activate the Virtual Environment**
+6.  **Activate the Virtual Environment**
     ```bash
     source venv/bin/activate
     ```
 
-6.  **Upgrade Build Tools**
+7.  **Upgrade Build Tools**
     ```bash
     pip install --upgrade pip setuptools wheel
     ```
 
-7.  **Install Dependencies**
+8.  **Install Dependencies**
     ```bash
     pip install -r requirements.txt
     ```
 
-8.  **Run the Application**
+9.  **Run the Application**
     ```bash
     python -m app.main
     ```

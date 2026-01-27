@@ -13,21 +13,25 @@ cd "$(dirname "$0")/.." || { echo "Could not find project directory. Exiting."; 
 
 echo "Current directory: $(pwd)"
 
+# 0. Ensure the Git credential helper is configured
+echo "[0/6] Configuring Git credential helper..."
+git config --global credential.helper store
+
 # 1. Force reset the repository to match the remote version
-echo "[1/5] Discarding local changes and resetting to the latest version..."
+echo "[1/6] Discarding local changes and resetting to the latest version..."
 git fetch origin
 git reset --hard origin/main
 
 # 2. Clean up any untracked files that might cause conflicts
-echo "[2/5] Removing untracked files..."
+echo "[2/6] Removing untracked files..."
 git clean -df
 
 # 3. Pull the latest code (this will now be a formality, ensuring everything is synced)
-echo "[3/5] Pulling latest changes from GitHub..."
+echo "[3/6] Pulling latest changes from GitHub..."
 git pull origin main
 
 # 4. Activate virtual environment and install/update dependencies
-echo "[4/5] Checking for updated Python dependencies..."
+echo "[4/6] Checking for updated Python dependencies..."
 if [ -f "rpi_gateway/requirements.txt" ]; then
     source rpi_gateway/venv/bin/activate
     pip install -r rpi_gateway/requirements.txt
@@ -38,13 +42,13 @@ else
 fi
 
 # 5. Restart the backend service to apply changes
-echo "[5/5] Restarting the M.A.S.H. IoT service..."
+echo "[5/6] Restarting the M.A.S.H. IoT service..."
 sudo systemctl restart mash-iot.service
 
 # Give the service a moment to start up
 sleep 5
 
-echo "Checking service status..."
+echo "[6/6] Checking service status..."
 if systemctl is-active --quiet mash-iot.service; then
     echo "SUCCESS: The service was restarted successfully and is running."
 else

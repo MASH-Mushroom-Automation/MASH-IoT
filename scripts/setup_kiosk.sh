@@ -49,6 +49,13 @@ echo "Service created: ${SERVICE_NAME}.service"
 # 2. Configure kiosk mode autostart
 echo "[2/4] Setting up Chromium kiosk mode..."
 
+# First, check if Chromium is installed. Exit if it's not.
+if ! command -v chromium-browser &> /dev/null && ! command -v chromium &> /dev/null; then
+    echo "ERROR: Chromium browser not found. Please install it first by running:"
+    echo "sudo apt-get update && sudo apt-get install -y chromium-browser"
+    exit 1
+fi
+
 LAUNCH_SCRIPT_PATH="$PROJECT_DIR/scripts/launch_kiosk.sh"
 AUTOSTART_FILE="$HOME/.config/lxsession/LXDE-pi/autostart"
 KIOSK_COMMAND="@$LAUNCH_SCRIPT_PATH"
