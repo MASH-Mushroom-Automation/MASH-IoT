@@ -8,7 +8,8 @@ This guide provides step-by-step instructions for setting up the M.A.S.H. IoT sy
 3.  [Arduino Firmware Setup](#3-arduino-firmware-setup)
 4.  [Kiosk Mode Configuration](#4-kiosk-mode-configuration)
 5.  [System Verification](#5-system-verification)
-6.  [Troubleshooting](#6-troubleshooting)
+6.  [Updating the Application](#6-updating-the-application)
+7.  [Troubleshooting](#7-troubleshooting)
 
 ---
 
@@ -33,52 +34,74 @@ This guide provides step-by-step instructions for setting up the M.A.S.H. IoT sy
 
 ### 2. Raspberry Pi Gateway Setup
 
-These steps configure the main control application on the Raspberry Pi.
+These steps configure the main control application on the Raspberry Pi. Since the repository is private, you must first set up an SSH "Deploy Key" to give the Raspberry Pi secure, read-only access.
 
-1.  **Clone the Repository**
-    Open a terminal on your Raspberry Pi and clone the project:
+#### 2.1. Set Up GitHub Access (Deploy Key)
+
+This is a **one-time setup** to grant the Raspberry Pi access to the private repository.
+
+1.  **Generate an SSH Key on the Raspberry Pi**
+    Open a terminal on your Raspberry Pi and run the following command. When prompted, press Enter to accept the default file location and **leave the passphrase empty**.
     ```bash
-    git clone https://github.com/MASH-Mushroom-Automation/MASH-IoT.git
+    ssh-keygen -t ed25519 -C "mash-iot-deploy-key"
+    ```
+
+2.  **Display the Public Key**
+    Use the `cat` command to display the contents of your new public key file.
+    ```bash
+    cat ~/.ssh/id_ed25519.pub
+    ```
+    This will output a long string starting with `ssh-ed25519`. Copy this entire string to your clipboard.
+
+3.  **Add the Deploy Key to GitHub**
+    *   Navigate to your repository on GitHub: `MASH-Mushroom-Automation/MASH-IoT`.
+    *   Go to **Settings** > **Deploy Keys** (in the "Security" section of the sidebar).
+    *   Click **Add deploy key**.
+    *   Give it a **Title**, for example, `MASH IoT Raspberry Pi`.
+    *   Paste the public key you copied from the Pi into the **Key** field.
+    *   **Important:** Do **NOT** check the "Allow write access" box. This ensures the key can only be used to pull code, not push changes.
+    *   Click **Add key**.
+
+#### 2.2. Clone the Repository and Install Dependencies
+
+1.  **Clone the Repository via SSH**
+    Now that the key is in place, you can securely clone the repository. Open a terminal on your Pi and run:
+    ```bash
+    # Note: This command uses the SSH URL, not HTTPS
+    git clone git@github.com:MASH-Mushroom-Automation/MASH-IoT.git
     cd MASH-IoT
     ```
 
 2.  **Navigate to the Gateway Directory**
-    All commands for the gateway should be run from this directory.
     ```bash
     cd rpi_gateway
     ```
 
 3.  **Create a Python Virtual Environment**
-    This isolates the project's dependencies from the system's Python installation.
     ```bash
     python3 -m venv venv
     ```
 
 4.  **Activate the Virtual Environment**
-    You must activate the environment in every new terminal session before running the application.
     ```bash
     source venv/bin/activate
     ```
-    *On Windows, the command is `venv\\Scripts\\activate`.*
 
 5.  **Upgrade Build Tools**
-    Before installing the dependencies, upgrade pip's core tools to prevent build errors, especially on Raspberry Pi.
     ```bash
     pip install --upgrade pip setuptools wheel
     ```
 
 6.  **Install Dependencies**
-    This command reads the `requirements.txt` file and installs all necessary Python libraries.
     ```bash
     pip install -r requirements.txt
     ```
 
 7.  **Run the Application**
-    To start the web server and the Arduino communication loop, run the main module:
     ```bash
     python -m app.main
     ```
-    You should see output indicating that the server has started, typically on `http://127.0.0.1:5000`.
+    The server should start on `http://127.0.0.1:5000`. You can now stop it with `Ctrl+C`.
 
 ---
 
@@ -162,7 +185,29 @@ This step makes the Raspberry Pi automatically launch the dashboard in a full-sc
 
 ---
 
-### 6. Troubleshooting
+### 6. Updating the Application
+
+Now that your setup uses a cloned repository, you can easily update it.
+
+1.  **Navigate to the Scripts Directory**
+    ```bash
+    cd ~/MASH-IoT/scripts
+    ```
+
+2.  **Make the Update Script Executable** (if you haven't already)
+    ```bash
+    chmod +x update.sh
+    ```
+
+3.  **Run the Script**
+    This command will fetch the latest code, update dependencies, and restart the app.
+    ```bash
+    ./update.sh
+    ```
+
+---
+
+### 7. Troubleshooting
 
 #### `scikit-learn` Installation Fails on Raspberry Pi
 
