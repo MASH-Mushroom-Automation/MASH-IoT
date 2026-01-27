@@ -69,15 +69,21 @@ This is a **one-time setup** to grant the Raspberry Pi access to the private rep
     *   When the terminal prompts you for a **Username**, enter your GitHub username and press Enter.
     *   When it prompts you for a **Password**, **paste the Personal Access Token** you just created. Do not enter your normal GitHub password.
 
-3.  **Configure Git to Store Your Credentials**
-    Run the following command to tell Git to save your token so you don't have to enter it again. This needs to be done only once.
+3.  **IMPORTANT: Store Your Credentials**
+    After you have successfully cloned the repository, you **must** run the following command. This tells Git to save your Personal Access Token in a plain-text file in your home directory, so you will never be asked for it again.
     ```bash
     git config --global credential.helper store
     ```
+    To verify it worked, you can run the update script, and it should not ask for your credentials:
+    ```bash
+    cd scripts
+    ./update.sh
+    ```
 
 4.  **Navigate to the Gateway Directory**
+    Return to the gateway directory to continue the setup.
     ```bash
-    cd rpi_gateway
+    cd ../rpi_gateway
     ```
 
 5.  **Create a Python Virtual Environment**

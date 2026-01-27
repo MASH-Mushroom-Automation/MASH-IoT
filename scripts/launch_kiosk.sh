@@ -16,6 +16,7 @@ fi
 
 # Launch Chromium in kiosk mode using the found path
 $CHROMIUM_CMD \
+    --touch-events=enabled \
     --password-store=basic \
     --kiosk \
     --noerrdialogs \

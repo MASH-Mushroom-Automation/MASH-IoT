@@ -3,7 +3,7 @@ import time
 import os
 
 # --- CONFIGURATION ---
-HOTSPOT_SSID = "RPi_IoT_Provisioning" 
+HOTSPOT_SSID = "MASH-Device" 
 HOTSPOT_IP = "10.42.0.1"
 
 def run_command(command, ignore_fail=False):

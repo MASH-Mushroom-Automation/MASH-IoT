@@ -66,11 +66,10 @@ chmod +x "$LAUNCH_SCRIPT_PATH"
 # Ensure the directory exists
 mkdir -p "$(dirname "$AUTOSTART_FILE")"
 
-# Use tee to add the command with sudo to avoid permission issues,
-# then ensure the file has the correct owner.
+# Add the command to the autostart file if it's not already there
+# This method is more robust for user-level autostart files.
 if ! grep -qF "$KIOSK_COMMAND" "$AUTOSTART_FILE"; then
-    echo "$KIOSK_COMMAND" | sudo tee -a "$AUTOSTART_FILE" > /dev/null
-    sudo chown "$USER":"$USER" "$AUTOSTART_FILE"
+    echo "$KIOSK_COMMAND" >> "$AUTOSTART_FILE"
     echo "Chromium kiosk autostart configured."
 else
     echo "Chromium kiosk autostart already configured."
