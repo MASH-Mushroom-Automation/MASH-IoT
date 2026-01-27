@@ -56,7 +56,7 @@ cat > "$AUTOSTART_DIR/mash-dashboard.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=M.A.S.H. Dashboard
-Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble http://localhost:5000
+Exec=/usr/bin/chromium-browser --password-store=basic --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble http://localhost:5000
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
