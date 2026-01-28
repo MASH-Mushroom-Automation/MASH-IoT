@@ -14,6 +14,17 @@ SensorManager sensors;
 ActuatorManager actuators;
 SafetyWatchdog watchdog(WATCHDOG_TIMEOUT);
 
+// ==================== JSON & SERIAL ====================
+StaticJsonDocument<256> jsonSensorDoc;
+StaticJsonDocument<128> jsonCommandDoc;
+char serialBuffer[128];
+
+// ==================== FUNCTION PROTOTYPES ====================
+void handleSerialCommands();
+ActuatorType stringToActuatorType(const char* str);
+ActuatorState stringToActuatorState(const char* str);
+
+
 // ==================== TIMING ====================
 unsigned long lastSensorRead = 0;
 unsigned long lastWatchdogCheck = 0;
@@ -62,8 +73,11 @@ void setup() {
 // ==================== MAIN LOOP ====================
 void loop() {
     unsigned long currentMillis = millis();
+
+    // ==================== TASK 1: HANDLE INCOMING COMMANDS ====================
+    handleSerialCommands();
     
-    // ==================== TASK 1: READ SENSORS ====================
+    // ==================== TASK 2: READ SENSORS & REPORT ====================
     if (currentMillis - lastSensorRead >= SENSOR_READ_INTERVAL) {
         lastSensorRead = currentMillis;
         
@@ -72,10 +86,10 @@ void loop() {
         // SensorReading spawning = sensors.readSensor2();
         
         // Create JSON output
-        StaticJsonDocument<JSON_BUFFER_SIZE> doc;
+        jsonSensorDoc.clear();
         
         // Fruiting room data
-        JsonObject fruitingObj = doc.createNestedObject("fruiting");
+        JsonObject fruitingObj = jsonSensorDoc.createNestedObject("fruiting");
         if (fruiting.isValid) {
             fruitingObj["temp"] = round(fruiting.temperature * 10) / 10.0;
             fruitingObj["humidity"] = round(fruiting.humidity * 10) / 10.0;
@@ -86,7 +100,7 @@ void loop() {
         
         // Spawning room data - DISABLED
         /*
-        JsonObject spawningObj = doc.createNestedObject("spawning");
+        JsonObject spawningObj = jsonSensorDoc.createNestedObject("spawning");
         if (spawning.isValid) {
             spawningObj["temp"] = round(spawning.temperature * 10) / 10.0;
             spawningObj["humidity"] = round(spawning.humidity * 10) / 10.0;
@@ -97,7 +111,7 @@ void loop() {
         */
         
         // Send JSON to RPi
-        serializeJson(doc, Serial);
+        serializeJson(jsonSensorDoc, Serial);
         Serial.println();  // End with newline
     }
     
@@ -120,15 +134,76 @@ void loop() {
         }
     }
     
-    // ==================== TASK 3: WATCHDOG CHECK ====================
-    if (currentMillis - lastWatchdogCheck >= WATCHDOG_CHECK_INTERVAL) {
+    // ==================== TASK 3: PET WATCHDOG ====================
+    if (currentMillis - lastWatchdogCheck >= 1000) {
         lastWatchdogCheck = currentMillis;
-        
-        if (watchdog.checkTimeout()) {
-            // SAFETY TRIGGERED: No serial communication
-            actuators.shutdownAll();
-            Serial.println(F("[EMERGENCY] Watchdog triggered - All systems OFF"));
+        watchdog.pet();
+    }
+}
+
+// ==================== COMMAND HANDLING ====================
+
+void handleSerialCommands() {
+    static int bufferPos = 0;
+
+    while (Serial.available() > 0) {
+        char incomingChar = Serial.read();
+
+        if (incomingChar == '\\n' || incomingChar == '\\r') {
+            if (bufferPos > 0) {
+                serialBuffer[bufferPos] = '\\0'; // Null-terminate the string
+
+                DeserializationError error = deserializeJson(jsonCommandDoc, serialBuffer);
+
+                if (error) {
+                    Serial.print(F("[ERROR] deserializeJson() failed: "));
+                    Serial.println(error.c_str());
+                } else {
+                    const char* actuatorStr = jsonCommandDoc["actuator"];
+                    const char* stateStr = jsonCommandDoc["state"];
+
+                    if (actuatorStr && stateStr) {
+                        ActuatorType type = stringToActuatorType(actuatorStr);
+                        ActuatorState state = stringToActuatorState(stateStr);
+
+                        if (type != (ActuatorType)-1) {
+                            actuators.set(type, state);
+                            Serial.print(F("[CMD] Set "));
+                            Serial.print(actuatorStr);
+                            Serial.print(F(" to "));
+                            Serial.println(stateStr);
+                        } else {
+                            Serial.print(F("[ERROR] Unknown actuator: "));
+                            Serial.println(actuatorStr);
+                        }
+                    } else {
+                        Serial.println(F("[ERROR] Invalid JSON command format. Missing 'actuator' or 'state'."));
+                    }
+                }
+                
+                // Clear the buffer for the next command
+                bufferPos = 0; 
+            }
+        } else {
+            if (bufferPos < sizeof(serialBuffer) - 1) {
+                serialBuffer[bufferPos++] = incomingChar;
+            }
         }
     }
+}
+
+ActuatorType stringToActuatorType(const char* str) {
+    if (strcmp(str, "SPAWNING_EXHAUST_FAN") == 0) return SPAWNING_EXHAUST_FAN;
+    if (strcmp(str, "FRUITING_EXHAUST_FAN") == 0) return FRUITING_EXHAUST_FAN;
+    if (strcmp(str, "FRUITING_BLOWER_FAN") == 0) return FRUITING_BLOWER_FAN;
+    if (strcmp(str, "HUMIDIFIER_FAN") == 0) return HUMIDIFIER_FAN;
+    if (strcmp(str, "HUMIDIFIER") == 0) return HUMIDIFIER;
+    if (strcmp(str, "FRUITING_LED") == 0) return FRUITING_LED;
+    return (ActuatorType)-1; // Invalid actuator
+}
+
+ActuatorState stringToActuatorState(const char* str) {
+    if (strcmp(str, "ON") == 0) return STATE_ON;
+    return STATE_OFF;
 }
 

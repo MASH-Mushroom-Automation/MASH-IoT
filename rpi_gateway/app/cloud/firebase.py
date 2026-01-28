@@ -5,7 +5,7 @@ Implements offline-first pattern: SQLite -> Firebase Realtime Database
 import os
 import logging
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 
 try:
@@ -25,7 +25,7 @@ class FirebaseSync:
     Pattern: Local SQLite (primary) -> Firebase (backup/analytics)
     """
     
-    def __init__(self, config_path: str = "config/firebase_config.json", db_url: str = None):
+    def __init__(self, config_path: str = "config/firebase_config.json", db_url: Optional[str] = None):
         self.config_path = config_path
         self.db_url = db_url
         self.is_initialized = False
@@ -73,13 +73,14 @@ class FirebaseSync:
         Upload sensor readings to Firebase.
         
         Args:
-            readings: List of sensor data dicts
+            readings: List of sensor data dicts with structure:
+                      {'id': 1, 'room': 'fruiting', 'temp': 24.5, 'humidity': 85, 'co2': 800, 'timestamp': ...}
         
         Returns:
             Number of successfully synced records
         """
         if not self.is_initialized or not FIREBASE_AVAILABLE:
-            logger.warning("[FIREBASE] Not initialized, skipping sync")
+            logger.debug("[FIREBASE] Not initialized, skipping sync")
             return 0
         
         synced_count = 0
@@ -89,17 +90,26 @@ class FirebaseSync:
             
             for reading in readings:
                 try:
-                    timestamp_key = reading.get('timestamp', datetime.now().isoformat()).replace(':', '-').replace('.', '-')
+                    # Create timestamp key (Firebase-friendly)
+                    timestamp = reading.get('timestamp')
+                    if isinstance(timestamp, str):
+                        timestamp_key = timestamp.replace(':', '-').replace('.', '-')
+                    else:
+                        timestamp_key = datetime.now().isoformat().replace(':', '-').replace('.', '-')
+                    
                     room = reading.get('room', 'unknown')
                     
+                    # Path: /sensor_data/{room}/{timestamp_key}
                     room_ref = ref.child(room).child(timestamp_key)
                     
+                    # Upload data
                     room_ref.set({
                         'temperature': reading.get('temp'),
                         'humidity': reading.get('humidity'),
                         'co2': reading.get('co2'),
                         'timestamp': reading.get('timestamp'),
-                        'synced_at': datetime.now().isoformat()
+                        'synced_at': datetime.now().isoformat(),
+                        'record_id': reading.get('id')
                     })
                     
                     synced_count += 1
@@ -107,14 +117,74 @@ class FirebaseSync:
                 except Exception as e:
                     logger.error(f"[FIREBASE] Failed to sync reading {reading.get('id')}: {e}")
             
-            logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings")
+            if synced_count > 0:
+                logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings")
+            
             return synced_count
             
         except Exception as e:
             logger.error(f"[FIREBASE] Batch sync failed: {e}")
             return synced_count
+    
+    def sync_device_status(self, device_id: str, status: str, metadata: Optional[Dict] = None) -> bool:
+        """
+        Update device status in Firebase.
+        
+        Args:
+            device_id: Device identifier
+            status: Device status (ONLINE, OFFLINE, ERROR)
+            metadata: Optional additional status information
+        
+        Returns:
+            True if successful
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+        
+        try:
+            ref = firebase_db.reference(f'devices/{device_id}/status')
+            
+            ref.set({
+                'status': status,
+                'last_update': datetime.now().isoformat(),
+                'metadata': metadata or {}
+            })
+            
+            logger.debug(f"[FIREBASE] Device status updated: {status}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[FIREBASE] Status update failed: {e}")
+            return False
+    
+    def get_device_config(self, device_id: str) -> Optional[Dict]:
+        """
+        Fetch device configuration from Firebase.
+        
+        Args:
+            device_id: Device identifier
+        
+        Returns:
+            Configuration dictionary or None
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return None
+        
+        try:
+            ref = firebase_db.reference(f'devices/{device_id}/config')
+            config = ref.get()
+            
+            if config:
+                logger.info("[FIREBASE] Device config fetched")
+            
+            return config
+            
+        except Exception as e:
+            logger.error(f"[FIREBASE] Config fetch failed: {e}")
+            return None
 
 
-def create_firebase_sync(config_path: str = "config/firebase_config.json") -> FirebaseSync:
+def create_firebase_sync(config_path: str = "config/firebase_config.json", db_url: Optional[str] = None) -> FirebaseSync:
     """Factory function to create FirebaseSync instance."""
-    return FirebaseSync(config_path=config_path)
+    return FirebaseSync(config_path=config_path, db_url=db_url)
+

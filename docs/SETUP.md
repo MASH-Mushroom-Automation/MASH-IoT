@@ -255,11 +255,13 @@ If you reboot and the Raspberry Pi goes to the desktop instead of launching the 
     ```
     *(The path will depend on where you cloned the project).
 
-2.  **Check the Launch Script:**
-    Make sure the launch script is present and executable. Check its contents to ensure it includes the `--disable-gpu` flag, which is critical for stability on a Raspberry Pi.
+2.  **Manually Test the Launch Script:**
+    You can test if the launch script itself is working by running it **from the graphical desktop's terminal application** (not via SSH).
     ```bash
-    cat ~/MASH-IoT/scripts/launch_kiosk.sh
+    cd ~/MASH-IoT/scripts
+    ./launch_kiosk.sh
     ```
+    This should open Chromium in kiosk mode after a 10-second delay. If you see a `Missing X server or $DISPLAY` error, it means you are not in a graphical session, which is expected. The script will still work correctly on boot.
 
 3.  **Re-run the Setup Script:**
     If either of the above is incorrect, the easiest fix is to run the setup script again. It is safe to run multiple times.

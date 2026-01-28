@@ -8,6 +8,10 @@ import time
 import yaml
 from flask import Flask
 from threading import Thread
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
 
 # Add app directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.serial_comm import ArduinoSerialComm
 from core.logic_engine import MushroomAI
 from database.db_manager import DatabaseManager
+from cloud.backend_api import BackendAPIClient
 from web.routes import web_bp
 
 logging.basicConfig(
@@ -48,6 +53,10 @@ class MASHOrchestrator:
         
         # Components
         self.db = DatabaseManager()
+        
+        # Backend API client
+        self.backend = BackendAPIClient()
+        logger.info("[BACKEND] API client initialized")
         
         # Arduino port (Windows: COM3, Linux: /dev/ttyACM0)
         arduino_port = 'COM3' if sys.platform == 'win32' else '/dev/ttyACM0'
@@ -124,6 +133,13 @@ class MASHOrchestrator:
             
             logger.info(f"[DATA] Received sensor data at {data.get('timestamp', 'unknown')}")
             
+            # Upload to backend (non-blocking)
+            if self.backend:
+                try:
+                    self.backend.send_sensor_data(data)
+                except Exception as e:
+                    logger.warning(f"[BACKEND] Upload failed: {e}")
+            
             # ML Automation: Process readings and generate commands
             if self.ai is not None:
                 self._run_automation(data)
@@ -183,51 +199,48 @@ class MASHOrchestrator:
         thread.start()
     
     def start(self, host='0.0.0.0', port=5000, debug=False):
-        """Start the M.A.S.H. system."""
+        """Start the M.A.S.H. system and register device with backend"""
         try:
-            logger.info("=" * 50)
-            logger.info("  M.A.S.H. IoT System Starting")
-            logger.info("  Mushroom Automation Smart Home")
-            logger.info("=" * 50)
-            
+            if self.backend:
+                try:
+                    self.backend.register_device()
+                except Exception as e:
+                    logger.warning(f"[BACKEND] Device registration failed: {e}")
             # Connect to database
             self.db.connect()
-            
             # Start serial communication
             self.is_running = True
             self.start_serial_listener()
-            
-            # Make latest data available to Flask routes
+            # Make components available to Flask routes via app context
+            self.app.serial_comm = self.arduino
+            self.app.backend_client = self.backend
+            self.app.backend_connected = self.backend.check_connection() if self.backend else False
+            self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
-            self.app.config['ARDUINO'] = self.arduino
             self.app.config['DB'] = self.db
-            
             logger.info(f"[WEB] Starting Flask server on {host}:{port}")
-            
+            logger.info(f"[WEB] Access dashboard at: http://{host}:{port}/dashboard")
             # Start Flask (blocks here)
             self.app.run(host=host, port=port, debug=debug, use_reloader=False)
-            
         except KeyboardInterrupt:
             logger.info("[MAIN] Shutting down...")
         except Exception as e:
             logger.error(f"[MAIN] Error: {e}")
         finally:
             self.shutdown()
-    
     def shutdown(self):
         """Graceful shutdown."""
         logger.info("[MAIN] Shutting down M.A.S.H. system...")
-        
         self.is_running = False
-        
         # Disconnect Arduino
         if self.arduino:
             self.arduino.disconnect()
-        
+        # Close backend connection
+        if self.backend:
+            self.backend.close()
         # Close database
         if self.db:
             self.db.disconnect()
-        
         logger.info("[MAIN] Goodbye!")
 
 

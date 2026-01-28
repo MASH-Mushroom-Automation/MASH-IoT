@@ -16,16 +16,30 @@
                 </label>
             </div>
             <div class="actuator-item">
-                <span><i class="fas fa-arrow-down"></i> Intake Fan</span>
+                <span><i class="fas fa-fan"></i> Blower Fan</span>
                 <label class="switch">
-                    <input type="checkbox" id="fruiting-intake_fan" data-room="fruiting" data-actuator="intake_fan" {% if fruiting_actuators.intake_fan %}checked{% endif %}>
+                    <input type="checkbox" id="fruiting-blower_fan" data-room="fruiting" data-actuator="blower_fan" {% if fruiting_actuators.blower_fan %}checked{% endif %}>
                     <span class="slider round"></span>
                 </label>
             </div>
             <div class="actuator-item">
-                <span><i class="fas fa-tint"></i> Humidity System</span>
+                <span><i class="fas fa-tint"></i> Humidifier</span>
                 <label class="switch">
-                    <input type="checkbox" id="fruiting-humidity_system" data-room="fruiting" data-actuator="humidity_system" {% if fruiting_actuators.humidity_system %}checked{% endif %}>
+                    <input type="checkbox" id="fruiting-humidifier" data-room="fruiting" data-actuator="humidifier" {% if fruiting_actuators.humidifier %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="actuator-item">
+                <span><i class="fas fa-wind"></i> Humidifier Fan</span>
+                <label class="switch">
+                    <input type="checkbox" id="fruiting-humidifier_fan" data-room="fruiting" data-actuator="humidifier_fan" {% if fruiting_actuators.humidifier_fan %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="actuator-item">
+                <span><i class="fas fa-lightbulb"></i> LED Light</span>
+                <label class="switch">
+                    <input type="checkbox" id="fruiting-led" data-room="fruiting" data-actuator="led" {% if fruiting_actuators.led %}checked{% endif %}>
                     <span class="slider round"></span>
                 </label>
             </div>

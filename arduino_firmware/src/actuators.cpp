@@ -14,15 +14,13 @@ ActuatorManager::ActuatorManager() {
 
 void ActuatorManager::begin() {
     // Configure all relay pins as OUTPUT
-    pinMode(RELAY_FRUITING_FAN, OUTPUT);
-    pinMode(RELAY_FRUITING_MIST, OUTPUT);
-    pinMode(RELAY_FRUITING_LIGHT, OUTPUT);
-    pinMode(RELAY_SPAWNING_FAN, OUTPUT);
-    pinMode(RELAY_SPAWNING_MIST, OUTPUT);
-    pinMode(RELAY_SPAWNING_LIGHT, OUTPUT);
-    pinMode(RELAY_SPARE_1, OUTPUT);
-    pinMode(RELAY_SPARE_2, OUTPUT);
-    
+    pinMode(SPAWNING_EXHAUST_FAN_PIN, OUTPUT);
+    pinMode(FRUITING_EXHAUST_FAN_PIN, OUTPUT);
+    pinMode(FRUITING_BLOWER_FAN_PIN, OUTPUT);
+    pinMode(HUMIDIFIER_FAN_PIN, OUTPUT);
+    pinMode(HUMIDIFIER_PIN, OUTPUT);
+    pinMode(FRUITING_LED_PIN, OUTPUT);
+
     // Turn all relays OFF (write HIGH for active-low)
     shutdownAll();
     
@@ -31,12 +29,12 @@ void ActuatorManager::begin() {
 
 int ActuatorManager::getPin(ActuatorType type) {
     switch (type) {
-        case FRUITING_FAN: return RELAY_FRUITING_FAN;
-        case FRUITING_MIST: return RELAY_FRUITING_MIST;
-        case FRUITING_LIGHT: return RELAY_FRUITING_LIGHT;
-        case SPAWNING_FAN: return RELAY_SPAWNING_FAN;
-        case SPAWNING_MIST: return RELAY_SPAWNING_MIST;
-        case SPAWNING_LIGHT: return RELAY_SPAWNING_LIGHT;
+        case SPAWNING_EXHAUST_FAN: return SPAWNING_EXHAUST_FAN_PIN;
+        case FRUITING_EXHAUST_FAN: return FRUITING_EXHAUST_FAN_PIN;
+        case FRUITING_BLOWER_FAN: return FRUITING_BLOWER_FAN_PIN;
+        case HUMIDIFIER_FAN: return HUMIDIFIER_FAN_PIN;
+        case HUMIDIFIER: return HUMIDIFIER_PIN;
+        case FRUITING_LED: return FRUITING_LED_PIN;
         default: return -1;
     }
 }
@@ -46,7 +44,7 @@ void ActuatorManager::set(ActuatorType type, ActuatorState state) {
     if (pin == -1) return;
     
     // Active LOW: write LOW to turn ON
-    digitalWrite(pin, (state == STATE_ON) ? RELAY_ON : RELAY_OFF);
+    digitalWrite(pin, (state == STATE_ON) ? LOW : HIGH);
     states[type] = (state == STATE_ON);
 }
 
@@ -69,14 +67,12 @@ bool ActuatorManager::getState(ActuatorType type) {
 
 void ActuatorManager::shutdownAll() {
     // Turn OFF all relays (write HIGH for active-low)
-    digitalWrite(RELAY_FRUITING_FAN, RELAY_OFF);
-    digitalWrite(RELAY_FRUITING_MIST, RELAY_OFF);
-    digitalWrite(RELAY_FRUITING_LIGHT, RELAY_OFF);
-    digitalWrite(RELAY_SPAWNING_FAN, RELAY_OFF);
-    digitalWrite(RELAY_SPAWNING_MIST, RELAY_OFF);
-    digitalWrite(RELAY_SPAWNING_LIGHT, RELAY_OFF);
-    digitalWrite(RELAY_SPARE_1, RELAY_OFF);
-    digitalWrite(RELAY_SPARE_2, RELAY_OFF);
+    digitalWrite(SPAWNING_EXHAUST_FAN_PIN, HIGH);
+    digitalWrite(FRUITING_EXHAUST_FAN_PIN, HIGH);
+    digitalWrite(FRUITING_BLOWER_FAN_PIN, HIGH);
+    digitalWrite(HUMIDIFIER_FAN_PIN, HIGH);
+    digitalWrite(HUMIDIFIER_PIN, HIGH);
+    digitalWrite(FRUITING_LED_PIN, HIGH);
     
     // Update state tracking
     for (int i = 0; i < 8; i++) {
@@ -87,17 +83,10 @@ void ActuatorManager::shutdownAll() {
 }
 
 bool ActuatorManager::executeCommand(const char* command) {
-    // Command format: "FRUITING_FAN_ON", "SPAWNING_MIST_OFF", etc.
-    
-    if (strcmp(command, "FRUITING_FAN_ON") == 0) {
-        turnOn(FRUITING_FAN);
-        Serial.println(F("[CMD] Fruiting Fan ON"));
-        return true;
-    }
-    else if (strcmp(command, "FRUITING_FAN_OFF") == 0) {
-        turnOff(FRUITING_FAN);
-        Serial.println(F("[CMD] Fruiting Fan OFF"));
-        return true;
+    // This function will be deprecated in favor of JSON commands in main.cpp
+    // Keeping it for now to avoid breaking compilation.
+    return false;
+}
     }
     else if (strcmp(command, "FRUITING_MIST_ON") == 0) {
         turnOn(FRUITING_MIST);

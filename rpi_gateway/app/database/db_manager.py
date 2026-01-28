@@ -226,6 +226,169 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"[DB] Command update failed: {e}")
     
+    # ==================== SENSOR MAPPING ====================
+    def get_sensor_mapping(self, room: str, sensor_type: str) -> Optional[str]:
+        """
+        Get backend sensor ID for a room and sensor type.
+        
+        Args:
+            room: 'fruiting' or 'spawning'
+            sensor_type: 'temp', 'humidity', or 'co2'
+        
+        Returns:
+            Backend sensor ID or None if not found
+        """
+        if not self.conn:
+            return None
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT backend_sensor_id FROM sensor_mapping
+                WHERE room = ? AND sensor_type = ?
+            """, (room, sensor_type))
+            
+            row = cursor.fetchone()
+            return row['backend_sensor_id'] if row else None
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Sensor mapping query failed: {e}")
+            return None
+    
+    def set_sensor_mapping(self, room: str, sensor_type: str, backend_sensor_id: str, 
+                          sensor_name: Optional[str] = None, unit: Optional[str] = None) -> bool:
+        """
+        Set or update sensor ID mapping.
+        
+        Args:
+            room: 'fruiting' or 'spawning'
+            sensor_type: 'temp', 'humidity', or 'co2'
+            backend_sensor_id: UUID from backend
+            sensor_name: Optional friendly name
+            unit: Optional unit (°C, %, ppm)
+        
+        Returns:
+            True if successful
+        """
+        if not self.conn:
+            return False
+        
+        try:
+            self.conn.execute("""
+                INSERT INTO sensor_mapping (room, sensor_type, backend_sensor_id, sensor_name, unit, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(room, sensor_type) DO UPDATE SET
+                    backend_sensor_id = excluded.backend_sensor_id,
+                    sensor_name = excluded.sensor_name,
+                    unit = excluded.unit,
+                    updated_at = excluded.updated_at
+            """, (room, sensor_type, backend_sensor_id, sensor_name, unit, datetime.now().timestamp()))
+            
+            self.conn.commit()
+            logger.info(f"[DB] Sensor mapping updated: {room}/{sensor_type} -> {backend_sensor_id}")
+            return True
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Sensor mapping update failed: {e}")
+            return False
+    
+    def get_all_sensor_mappings(self) -> List[Dict[str, Any]]:
+        """Get all sensor mappings."""
+        if not self.conn:
+            return []
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM sensor_mapping ORDER BY room, sensor_type")
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Sensor mappings query failed: {e}")
+            return []
+    
+    # ==================== DEVICE CONFIGURATION ====================
+    def get_config(self, key: str) -> Optional[Any]:
+        """
+        Get configuration value by key.
+        
+        Args:
+            key: Configuration key
+        
+        Returns:
+            Configuration value or None
+        """
+        if not self.conn:
+            return None
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT config_value, config_type FROM device_config
+                WHERE config_key = ?
+            """, (key,))
+            
+            row = cursor.fetchone()
+            if not row:
+                return None
+            
+            value = row['config_value']
+            config_type = row['config_type']
+            
+            # Parse value based on type
+            if config_type == 'number':
+                return float(value)
+            elif config_type == 'boolean':
+                return value.lower() in ('true', '1', 'yes')
+            elif config_type == 'json':
+                import json
+                return json.loads(value)
+            else:
+                return value
+                
+        except Exception as e:
+            logger.error(f"[DB] Config get failed: {e}")
+            return None
+    
+    def set_config(self, key: str, value: Any, config_type: str = 'string') -> bool:
+        """
+        Set configuration value.
+        
+        Args:
+            key: Configuration key
+            value: Value to store
+            config_type: 'string', 'number', 'boolean', or 'json'
+        
+        Returns:
+            True if successful
+        """
+        if not self.conn:
+            return False
+        
+        try:
+            # Convert value to string for storage
+            if config_type == 'json':
+                import json
+                value_str = json.dumps(value)
+            else:
+                value_str = str(value)
+            
+            self.conn.execute("""
+                INSERT INTO device_config (config_key, config_value, config_type, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(config_key) DO UPDATE SET
+                    config_value = excluded.config_value,
+                    config_type = excluded.config_type,
+                    updated_at = excluded.updated_at
+            """, (key, value_str, config_type, datetime.now().timestamp()))
+            
+            self.conn.commit()
+            return True
+            
+        except Exception as e:
+            logger.error(f"[DB] Config set failed: {e}")
+            return False
+    
     # ==================== SYSTEM LOGS ====================
     def log(self, level: str, component: str, message: str, data: Optional[str] = None):
         """Insert system log entry."""

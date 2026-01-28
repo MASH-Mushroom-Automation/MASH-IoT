@@ -14,10 +14,13 @@ enum ActuatorState {
 
 // Actuator types
 enum ActuatorType {
-    FRUITING_FAN,
-    FRUITING_MIST,
-    FRUITING_LIGHT,
-    SPAWNING_FAN,
+    SPAWNING_EXHAUST_FAN,
+    FRUITING_EXHAUST_FAN,
+    FRUITING_BLOWER_FAN,
+    HUMIDIFIER_FAN,
+    HUMIDIFIER,
+    FRUITING_LED
+};
     SPAWNING_MIST,
     SPAWNING_LIGHT
 };

@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template_string
-import wifi_manager
+import wifi_manager as wifi_manager
 import os
 import time
 import threading

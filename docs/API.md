@@ -1815,4 +1815,4 @@ Standard pagination format:
 
 ---
 
-**For interactive API documentation, visit:** `http://localhost:4000/api/docs` (Swagger UI)
+**For interactive API documentation, visit:** `http://api.mashmarket.app/api/docs` (Swagger UI)

@@ -68,6 +68,28 @@ CREATE TABLE IF NOT EXISTS ml_model_metadata (
     created_at REAL DEFAULT (strftime('%s', 'now'))
 );
 
+-- Sensor ID mapping (maps room+sensor_type to backend sensor ID)
+CREATE TABLE IF NOT EXISTS sensor_mapping (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room TEXT NOT NULL CHECK(room IN ('fruiting', 'spawning')),
+    sensor_type TEXT NOT NULL CHECK(sensor_type IN ('temp', 'humidity', 'co2')),
+    backend_sensor_id TEXT NOT NULL,
+    sensor_name TEXT,
+    unit TEXT,
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    updated_at REAL DEFAULT (strftime('%s', 'now')),
+    UNIQUE(room, sensor_type)
+);
+
+-- Device configuration cache
+CREATE TABLE IF NOT EXISTS device_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_key TEXT NOT NULL UNIQUE,
+    config_value TEXT NOT NULL,
+    config_type TEXT DEFAULT 'string' CHECK(config_type IN ('string', 'number', 'boolean', 'json')),
+    updated_at REAL DEFAULT (strftime('%s', 'now'))
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_sensor_timestamp ON sensor_data(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_sensor_room ON sensor_data(room, timestamp DESC);
@@ -76,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_commands_timestamp ON device_commands(timestamp D
 CREATE INDEX IF NOT EXISTS idx_sync_queue_table ON sync_queue(table_name, created_at);
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON system_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_level ON system_logs(level, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_sensor_mapping_room ON sensor_mapping(room, sensor_type);
 """
 
 # Data classes for type safety

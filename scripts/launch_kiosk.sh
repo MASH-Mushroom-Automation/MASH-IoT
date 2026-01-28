@@ -2,7 +2,7 @@
 # This script waits for the desktop environment to be ready and then launches Chromium.
 
 # Wait for 10 seconds to ensure the desktop session and network are fully loaded
-sleep 10
+sleep 20
 
 # Find the correct chromium executable path
 CHROMIUM_CMD=$(which chromium-browser || which chromium)

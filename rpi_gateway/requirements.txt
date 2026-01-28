@@ -31,6 +31,9 @@ requests==2.31.0
 # MQTT (HiveMQ)
 paho-mqtt==1.6.1
 
+# JWT Authentication
+PyJWT==2.8.0
+
 # Logging & Monitoring
 colorlog==6.8.0
 

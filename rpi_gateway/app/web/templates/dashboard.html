@@ -8,7 +8,8 @@
         <button id="show-spawning" class="toggle-btn">Spawning Room</button>
     </div>
     <div class="system-status">
-        <span>Status: <span class="status-ok">Online</span></span>
+        <span>Arduino: <span class="{% if arduino_connected %}status-ok{% else %}status-error{% endif %}">{% if arduino_connected %}Connected{% else %}Offline{% endif %}</span></span>
+        <span>Backend: <span class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected %}Online{% else %}Offline{% endif %}</span></span>
         <span>Uptime: <span id="uptime">--</span></span>
     </div>
 </div>
@@ -17,11 +18,12 @@
     <!-- Fruiting Room Section -->
     <div class="room-header">
         <h2 class="room-title">Fruiting Room</h2>
-        <div class="room-condition">Condition: <span class="status-ok">Optimal</span></div>
+        <div class="room-condition">Condition: {% if fruiting_error %}<span class="status-error">Sensor Error</span>{% else %}<span class="status-ok">Optimal</span>{% endif %}</div>
         <div class="actuator-icons">
             <i class="fas fa-wind icon-fan {% if fruiting_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
-            <i class="fas fa-tint icon-mist {% if fruiting_actuators.humidity_system %}active{% endif %}" title="Humidity System"></i>
-            <i class="fas fa-arrow-down icon-intake {% if fruiting_actuators.intake_fan %}active{% endif %}" title="Intake Fan"></i>
+            <i class="fas fa-fan icon-blower {% if fruiting_actuators.blower_fan %}active{% endif %}" title="Blower Fan"></i>
+            <i class="fas fa-tint icon-mist {% if fruiting_actuators.humidifier %}active{% endif %}" title="Humidifier"></i>
+            <i class="fas fa-lightbulb icon-light {% if fruiting_actuators.led %}active{% endif %}" title="LED Light"></i>
         </div>
     </div>
     <div class="sensor-grid">
@@ -71,7 +73,7 @@
     <!-- Spawning Room Section -->
     <div class="room-header">
         <h2 class="room-title">Spawning Room</h2>
-        <div class="room-condition">Condition: <span class="status-ok">Optimal</span></div>
+        <div class="room-condition">Condition: {% if spawning_error %}<span class="status-error">Sensor Error</span>{% elif spawning_data.temp > 0 %}<span class="status-ok">Optimal</span>{% else %}<span class="status-warning">No Data</span>{% endif %}</div>
         <div class="actuator-icons">
             <i class="fas fa-wind icon-fan {% if spawning_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
         </div>

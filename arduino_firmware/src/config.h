@@ -53,4 +53,21 @@
 // Moving average filter size
 #define FILTER_SIZE 5
 
+// Pin Definitions
+// -----------------
+
+// Spawning Room
+#define SPAWNING_EXHAUST_FAN_PIN 2
+
+// Fruiting Room
+#define FRUITING_EXHAUST_FAN_PIN 3
+#define FRUITING_BLOWER_FAN_PIN 4
+#define HUMIDIFIER_FAN_PIN 5
+#define HUMIDIFIER_PIN 6
+#define FRUITING_LED_PIN 7
+
+// I2C Pins for SoftWire
+#define SDA_PIN A4
+#define SCL_PIN A5
+
 #endif // CONFIG_H

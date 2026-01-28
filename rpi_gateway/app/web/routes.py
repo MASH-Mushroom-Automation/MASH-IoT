@@ -1,40 +1,69 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request
-from app.core.logic_engine import MushroomAI
+import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create Flask Blueprint
 web_bp = Blueprint('web', __name__, template_folder='templates', static_folder='static')
 
+
 def get_live_data():
     """
-    Fetches the latest data and actuator states.
-    In a real app, this would get data from a shared state or database.
+    Fetches the latest data and actuator states from the orchestrator.
     """
-    # For now, we simulate the data that would come from serial_comm
-    # and be stored in the database.
-    simulated_sensor_data = {
-        "fruiting": {"temp": 23.5, "humidity": 88.2, "co2": 950.7},
-        "spawning": {"temp": 24.1, "humidity": 92.5, "co2": 1850.2}
-    }
-
-    # Use the logic engine to determine actuator states
-    # The config would normally be loaded from config.yaml
+    # Get components from Flask app context
+    serial_comm = getattr(current_app, 'serial_comm', None)
     config = current_app.config.get('MUSHROOM_CONFIG', {})
-    ai_logic = MushroomAI(config=config)
     
-    fruiting_actuators = ai_logic.predict_actuator_states('fruiting', simulated_sensor_data['fruiting'])
-    spawning_actuators = ai_logic.predict_actuator_states('spawning', simulated_sensor_data['spawning'])
+    # Get latest sensor data
+    if serial_comm and hasattr(serial_comm, 'get_latest_data'):
+        sensor_data = serial_comm.get_latest_data()
+    else:
+        # Fallback demo data if Arduino not connected
+        sensor_data = {
+            "fruiting": {"temp": 23.5, "humidity": 88.2, "co2": 950.7},
+            "spawning": None,  # Currently disabled in firmware
+            "timestamp": time.time()
+        }
     
-    # Convert actuator states from ON/OFF to True/False for the template
-    fruiting_actuators_bool = {key: value == "ON" for key, value in fruiting_actuators.items()}
-    spawning_actuators_bool = {key: value == "ON" for key, value in spawning_actuators.items()}
-
+    # Handle null/error states
+    fruiting_data = sensor_data.get('fruiting') or {"temp": 0, "humidity": 0, "co2": 0}
+    spawning_data = sensor_data.get('spawning') or {"temp": 0, "humidity": 0, "co2": 0}
+    
+    # Check for sensor errors
+    fruiting_error = 'error' in fruiting_data
+    spawning_error = 'error' in spawning_data if spawning_data else False
+    
+    # Get target thresholds from config
+    fruiting_targets = config.get("fruiting_room", {})
+    spawning_targets = config.get("spawning_room", {})
+    
+    # For actuator states, we'll track them separately in the orchestrator
+    # For now, return empty states
+    fruiting_actuators = {
+        'exhaust_fan': False,
+        'blower_fan': False,
+        'humidifier': False,
+        'humidifier_fan': False,
+        'led': False
+    }
+    
+    spawning_actuators = {
+        'exhaust_fan': False
+    }
+    
     return {
-        "fruiting_data": simulated_sensor_data["fruiting"],
-        "spawning_data": simulated_sensor_data["spawning"],
-        "fruiting_targets": config.get("fruiting_room", {}),
-        "spawning_targets": config.get("spawning_room", {}),
-        "fruiting_actuators": fruiting_actuators_bool,
-        "spawning_actuators": spawning_actuators_bool
+        "fruiting_data": fruiting_data,
+        "spawning_data": spawning_data,
+        "fruiting_error": fruiting_error,
+        "spawning_error": spawning_error,
+        "fruiting_targets": fruiting_targets,
+        "spawning_targets": spawning_targets,
+        "fruiting_actuators": fruiting_actuators,
+        "spawning_actuators": spawning_actuators,
+        "backend_connected": getattr(current_app, 'backend_connected', False),
+        "arduino_connected": serial_comm.is_connected if serial_comm else False
     }
 
 # =======================================================
@@ -118,27 +147,41 @@ def control_actuator():
     """
     data = request.get_json()
     if not all(key in data for key in ['room', 'actuator', 'state']):
-        return jsonify({"status": "error", "message": "Missing data"}), 400
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-    room = data['room'].upper()
-    actuator = data['actuator'].upper()
+    room = data['room'].lower()
+    actuator = data['actuator'].lower()
     state = data['state'].upper()
-
-    # Construct the command string for the Arduino
-    command = f"{room}_{actuator}_{state}"
     
-    # Get the serial comm object from the app context
-    # Note: This requires the serial object to be stored in `current_app`
-    # In main.py, you would do: app.serial_comm = ArduinoSerialComm(...)
+    if state not in ['ON', 'OFF']:
+        return jsonify({"status": "error", "message": "Invalid state (must be ON or OFF)"}), 400
+
+    # Get the serial comm object from app context
     serial_comm = getattr(current_app, 'serial_comm', None)
 
-    if serial_comm and serial_comm.is_connected:
-        success = serial_comm.send_command(command)
-        if success:
-            return jsonify({"status": "success", "command": command})
-        else:
-            return jsonify({"status": "error", "message": "Failed to send command"}), 500
+    if not serial_comm:
+        logger.warning("Serial comm not available in app context")
+        return jsonify({"status": "error", "message": "Serial communication not initialized"}), 500
+
+    if not serial_comm.is_connected:
+        logger.warning("Arduino not connected")
+        return jsonify({"status": "error", "message": "Arduino not connected"}), 503
+
+    # Use the friendly control_actuator method
+    success = serial_comm.control_actuator(room, actuator, state)
+    
+    if success:
+        logger.info(f"Actuator controlled: {room}/{actuator} -> {state}")
+        
+        # Also send to backend if available
+        backend_client = getattr(current_app, 'backend_client', None)
+        if backend_client:
+            backend_client.send_alert(
+                alert_type='manual_control',
+                message=f"User set {room}/{actuator} to {state}",
+                severity='INFO'
+            )
+        
+        return jsonify({"status": "success", "room": room, "actuator": actuator, "state": state})
     else:
-        # This will be the response in our current test environment
-        print(f"SERIAL COMMAND (DEMO): {command}")
-        return jsonify({"status": "success", "message": "Demo mode, command printed.", "command": command})
+        return jsonify({"status": "error", "message": "Failed to send command to Arduino"}), 500

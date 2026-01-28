@@ -1,2 +1,105 @@
-# Configuration settings
-# Temperature thresholds, automation rules, etc.
+# M.A.S.H. IoT Configuration
+# Temperature thresholds, automation rules, actuator mappings
+
+# System Configuration
+system:
+  ml_enabled: true
+  auto_mode: true
+  data_sync_interval: 60  # seconds
+  sensor_read_interval: 5  # seconds
+
+# Fruiting Room Configuration
+fruiting_room:
+  # Environmental Targets
+  temp_target: 24.0  # °C
+  temp_min: 22.0
+  temp_max: 26.0
+  humidity_target: 90.0  # %
+  humidity_min: 85.0
+  humidity_max: 95.0
+  co2_max: 1000  # ppm
+  
+  # Actuator Control Thresholds
+  exhaust_fan:
+    co2_trigger: 1000  # Turn on when CO2 exceeds this
+    temp_trigger: 26.0  # Turn on when temp exceeds this
+  
+  blower_fan:
+    always_on: false
+    humidity_trigger: 95.0  # Turn on for air circulation
+  
+  humidifier:
+    humidity_trigger: 85.0  # Turn on when below this
+    run_duration: 120  # seconds
+    cooldown: 300  # seconds between runs
+  
+  humidifier_fan:
+    linked_to_humidifier: true  # Runs when humidifier is on
+  
+  led:
+    enabled: true
+    start_time: "08:00"
+    end_time: "20:00"
+    duration_hours: 12
+
+# Spawning Room Configuration (Sensor only, no actuators in current setup)
+spawning_room:
+  temp_target: 25.0  # °C
+  temp_min: 23.0
+  temp_max: 27.0
+  humidity_target: 95.0  # %
+  humidity_min: 90.0
+  humidity_max: 98.0
+  co2_max: 2000  # ppm (higher tolerance during spawn run)
+  
+  exhaust_fan:
+    co2_trigger: 2000
+    temp_trigger: 27.0
+
+# Arduino Actuator Mappings (matches config.h)
+actuators:
+  fruiting:
+    - name: "FRUITING_EXHAUST_FAN"
+      type: "exhaust_fan"
+      pin: 3
+    - name: "FRUITING_BLOWER_FAN"
+      type: "blower_fan"
+      pin: 4
+    - name: "HUMIDIFIER_FAN"
+      type: "humidifier_fan"
+      pin: 5
+    - name: "HUMIDIFIER"
+      type: "humidifier"
+      pin: 6
+    - name: "FRUITING_LED"
+      type: "led"
+      pin: 7
+  
+  spawning:
+    - name: "SPAWNING_EXHAUST_FAN"
+      type: "exhaust_fan"
+      pin: 2
+
+# Alert Thresholds
+alerts:
+  critical_co2: 1500  # ppm
+  critical_temp_high: 30.0  # °C
+  critical_temp_low: 18.0  # °C
+  critical_humidity_low: 70.0  # %
+  
+# Database Configuration
+database:
+  path: "data/sensor_data.db"
+  retention_days: 30  # Keep data for 30 days locally
+
+# ML Model Configuration
+ml_models:
+  anomaly_detection:
+    enabled: true
+    model_path: "data/models/isolation_forest.pkl"
+    retrain_interval: 604800  # 7 days in seconds
+  
+  decision_tree:
+    enabled: true
+    model_path: "data/models/decision_tree.pkl"
+    features: ["temp", "humidity", "co2", "time_of_day"]
