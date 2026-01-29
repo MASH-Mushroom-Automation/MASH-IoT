@@ -73,7 +73,7 @@
     <!-- Spawning Room Section -->
     <div class="room-header">
         <h2 class="room-title">Spawning Room</h2>
-        <div class="room-condition">Condition: {% if spawning_error %}<span class="status-error">Sensor Error</span>{% elif spawning_data.temp > 0 %}<span class="status-ok">Optimal</span>{% else %}<span class="status-warning">No Data</span>{% endif %}</div>
+        <div class="room-condition">Condition: {% if spawning_error %}<span class="status-error">Sensor Error</span>{% elif spawning_data and spawning_data.temp and spawning_data.temp > 0 %}<span class="status-ok">Optimal</span>{% else %}<span class="status-warning">No Data</span>{% endif %}</div>
         <div class="actuator-icons">
             <i class="fas fa-wind icon-fan {% if spawning_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
         </div>
