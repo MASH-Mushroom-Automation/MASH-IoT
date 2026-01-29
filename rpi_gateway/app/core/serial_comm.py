@@ -2,10 +2,11 @@
 # Manages USB Serial communication between Raspberry Pi and Arduino
 
 import serial
+import serial.tools.list_ports
 import json
 import time
 import threading
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Dict, Any, List
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,11 @@ class ArduinoSerialComm:
     - Arduino sends JSON every 5 seconds: {"fruiting": {"temp": 23.5, "humidity": 85, "co2": 800}}
     - RPi sends plain text commands: "FRUITING_EXHAUST_FAN_ON\n", "HUMIDIFIER_OFF\n"
     
+    Features:
+    - Auto-detection of Arduino USB port (searches /dev/ttyACM* and /dev/ttyUSB*)
+    - Auto-reconnect if Arduino disconnects
+    - Room-specific data access (fruiting/spawning)
+    
     Supported actuators (from Arduino config.h):
     - SPAWNING_EXHAUST_FAN
     - FRUITING_EXHAUST_FAN
@@ -44,10 +50,12 @@ class ArduinoSerialComm:
     - FRUITING_LED
     """
     
-    def __init__(self, port: str = '/dev/ttyACM0', baudrate: int = 9600, timeout: float = 1.0):
+    def __init__(self, port: str = '/dev/ttyACM0', baudrate: int = 9600, timeout: float = 1.0, auto_reconnect: bool = True):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
+        self.auto_reconnect = auto_reconnect
+        self.reconnect_interval = 5  # seconds
         self.serial_conn: Optional[serial.Serial] = None
         self.is_connected = False
         self.is_listening = False
@@ -60,16 +68,63 @@ class ArduinoSerialComm:
             'spawning': None,
             'timestamp': None
         }
+    
+    @staticmethod
+    def find_arduino_port() -> Optional[str]:
+        """
+        Auto-detect Arduino USB port on Raspberry Pi.
         
-    def connect(self) -> bool:
-        """Establish serial connection to Arduino."""
+        Returns:
+            Port name (e.g., '/dev/ttyACM0') or None if not found
+            
+        Note: On RPi, Arduino typically appears as:
+        - /dev/ttyACM0 (Arduino Uno, Mega with native USB)
+        - /dev/ttyUSB0 (Arduino with CH340/FTDI chip)
+        """
+        logger.info("[SERIAL] Scanning for Arduino...")
+        
+        ports = serial.tools.list_ports.comports()
+        
+        for port in ports:
+            # Check for Arduino identifiers
+            if 'Arduino' in port.description or \
+               'ttyACM' in port.device or \
+               'ttyUSB' in port.device or \
+               '2341' in str(port.vid):  # Arduino VID
+                logger.info(f"[SERIAL] Found Arduino: {port.device} ({port.description})")
+                return port.device
+        
+        logger.warning("[SERIAL] No Arduino found. Available ports:")
+        for port in ports:
+            logger.warning(f"  - {port.device}: {port.description}")
+        
+        return None
+        
+    def connect(self, auto_detect: bool = True) -> bool:
+        """
+        Establish serial connection to Arduino.
+        
+        Args:
+            auto_detect: If True, automatically search for Arduino port
+        """
         try:
+            # Auto-detect Arduino port if enabled
+            if auto_detect:
+                detected_port = self.find_arduino_port()
+                if detected_port:
+                    self.port = detected_port
+                else:
+                    logger.warning(f"[SERIAL] Auto-detect failed, using configured port: {self.port}")
+            
+            logger.info(f"[SERIAL] Connecting to {self.port}...")
+            
             self.serial_conn = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
                 timeout=self.timeout,
                 write_timeout=self.timeout
             )
+            
             # Wait for Arduino to reset after connection
             time.sleep(2)
             
@@ -78,23 +133,15 @@ class ArduinoSerialComm:
             self.serial_conn.reset_output_buffer()
             
             self.is_connected = True
-            logger.info(f"Connected to Arduino on {self.port} at {self.baudrate} baud")
+            logger.info(f"[SERIAL] ✓ Connected to Arduino on {self.port} @ {self.baudrate} baud")
             return True
             
         except serial.SerialException as e:
-            logger.error(f"Failed to connect to Arduino on {self.port}: {e}")
-            logger.warning("Running in DEMO MODE without hardware")
+            logger.error(f"[SERIAL] Failed to connect to {self.port}: {e}")
             self.is_connected = False
             return False
         except Exception as e:
-            logger.error(f"Unexpected error connecting to Arduino: {e}")
-            self.is_connected = False
-            return False
-            logger.info(f"[SERIAL] Connected to Arduino on {self.port} @ {self.baudrate} baud")
-            return True
-            
-        except serial.SerialException as e:
-            logger.error(f"[SERIAL] Connection failed: {e}")
+            logger.error(f"[SERIAL] Unexpected error: {e}")
             self.is_connected = False
             return False
     
@@ -222,11 +269,24 @@ class ArduinoSerialComm:
         logger.info("[SERIAL] Stopped listening thread")
     
     def _listen_loop(self):
-        """Background thread loop for reading serial data."""
+        """Background thread loop for reading serial data with auto-reconnect."""
         logger.info("[SERIAL] Listen loop started")
         
         while self.is_listening:
             try:
+                # Check if connection is alive
+                if not self.is_connected or not self.serial_conn or not self.serial_conn.is_open:
+                    if self.auto_reconnect:
+                        logger.warning("[SERIAL] Connection lost. Attempting to reconnect...")
+                        self.connect(auto_detect=True)
+                        if not self.is_connected:
+                            logger.error(f"[SERIAL] Reconnect failed. Retrying in {self.reconnect_interval}s...")
+                            time.sleep(self.reconnect_interval)
+                            continue
+                    else:
+                        logger.error("[SERIAL] Connection lost and auto-reconnect disabled")
+                        break
+                
                 line = self.read_line()
                 
                 if line:
@@ -239,9 +299,18 @@ class ArduinoSerialComm:
                 # Small delay to prevent CPU spinning
                 time.sleep(0.1)
                 
+            except serial.SerialException as e:
+                logger.error(f"[SERIAL] Serial error: {e}")
+                self.is_connected = False
+                if self.serial_conn:
+                    try:
+                        self.serial_conn.close()
+                    except:
+                        pass
+                time.sleep(self.reconnect_interval)
             except Exception as e:
                 logger.error(f"[SERIAL] Listen loop error: {e}")
-                time.sleep(1)  # Back off on error
+                time.sleep(1)
         
         logger.info("[SERIAL] Listen loop stopped")
     
@@ -291,6 +360,28 @@ class ArduinoSerialComm:
     def get_latest_data(self) -> Dict[str, Any]:
         """Get the most recent sensor data received from Arduino."""
         return self.latest_data.copy()
+    
+    def get_fruiting_room_data(self) -> Optional[Dict[str, float]]:
+        """
+        Get latest fruiting room sensor data.
+        
+        Returns:
+            {'temp': 23.5, 'humidity': 85.0, 'co2': 800} or None
+        """
+        return self.latest_data.get('fruiting')
+    
+    def get_spawning_room_data(self) -> Optional[Dict[str, float]]:
+        """
+        Get latest spawning room sensor data.
+        
+        Returns:
+            {'temp': 24.0, 'humidity': 90.0, 'co2': 1200} or None
+        """
+        return self.latest_data.get('spawning')
+    
+    def is_arduino_connected(self) -> bool:
+        """Check if Arduino is currently connected."""
+        return self.is_connected and self.serial_conn is not None and self.serial_conn.is_open
 
 
 # ==================== CONVENIENCE FUNCTIONS ====================
