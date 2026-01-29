@@ -30,19 +30,39 @@ echo "✓ Script permissions updated"
 # ---------------------------------------------------------
 echo "[0/5] Configuring display resolution in /boot/config.txt..."
 
-if [ -f /boot/config.txt ]; then
-    # Backup original config
-    sudo cp /boot/config.txt /boot/config.txt.backup.$(date +%Y%m%d_%H%M%S)
+# Check if we need sudo access
+if [ -f /boot/config.txt ] && [ -w /boot/config.txt ]; then
+    # File is writable, no sudo needed
+    cp /boot/config.txt /boot/config.txt.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+    CONFIG_FILE="/boot/config.txt"
+elif [ -f /boot/firmware/config.txt ]; then
+    # Newer Raspberry Pi OS location
+    CONFIG_FILE="/boot/firmware/config.txt"
+else
+    CONFIG_FILE=""
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
+    echo "Modifying $CONFIG_FILE (requires sudo password)..."
     
+    # Backup original config
+    sudo cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)" || {
+        echo "⚠ Could not backup config file, skipping resolution config"
+        CONFIG_FILE=""
+    }
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
     # Remove old framebuffer settings if they exist
-    sudo sed -i '/^framebuffer_width=/d' /boot/config.txt
-    sudo sed -i '/^framebuffer_height=/d' /boot/config.txt
-    sudo sed -i '/^hdmi_force_hotplug=/d' /boot/config.txt
-    sudo sed -i '/^hdmi_group=/d' /boot/config.txt
-    sudo sed -i '/^hdmi_mode=/d' /boot/config.txt
+    sudo sed -i '/^framebuffer_width=/d' "$CONFIG_FILE"
+    sudo sed -i '/^framebuffer_height=/d' "$CONFIG_FILE"
+    sudo sed -i '/^hdmi_force_hotplug=/d' "$CONFIG_FILE"
+    sudo sed -i '/^hdmi_group=/d' "$CONFIG_FILE"
+    sudo sed -i '/^hdmi_mode=/d' "$CONFIG_FILE"
+    sudo sed -i '/^hdmi_cvt=/d' "$CONFIG_FILE"
     
     # Add display configuration for 1024x600
-    cat | sudo tee -a /boot/config.txt > /dev/null <<'CONFIGEOF'
+    cat | sudo tee -a "$CONFIG_FILE" > /dev/null <<'CONFIGEOF'
 
 # M.A.S.H. IoT Display Configuration (1024x600)
 framebuffer_width=1024
@@ -53,9 +73,11 @@ hdmi_mode=87
 hdmi_cvt=1024 600 60 3 0 0 0
 CONFIGEOF
     
-    echo "✓ Display configuration added to /boot/config.txt"
+    echo "✓ Display configuration added to $CONFIG_FILE"
+    echo "  NOTE: Requires reboot to take effect"
 else
-    echo "⚠ /boot/config.txt not found, skipping boot resolution config"
+    echo "⚠ Config file not found or not accessible, skipping boot resolution config"
+    echo "  (Resolution will be set via xrandr instead)"
 fi
 
 # ---------------------------------------------------------
