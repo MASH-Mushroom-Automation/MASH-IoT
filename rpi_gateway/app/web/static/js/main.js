@@ -38,10 +38,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set the initial view
     switchView('fruiting');
+    
+    // Start auto-refresh if on dashboard page
+    if (fruitingView && spawningView) {
+        updateDashboardData();
+        setInterval(updateDashboardData, 3000); // Update every 3 seconds
+    }
 });
 
-// Future implementation: Function to fetch and update data via AJAX
-/*
+// Function to fetch and update data via AJAX
 async function updateDashboardData() {
     try {
         const response = await fetch('/api/latest_data');
@@ -50,27 +55,97 @@ async function updateDashboardData() {
         }
         const data = await response.json();
         
-        // Update sensor values for both rooms
-        // Example for fruiting CO2:
-        // document.querySelector('#fruiting-view .sensor-card.co2 .sensor-value').textContent = data.fruiting_data.co2.toFixed(1);
+        // Update Arduino connection status
+        const arduinoStatus = document.querySelector('.system-status span:first-child span:last-child');
+        if (arduinoStatus) {
+            if (data.arduino_connected) {
+                arduinoStatus.textContent = 'Connected';
+                arduinoStatus.className = 'status-ok';
+            } else {
+                arduinoStatus.textContent = 'Offline';
+                arduinoStatus.className = 'status-error';
+            }
+        }
+        
+        // Update Backend connection status
+        const backendStatus = document.querySelector('.system-status span:nth-child(2) span:last-child');
+        if (backendStatus) {
+            if (data.backend_connected) {
+                backendStatus.textContent = 'Online';
+                backendStatus.className = 'status-ok';
+            } else {
+                backendStatus.textContent = 'Offline';
+                backendStatus.className = 'status-warning';
+            }
+        }
+        
+        // Update Fruiting Room sensor values
+        if (data.fruiting_data) {
+            const fruitingCO2 = document.querySelector('#fruiting-view .sensor-card.co2 .sensor-value');
+            const fruitingTemp = document.querySelector('#fruiting-view .sensor-card.temp .sensor-value');
+            const fruitingHumidity = document.querySelector('#fruiting-view .sensor-card.humidity .sensor-value');
+            
+            if (fruitingCO2) fruitingCO2.textContent = data.fruiting_data.co2 !== null ? data.fruiting_data.co2.toFixed(1) : '--';
+            if (fruitingTemp) fruitingTemp.textContent = data.fruiting_data.temp !== null ? data.fruiting_data.temp.toFixed(1) : '--';
+            if (fruitingHumidity) fruitingHumidity.textContent = data.fruiting_data.humidity !== null ? data.fruiting_data.humidity.toFixed(1) : '--';
+        } else {
+            // Set all to '--' if no data
+            const fruitingValues = document.querySelectorAll('#fruiting-view .sensor-value');
+            fruitingValues.forEach(val => val.textContent = '--');
+        }
+        
+        // Update Spawning Room sensor values
+        if (data.spawning_data) {
+            const spawningCO2 = document.querySelector('#spawning-view .sensor-card.co2 .sensor-value');
+            const spawningTemp = document.querySelector('#spawning-view .sensor-card.temp .sensor-value');
+            const spawningHumidity = document.querySelector('#spawning-view .sensor-card.humidity .sensor-value');
+            
+            if (spawningCO2) spawningCO2.textContent = data.spawning_data.co2 !== null ? data.spawning_data.co2.toFixed(1) : '--';
+            if (spawningTemp) spawningTemp.textContent = data.spawning_data.temp !== null ? data.spawning_data.temp.toFixed(1) : '--';
+            if (spawningHumidity) spawningHumidity.textContent = data.spawning_data.humidity !== null ? data.spawning_data.humidity.toFixed(1) : '--';
+        } else {
+            // Set all to '--' if no data
+            const spawningValues = document.querySelectorAll('#spawning-view .sensor-value');
+            spawningValues.forEach(val => val.textContent = '--');
+        }
         
         // Update actuator icons
-        // Example for fruiting exhaust fan:
-        // const fanIcon = document.querySelector('#fruiting-view .icon-fan');
-        // if (data.fruiting_actuators.exhaust_fan) {
-        //     fanIcon.classList.add('active');
-        // } else {
-        //     fanIcon.classList.remove('active');
-        // }
+        updateActuatorIcons('#fruiting-view', data.fruiting_actuators);
+        updateActuatorIcons('#spawning-view', data.spawning_actuators);
 
     } catch (error) {
         console.error("Could not fetch dashboard data:", error);
+        // Mark Arduino as offline on error
+        const arduinoStatus = document.querySelector('.system-status span:first-child span:last-child');
+        if (arduinoStatus) {
+            arduinoStatus.textContent = 'Offline';
+            arduinoStatus.className = 'status-error';
+        }
     }
 }
 
-// Update data every 5 seconds
-// setInterval(updateDashboardData, 5000);
-*/
+function updateActuatorIcons(viewSelector, actuators) {
+    const view = document.querySelector(viewSelector);
+    if (!view || !actuators) return;
+    
+    const fanIcon = view.querySelector('.icon-fan');
+    const blowerIcon = view.querySelector('.icon-blower');
+    const mistIcon = view.querySelector('.icon-mist');
+    const lightIcon = view.querySelector('.icon-light');
+    
+    if (fanIcon) {
+        actuators.exhaust_fan ? fanIcon.classList.add('active') : fanIcon.classList.remove('active');
+    }
+    if (blowerIcon) {
+        actuators.blower_fan ? blowerIcon.classList.add('active') : blowerIcon.classList.remove('active');
+    }
+    if (mistIcon) {
+        actuators.humidifier ? mistIcon.classList.add('active') : mistIcon.classList.remove('active');
+    }
+    if (lightIcon) {
+        actuators.led ? lightIcon.classList.add('active') : lightIcon.classList.remove('active');
+    }
+}
 
 // --- Manual Controls Page Logic ---
 const controlSwitches = document.querySelectorAll('.controls-container input[type="checkbox"]');
