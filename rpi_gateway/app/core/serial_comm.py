@@ -189,13 +189,29 @@ class ArduinoSerialComm:
             return None
         
         try:
+            # Check if port is actually open
+            if not self.serial_conn.is_open:
+                logger.warning("[SERIAL] Port closed unexpectedly")
+                self.is_connected = False
+                return None
+            
             if self.serial_conn.in_waiting > 0:
                 line = self.serial_conn.readline().decode('utf-8').strip()
                 return line if line else None
             return None
             
+        except (serial.SerialException, OSError, IOError) as e:
+            logger.error(f"[SERIAL] Read failed - Connection lost: {e}")
+            self.is_connected = False
+            # Try to close the dead connection
+            try:
+                if self.serial_conn:
+                    self.serial_conn.close()
+            except:
+                pass
+            return None
         except Exception as e:
-            logger.error(f"[SERIAL] Read failed: {e}")
+            logger.error(f"[SERIAL] Unexpected read error: {e}")
             return None
     
     def parse_sensor_data(self, line: str) -> Optional[Dict[str, Any]]:
@@ -272,24 +288,49 @@ class ArduinoSerialComm:
         """Background thread loop for reading serial data with auto-reconnect."""
         logger.info("[SERIAL] Listen loop started")
         
+        consecutive_failures = 0
+        max_consecutive_failures = 3
+        
         while self.is_listening:
             try:
                 # Check if connection is alive
                 if not self.is_connected or not self.serial_conn or not self.serial_conn.is_open:
                     if self.auto_reconnect:
-                        logger.warning("[SERIAL] Connection lost. Attempting to reconnect...")
-                        self.connect(auto_detect=True)
-                        if not self.is_connected:
-                            logger.error(f"[SERIAL] Reconnect failed. Retrying in {self.reconnect_interval}s...")
+                        logger.warning("[SERIAL] 🔴 Connection lost. Attempting to reconnect...")
+                        
+                        # Close any existing connection
+                        if self.serial_conn:
+                            try:
+                                self.serial_conn.close()
+                            except:
+                                pass
+                            self.serial_conn = None
+                        
+                        # Attempt reconnection
+                        if self.connect(auto_detect=True):
+                            logger.info("[SERIAL] 🟢 Reconnected successfully!")
+                            consecutive_failures = 0
+                        else:
+                            consecutive_failures += 1
+                            logger.error(f"[SERIAL] Reconnect failed ({consecutive_failures}/{max_consecutive_failures}). Retrying in {self.reconnect_interval}s...")
                             time.sleep(self.reconnect_interval)
                             continue
                     else:
                         logger.error("[SERIAL] Connection lost and auto-reconnect disabled")
                         break
                 
+                # Read data from Arduino
                 line = self.read_line()
                 
+                # If read_line returned None but we think we're connected, check again
+                if line is None and not self.is_connected:
+                    # Connection was lost in read_line, loop will retry
+                    continue
+                
                 if line:
+                    # Reset failure counter on successful read
+                    consecutive_failures = 0
+                    
                     # Try to parse as JSON sensor data
                     data = self.parse_sensor_data(line)
                     
@@ -299,17 +340,31 @@ class ArduinoSerialComm:
                 # Small delay to prevent CPU spinning
                 time.sleep(0.1)
                 
-            except serial.SerialException as e:
-                logger.error(f"[SERIAL] Serial error: {e}")
+            except (serial.SerialException, OSError, IOError) as e:
+                logger.error(f"[SERIAL] Serial I/O error: {e}")
                 self.is_connected = False
+                consecutive_failures += 1
+                
+                # Clean up dead connection
                 if self.serial_conn:
                     try:
                         self.serial_conn.close()
                     except:
                         pass
-                time.sleep(self.reconnect_interval)
+                    self.serial_conn = None
+                
+                # Back off if too many failures
+                if consecutive_failures >= max_consecutive_failures:
+                    logger.warning(f"[SERIAL] Too many failures ({consecutive_failures}), backing off...")
+                    time.sleep(self.reconnect_interval * 2)
+                    consecutive_failures = 0  # Reset after backoff
+                else:
+                    time.sleep(self.reconnect_interval)
+                    
             except Exception as e:
-                logger.error(f"[SERIAL] Listen loop error: {e}")
+                logger.error(f"[SERIAL] Unexpected error in listen loop: {e}")
+                import traceback
+                traceback.print_exc()
                 time.sleep(1)
         
         logger.info("[SERIAL] Listen loop stopped")

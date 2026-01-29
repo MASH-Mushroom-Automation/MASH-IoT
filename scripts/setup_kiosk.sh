@@ -19,6 +19,12 @@ SERVICE_NAME="mash-iot"
 
 echo "Project directory: $PROJECT_DIR"
 
+# Set execute permissions on all scripts first
+echo "Setting execute permissions on scripts..."
+chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
+chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
+echo "✓ Script permissions updated"
+
 # 1. Create systemd service for M.A.S.H. backend
 echo "[1/5] Creating systemd service for M.A.S.H. backend..."
 
@@ -78,6 +84,7 @@ WantedBy=graphical.target
 EOF
 
 # Create X session script that launches only Chromium (no desktop)
+echo "Creating X session script..."
 cat > $PROJECT_DIR/scripts/run_kiosk_x.sh <<'XEOF'
 #!/bin/bash
 # Minimal X session - just Chromium, no desktop environment
@@ -121,6 +128,7 @@ $CHROMIUM_CMD \
 XEOF
 
 chmod +x $PROJECT_DIR/scripts/run_kiosk_x.sh
+echo "✓ X session script created and made executable"
 
 # Enable auto-login to console (no GUI login required)
 echo "[3/5] Enabling auto-login to console..."

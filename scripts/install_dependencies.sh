@@ -67,15 +67,21 @@ mkdir -p data/logs
 mkdir -p logs
 mkdir -p ~/.mash
 
+# Set execute permissions on all scripts
+echo "[7/7] Setting execute permissions on scripts..."
+chmod +x scripts/*.sh 2>/dev/null || true
+chmod +x scripts/*.py 2>/dev/null || true
+
 echo ""
 echo "========================================="
 echo " Installation Complete!"
 echo "========================================="
 echo ""
 echo "Next steps:"
-echo "1. Configure Firebase: Place credentials in config/firebase_config.json"
-echo "2. Train ML models: python -m app.core.logic_engine"
-echo "3. Start system: python -m app.main"
+echo "1. Find Arduino: python3 scripts/find_arduino.py"
+echo "2. Test connection: python3 scripts/test_arduino.py"
+echo "3. Configure Firebase: Place credentials in config/firebase_config.json"
+echo "4. Start system: cd rpi_gateway && python3 -m app.main"
+echo "5. Setup kiosk: bash scripts/setup_kiosk.sh"
 echo ""
-echo "For kiosk mode setup, run: ./scripts/setup_kiosk.sh"
 

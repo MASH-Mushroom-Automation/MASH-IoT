@@ -1,6 +1,28 @@
 
 # M.A.S.H. IoT Repository
 
+## 🚀 Quick Start
+
+**First time setup on Raspberry Pi?** Follow our complete guide:
+👉 **[Raspberry Pi Setup Guide](docs/RASPBERRY_PI_SETUP.md)**
+
+**Need to fix script permissions?**
+```bash
+bash scripts/fix_permissions.sh
+```
+
+**Find your Arduino:**
+```bash
+python3 scripts/find_arduino.py
+```
+
+**Test connection:**
+```bash
+python3 scripts/test_arduino.py
+```
+
+---
+
 ## Repository Overview
 
 **Repository Name:** MASH-IoT

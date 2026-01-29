@@ -94,15 +94,37 @@ def test_connection():
         # Test reconnect by simulating disconnect after 10 packets
         packet_limit = 50
         print(f"\nTest will run for {packet_limit} packets or until Ctrl+C")
-        print("Try unplugging and replugging Arduino to test auto-reconnect!\n")
+        print("Try unplugging and replugging Arduino to test auto-reconnect!")
+        print("Watch for: 🔴 DISCONNECTED → 🟢 CONNECTED messages\n")
+        
+        last_status = None
+        check_counter = 0
         
         while data_count < packet_limit:
             time.sleep(1)
+            check_counter += 1
             
-            # Show connection status every 5 seconds
-            if data_count % 5 == 0 and data_count > 0:
-                status = "🟢 CONNECTED" if arduino.is_arduino_connected() else "🔴 DISCONNECTED"
-                print(f"\n[Status Check] {status}")
+            # Check connection status every second
+            current_status = arduino.is_arduino_connected()
+            
+            # Show status change immediately
+            if current_status != last_status:
+                if current_status:
+                    print(f"\n{'='*60}")
+                    print(f"🟢 CONNECTED - Arduino is online")
+                    print(f"{'='*60}\n")
+                else:
+                    print(f"\n{'='*60}")
+                    print(f"🔴 DISCONNECTED - Arduino is offline")
+                    print(f"   Auto-reconnect will retry every 5 seconds...")
+                    print(f"{'='*60}\n")
+                last_status = current_status
+            
+            # Show periodic status check
+            if check_counter % 10 == 0:
+                status_icon = "🟢" if current_status else "🔴"
+                status_text = "CONNECTED" if current_status else "DISCONNECTED"
+                print(f"[Status Check] {status_icon} {status_text} | Packets received: {data_count}")
         
         print(f"\n✅ Test completed! Received {data_count} data packets")
         

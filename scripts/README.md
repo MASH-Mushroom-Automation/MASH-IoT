@@ -28,7 +28,7 @@ python3 scripts/test_arduino.py
 - Auto-detects Arduino port
 - Tests auto-reconnect (try unplugging/replugging Arduino)
 - Displays live sensor data from both rooms
-- Shows connection status every 5 seconds
+- Shows connection status changes immediately
 - Press Ctrl+C to stop
 
 **Example Output:**
@@ -44,7 +44,48 @@ python3 scripts/test_arduino.py
    Temperature: 24.0°C
    Humidity:    90.0%
    CO2:         1200 ppm
+----------------------------------------
+
+🟢 CONNECTED - Arduino is online
+
+[Status Check] 🟢 CONNECTED | Packets received: 5
 ```
+
+### `diagnose_connection.py`
+**NEW!** Monitors connection health and tests auto-reconnect in detail.
+
+**Usage:**
+```bash
+python3 scripts/diagnose_connection.py
+```
+
+**Features:**
+- Continuous connection monitoring (every second)
+- Measures downtime when disconnected
+- Counts reconnection attempts
+- Shows detailed timing of reconnections
+- Provides diagnostic summary at exit
+
+**Example Output:**
+```
+[14:32:05] ✓ Online | Packets: 42
+
+🔴 DISCONNECTED (#1)
+   Auto-reconnect is active - will retry every 5 seconds
+
+[14:32:10] ✗ Offline | Downtime: 5s | Retrying...
+[14:32:15] ✗ Offline | Downtime: 10s | Retrying...
+
+🟢 RECONNECTED after 12.3 seconds
+
+[14:32:17] ✓ Online | Packets: 45
+```
+
+**When to use:**
+- Testing auto-reconnect reliability
+- Measuring reconnection speed
+- Debugging connection issues
+- Verifying USB cable quality
 
 ## Kiosk Mode Scripts
 
