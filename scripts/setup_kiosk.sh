@@ -88,9 +88,11 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Launch Chromium in kiosk mode (FULLSCREEN, NO DESKTOP)
-# Added --no-sandbox strictly if needed, but usually safe to omit on Pi user
+# Launch Chromium in kiosk mode with 1024x600 resolution
 $CHROMIUM_CMD \
+    --window-size=1024,600 \
+    --window-position=0,0 \
+    --force-device-scale-factor=1 \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
@@ -118,6 +120,11 @@ echo "[4/5] Configuring X11 auto-start..."
 # This file tells 'startx' what to do when it loads.
 cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
+
+# Set screen resolution to 1024x600 (for 7" touchscreen)
+xrandr --output HDMI-1 --mode 1024x600 2>/dev/null || \
+xrandr --output HDMI-2 --mode 1024x600 2>/dev/null || \
+true  # Continue even if xrandr fails
 
 # Disable screen blanking/energy saving
 xset s off

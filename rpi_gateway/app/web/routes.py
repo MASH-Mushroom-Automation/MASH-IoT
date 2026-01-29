@@ -28,12 +28,28 @@ def get_live_data():
         }
     
     # Handle null/error states
-    fruiting_data = sensor_data.get('fruiting') or {"temp": 0, "humidity": 0, "co2": 0}
-    spawning_data = sensor_data.get('spawning') or {"temp": 0, "humidity": 0, "co2": 0}
+    fruiting_data = sensor_data.get('fruiting')
+    spawning_data = sensor_data.get('spawning')
     
-    # Check for sensor errors
-    fruiting_error = 'error' in fruiting_data
-    spawning_error = 'error' in spawning_data if spawning_data else False
+    # Check for sensor errors or invalid data
+    fruiting_error = False
+    spawning_error = False
+    
+    if fruiting_data:
+        if 'error' in fruiting_data:
+            fruiting_error = True
+            fruiting_data = None  # Set to None so UI shows N/A
+    
+    if spawning_data:
+        if 'error' in spawning_data:
+            spawning_error = True
+            spawning_data = None  # Set to None so UI shows N/A
+    
+    # If no data, set to None (not 0)
+    if not fruiting_data:
+        fruiting_data = None
+    if not spawning_data:
+        spawning_data = None
     
     # Get target thresholds from config
     fruiting_targets = config.get("fruiting_room", {})

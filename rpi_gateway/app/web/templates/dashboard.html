@@ -33,7 +33,7 @@
                 <h3>CO2</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ fruiting_data.co2 | round(1) }}</span>
+                <span class="sensor-value">{% if fruiting_data and fruiting_data.co2 is not none %}{{ fruiting_data.co2 | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">
@@ -46,7 +46,7 @@
                 <h3>Temperature</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ fruiting_data.temp | round(1) }}</span>
+                <span class="sensor-value">{% if fruiting_data and fruiting_data.temp is not none %}{{ fruiting_data.temp | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">°C</span>
             </div>
             <div class="card-footer">
@@ -59,7 +59,7 @@
                 <h3>Humidity</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ fruiting_data.humidity | round(1) }}</span>
+                <span class="sensor-value">{% if fruiting_data and fruiting_data.humidity is not none %}{{ fruiting_data.humidity | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">%</span>
             </div>
             <div class="card-footer">
@@ -85,7 +85,7 @@
                 <h3>CO2</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ spawning_data.co2 | round(1) }}</span>
+                <span class="sensor-value">{% if spawning_data and spawning_data.co2 is not none %}{{ spawning_data.co2 | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">
@@ -98,7 +98,7 @@
                 <h3>Temperature</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ spawning_data.temp | round(1) }}</span>
+                <span class="sensor-value">{% if spawning_data and spawning_data.temp is not none %}{{ spawning_data.temp | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">°C</span>
             </div>
             <div class="card-footer">
@@ -111,7 +111,7 @@
                 <h3>Humidity</h3>
             </div>
             <div class="card-body">
-                <span class="sensor-value">{{ spawning_data.humidity | round(1) }}</span>
+                <span class="sensor-value">{% if spawning_data and spawning_data.humidity is not none %}{{ spawning_data.humidity | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">%</span>
             </div>
             <div class="card-footer">
