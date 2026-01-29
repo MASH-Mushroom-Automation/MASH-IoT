@@ -18,7 +18,7 @@
     <!-- Fruiting Room Section -->
     <div class="room-header">
         <h2 class="room-title">Fruiting Room</h2>
-        <div class="room-condition">Condition: {% if fruiting_error %}<span class="status-error">Sensor Error</span>{% else %}<span class="status-ok">Optimal</span>{% endif %}</div>
+        <div class="room-condition">Condition: {% if fruiting_error %}<span class="status-error">Sensor Error</span>{% elif fruiting_data and fruiting_data.temp is not none %}<span class="status-ok">Optimal</span>{% else %}<span class="status-warning">No Data</span>{% endif %}</div>
         <div class="actuator-icons">
             <i class="fas fa-wind icon-fan {% if fruiting_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
             <i class="fas fa-fan icon-blower {% if fruiting_actuators.blower_fan %}active{% endif %}" title="Blower Fan"></i>

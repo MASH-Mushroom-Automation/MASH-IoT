@@ -229,6 +229,18 @@ class MASHOrchestrator:
             self.app.backend_connected = self.backend.check_connection() if self.backend else False
             self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
+            self.app.config['ACTUATOR_STATES'] = {
+                'fruiting': {
+                    'exhaust_fan': False,
+                    'blower_fan': False,
+                    'humidifier': False,
+                    'humidifier_fan': False,
+                    'led': False
+                },
+                'spawning': {
+                    'exhaust_fan': False
+                }
+            }
             self.app.config['DB'] = self.db
             logger.info(f"[WEB] Starting Flask server on {host}:{port}")
             logger.info(f"[WEB] Access dashboard at: http://{host}:{port}/dashboard")

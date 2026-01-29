@@ -16,15 +16,14 @@ def get_live_data():
     serial_comm = getattr(current_app, 'serial_comm', None)
     config = current_app.config.get('MUSHROOM_CONFIG', {})
     
-    # Get latest sensor data
-    if serial_comm and hasattr(serial_comm, 'get_latest_data'):
-        sensor_data = serial_comm.get_latest_data()
-    else:
-        # Fallback demo data if Arduino not connected
+    # Get latest sensor data from app context (stored by orchestrator)
+    sensor_data = current_app.config.get('LATEST_DATA', {})
+    
+    if not sensor_data or not isinstance(sensor_data, dict):
+        # Fallback if no data available
         sensor_data = {
-            "fruiting": {"temp": 23.5, "humidity": 88.2, "co2": 950.7},
-            "spawning": None,  # Currently disabled in firmware
-            "timestamp": time.time()
+            'fruiting': None,
+            'spawning': None
         }
     
     # Handle null/error states
@@ -48,26 +47,29 @@ def get_live_data():
     # If no data, set to None (not 0)
     if not fruiting_data:
         fruiting_data = None
+        fruiting_error = True  # Mark as error if no data
     if not spawning_data:
         spawning_data = None
+        spawning_error = True  # Mark as error if no data
     
     # Get target thresholds from config
     fruiting_targets = config.get("fruiting_room", {})
     spawning_targets = config.get("spawning_room", {})
     
-    # For actuator states, we'll track them separately in the orchestrator
-    # For now, return empty states
-    fruiting_actuators = {
+    # Get actuator states from app context
+    actuator_states = current_app.config.get('ACTUATOR_STATES', {})
+    
+    fruiting_actuators = actuator_states.get('fruiting', {
         'exhaust_fan': False,
         'blower_fan': False,
         'humidifier': False,
         'humidifier_fan': False,
         'led': False
-    }
+    })
     
-    spawning_actuators = {
+    spawning_actuators = actuator_states.get('spawning', {
         'exhaust_fan': False
-    }
+    })
     
     return {
         "fruiting_data": fruiting_data,
@@ -229,24 +231,44 @@ def control_actuator():
         logger.warning("Arduino not connected")
         return jsonify({"success": False, "message": "Arduino not connected"}), 503
 
-    # Send command to Arduino with new JSON format
+    # Send command to Arduino
     try:
-        command = f'{{"actuator":"{arduino_actuator}","state":"{state}"}}\n'
-        serial_comm.write(command.encode())
-        logger.info(f"Sent command to Arduino: {command.strip()}")
+        command = f'{arduino_actuator}_{state}'
+        success = serial_comm.send_command(command)
+        
+        if not success:
+            logger.warning(f"Failed to send command to Arduino: {command}")
+            return jsonify({"success": False, "message": "Failed to communicate with Arduino"}), 503
+        
+        logger.info(f"Sent command to Arduino: {command}")
+        
+        # Update actuator state in app config
+        actuator_states = current_app.config.get('ACTUATOR_STATES', {'fruiting': {}, 'spawning': {}})
+        
+        # Map back to UI actuator name
+        if room not in actuator_states:
+            actuator_states[room] = {}
+        
+        actuator_states[room][actuator] = (state == 'ON')
+        current_app.config['ACTUATOR_STATES'] = actuator_states
         
         # Also send to backend if available
         backend_client = getattr(current_app, 'backend_client', None)
         if backend_client:
-            backend_client.send_alert(
-                alert_type='manual_control',
-                message=f"User set {room}/{actuator} to {state}",
-                severity='INFO'
-            )
+            try:
+                backend_client.send_alert(
+                    alert_type='manual_control',
+                    message=f"User set {room}/{actuator} to {state}",
+                    severity='INFO'
+                )
+            except Exception as be:
+                logger.warning(f"Failed to send to backend: {be}")
         
         return jsonify({"success": True, "room": room, "actuator": actuator, "state": state})
     except Exception as e:
         logger.error(f"Failed to send command: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
