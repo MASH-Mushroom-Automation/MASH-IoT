@@ -23,12 +23,20 @@ class BackendAPIClient:
     Handles JWT authentication, sensor data uploads, device registration, and command retrieval.
     """
     
-    def __init__(self, base_url: Optional[str] = None, device_email: Optional[str] = None, device_password: Optional[str] = None):
+    def __init__(self, base_url: Optional[str] = None, device_email: Optional[str] = None, device_password: Optional[str] = None, device_config: Optional[Dict] = None):
         self.base_url = base_url or os.getenv('BACKEND_URL', 'https://api.mashmarket.app/api/v1')
         self.device_email = device_email or os.getenv('DEVICE_EMAIL', '')
         self.device_password = device_password or os.getenv('DEVICE_PASSWORD', '')
-        self.device_id = os.getenv('DEVICE_ID', 'rpi_gateway_001')
-        self.device_name = os.getenv('DEVICE_NAME', 'MASH IoT Gateway')
+        
+        # Load device ID from config or environment
+        if device_config:
+            self.device_id = device_config.get('id', os.getenv('DEVICE_ID', 'unknown'))
+            self.device_name = device_config.get('name', os.getenv('DEVICE_NAME', 'MASH IoT Gateway'))
+            self.serial_number = device_config.get('serial_number', '')
+        else:
+            self.device_id = os.getenv('DEVICE_ID', 'unknown')
+            self.device_name = os.getenv('DEVICE_NAME', 'MASH IoT Gateway')
+            self.serial_number = os.getenv('DEVICE_SERIAL', '')
         
         # Remove trailing slash from base URL
         self.base_url = self.base_url.rstrip('/')
@@ -47,7 +55,7 @@ class BackendAPIClient:
         # Connection state
         self.is_connected = False
         self.last_connection_check = 0
-        self.connection_check_interval = 60  # Check every 60 seconds
+        self.connection_check_interval = 300  # Check every 5 minutes (300 seconds)
         
         logger.info(f"[BACKEND] Initialized client for {self.base_url}")
         
@@ -191,28 +199,36 @@ class BackendAPIClient:
     def check_connection(self) -> bool:
         """
         Check if backend is reachable and authenticated.
-        Caches result for 30 seconds to avoid excessive requests.
+        Caches result to avoid excessive requests (uses connection_check_interval).
         """
         current_time = time.time()
         
         # Use cached result if checked recently
-        if current_time - self.last_connection_check < 30:
+        if current_time - self.last_connection_check < self.connection_check_interval:
             return self.is_connected
         
         try:
-            response = self.session.get(f"{self.base_url}/health", timeout=5)
-            self.is_connected = response.status_code == 200
+            # Use device heartbeat endpoint for proper tracking
+            if not self.ensure_authenticated():
+                logger.warning("[BACKEND] Authentication failed, cannot send heartbeat")
+                self.is_connected = False
+                self.last_connection_check = current_time
+                return False
+            
+            # Send heartbeat to device-specific endpoint
+            response = self.session.post(
+                f"{self.base_url}/devices/{self.device_id}/heartbeat",
+                json={"status": "ONLINE", "timestamp": datetime.now().isoformat()},
+                timeout=10
+            )
+            
+            self.is_connected = response.status_code in [200, 201]
             self.last_connection_check = current_time
             
             if self.is_connected:
-                # Ensure we're authenticated
-                if not self.ensure_authenticated():
-                    self.is_connected = False
-                    logger.warning("[BACKEND] Health OK but authentication failed")
-                else:
-                    logger.debug("[BACKEND] Connection OK and authenticated")
+                logger.info(f"[BACKEND] Device heartbeat sent successfully")
             else:
-                logger.warning(f"[BACKEND] Health check failed: {response.status_code}")
+                logger.warning(f"[BACKEND] Heartbeat failed: {response.status_code} - {response.text}")
             
             return self.is_connected
             

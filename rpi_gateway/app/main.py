@@ -54,9 +54,10 @@ class MASHOrchestrator:
         # Components
         self.db = DatabaseManager()
         
-        # Backend API client
-        self.backend = BackendAPIClient()
-        logger.info("[BACKEND] API client initialized")
+        # Backend API client with device config
+        device_config = self.config.get('device', {})
+        self.backend = BackendAPIClient(device_config=device_config)
+        logger.info(f"[BACKEND] API client initialized for device: {device_config.get('serial_number', 'unknown')}")
         
         # Arduino port (Windows: COM3, Linux: /dev/ttyACM0)
         arduino_port = 'COM3' if sys.platform == 'win32' else '/dev/ttyACM0'

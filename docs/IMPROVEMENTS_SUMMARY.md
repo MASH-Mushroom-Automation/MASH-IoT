@@ -13,15 +13,24 @@ This update implements 5 major improvements to the M.A.S.H. IoT system:
 ### 1. Backend Online Status
 **Files Modified:**
 - `rpi_gateway/app/cloud/backend_api.py`
-  - Added `connection_check_interval` property (60 seconds)
+  - Changed `connection_check_interval` from 60 seconds to **300 seconds (5 minutes)**
+  - Replaced generic `/health` endpoint with device-specific `/devices/{device_id}/heartbeat` endpoint
   - Added `_initial_connection_check()` method to test connection on startup
   - Connection status tracked in `is_connected` property
+  - Now sends proper device heartbeat with status and timestamp
 
 **How it works:**
 - Backend client attempts connection on initialization
-- Status automatically updates every 60 seconds
+- Status automatically updates every **5 minutes** (reduced from 1 minute to avoid backend strain)
+- Uses authenticated device heartbeat endpoint for proper tracking
 - Flask routes expose `backend_connected` status to frontend
 - Dashboard displays "Online" (green) or "Offline" (yellow)
+
+**Device Identification:**
+- Device credentials now stored in `config.yaml` under `device:` section
+- Includes: ID, name, serial number, type, location, firmware version
+- Backend client reads device config from YAML instead of hardcoded values
+- Proper device tracking on backend via unique device ID
 
 ### 2. Uptime Tracking
 **Files Modified:**

@@ -1,11 +1,20 @@
 # M.A.S.H. IoT Configuration
 # Temperature thresholds, automation rules, actuator mappings
 
+# Device Identification (from Backend Registration)
+device:
+  id: "cmkg7pxhn0000bu9kqdlmb4f1"
+  name: "Mika's Device"
+  serial_number: "MASH-B2-CAL26-CE637C"
+  type: "MUSHROOM_CHAMBER"
+  location: "Mushroom Cultivation Facility"
+  firmware_version: "2.0.0"
+
 # System Configuration
 system:
   ml_enabled: true
   auto_mode: true
-  data_sync_interval: 60  # seconds
+  data_sync_interval: 300  # seconds (5 minutes - reduced to avoid backend strain)
   sensor_read_interval: 5  # seconds
 
 # Passive Fan Configuration (Timed Intervals)
