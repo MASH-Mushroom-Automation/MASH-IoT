@@ -151,17 +151,6 @@ def controls():
                            device_actuators=device_actuators,
                            auto_mode_enabled=auto_mode_enabled)
 
-@web_bp.route('/alerts')
-def alerts():
-    """Renders the alerts and notifications page."""
-    # In a real app, this data would come from the database
-    dummy_alerts = [
-        {"timestamp": "2026-01-27 10:30:00", "room": "fruiting", "level": "CRITICAL", "message": "CO2 levels exceeded 1200 ppm."},
-        {"timestamp": "2026-01-27 09:15:23", "room": "fruiting", "level": "WARNING", "message": "Humidity dropped below 85% threshold."},
-        {"timestamp": "2026-01-26 22:05:10", "room": "spawning", "level": "WARNING", "message": "Temperature is slightly above target at 26.5°C."}
-    ]
-    return render_template('alerts.html', alerts=dummy_alerts)
-
 @web_bp.route('/ai_insights')
 def ai_insights():
     """Renders the AI/ML insights page."""
