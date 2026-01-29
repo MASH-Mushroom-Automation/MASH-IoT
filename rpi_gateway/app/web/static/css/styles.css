@@ -388,3 +388,229 @@ input:checked + .slider:before {
     color: #e74c3c;
     font-weight: bold;
 }
+
+/* ===================== Grid Card Controls Styles ===================== */
+
+/* Auto Control Bar */
+.auto-control-bar {
+    background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+    border: 2px solid #4CAF50;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+}
+
+.auto-control-switch {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.auto-label {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #4CAF50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.auto-label i {
+    font-size: 1.5em;
+}
+
+.auto-info {
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+/* Grid Container */
+.controls-grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.room-section {
+    background-color: #2c2c2c;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #444;
+}
+
+.room-header {
+    color: #4CAF50;
+    font-size: 1.5em;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4CAF50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.actuator-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+/* Actuator Card - Click Whole Card to Toggle */
+.actuator-card {
+    background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.actuator-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+    border-color: #4CAF50;
+}
+
+.actuator-card[data-state=\"on\"] {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    border-color: #5dde5d;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+}
+
+.actuator-card[data-state=\"on\"] .card-info h3,
+.actuator-card[data-state=\"on\"] .card-info .card-voltage,
+.actuator-card[data-state=\"on\"] .card-icon i {
+    color: #fff;
+}
+
+.actuator-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.actuator-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Card Icon */
+.card-icon {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    color: #4CAF50;
+}
+
+.actuator-card[data-state=\"on\"] .card-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Card Info */
+.card-info h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+.card-voltage {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Card Status */
+.card-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.card-status[data-status=\"on\"] {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.card-status[data-status=\"off\"] {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #888;
+}
+
+/* Auto/Timed Badge */
+.card-auto-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(255, 165, 0, 0.9);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Passive/Flush Mode Badge */
+.card-mode-badge {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.card-mode-badge[data-mode=\"passive\"] {
+    background-color: rgba(52, 152, 219, 0.9);
+    color: #fff;
+}
+
+.card-mode-badge[data-mode=\"flush\"] {
+    background-color: rgba(231, 76, 60, 0.9);
+    color: #fff;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.6; }
+}
+
+/* Responsive Design for Cards */
+@media (max-width: 768px) {
+    .actuator-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .auto-control-bar {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}

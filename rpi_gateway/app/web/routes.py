@@ -84,11 +84,44 @@ def dashboard():
 @web_bp.route('/controls')
 def controls():
     """Renders the manual controls page with current actuator states."""
-    # We can reuse the get_live_data function to get the current state
     context = get_live_data()
+    
+    # Add device room actuators
+    device_actuators = {
+        'exhaust_fan': False,
+        'exhaust_fan_auto': False
+    }
+    
+    # Update actuator names to match Arduino firmware
+    # Map: mist_maker, humidifier_fan, exhaust_fan, intake_fan, led
+    fruiting_actuators = {
+        'mist_maker': False,
+        'humidifier_fan': False,
+        'exhaust_fan': False,
+        'intake_fan': False,
+        'led': False,
+        'mist_maker_auto': False,
+        'humidifier_fan_auto': False,
+        'exhaust_fan_auto': False,
+        'intake_fan_auto': False,
+        'led_auto': False
+    }
+    
+    spawning_actuators = {
+        'exhaust_fan': False,
+        'exhaust_fan_auto': False,
+        'exhaust_fan_flush': False  # Flush mode indicator
+    }
+    
+    # Get auto mode status from config
+    config = current_app.config.get('MUSHROOM_CONFIG', {})
+    auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
+    
     return render_template('controls.html', 
-                           fruiting_actuators=context.get('fruiting_actuators', {}),
-                           spawning_actuators=context.get('spawning_actuators', {}))
+                           fruiting_actuators=fruiting_actuators,
+                           spawning_actuators=spawning_actuators,
+                           device_actuators=device_actuators,
+                           auto_mode_enabled=auto_mode_enabled)
 
 @web_bp.route('/alerts')
 def alerts():
@@ -143,35 +176,48 @@ def api_latest_data():
 def control_actuator():
     """
     API endpoint to manually control an actuator.
-    Receives a JSON object like: {"room": "fruiting", "actuator": "exhaust_fan", "state": "ON"}
+    Receives a JSON object like: {"room": "fruiting", "actuator": "mist_maker", "state": "ON"}
     """
     data = request.get_json()
     if not all(key in data for key in ['room', 'actuator', 'state']):
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
 
     room = data['room'].lower()
     actuator = data['actuator'].lower()
     state = data['state'].upper()
     
     if state not in ['ON', 'OFF']:
-        return jsonify({"status": "error", "message": "Invalid state (must be ON or OFF)"}), 400
+        return jsonify({"success": False, "message": "Invalid state (must be ON or OFF)"}), 400
+
+    # Map web UI actuator names to Arduino firmware names
+    actuator_map = {
+        'mist_maker': 'MIST_MAKER',
+        'humidifier_fan': 'HUMIDIFIER_FAN',
+        'exhaust_fan': 'FRUITING_EXHAUST_FAN' if room == 'fruiting' else 'SPAWNING_EXHAUST_FAN' if room == 'spawning' else 'DEVICE_EXHAUST_FAN',
+        'intake_fan': 'FRUITING_INTAKE_FAN',
+        'led': 'FRUITING_LED'
+    }
+    
+    arduino_actuator = actuator_map.get(actuator)
+    if not arduino_actuator:
+        return jsonify({"success": False, "message": f"Unknown actuator: {actuator}"}), 400
 
     # Get the serial comm object from app context
     serial_comm = getattr(current_app, 'serial_comm', None)
 
     if not serial_comm:
         logger.warning("Serial comm not available in app context")
-        return jsonify({"status": "error", "message": "Serial communication not initialized"}), 500
+        return jsonify({"success": False, "message": "Serial communication not initialized"}), 500
 
     if not serial_comm.is_connected:
         logger.warning("Arduino not connected")
-        return jsonify({"status": "error", "message": "Arduino not connected"}), 503
+        return jsonify({"success": False, "message": "Arduino not connected"}), 503
 
-    # Use the friendly control_actuator method
-    success = serial_comm.control_actuator(room, actuator, state)
-    
-    if success:
-        logger.info(f"Actuator controlled: {room}/{actuator} -> {state}")
+    # Send command to Arduino with new JSON format
+    try:
+        command = f'{{"actuator":"{arduino_actuator}","state":"{state}"}}\n'
+        serial_comm.write(command.encode())
+        logger.info(f"Sent command to Arduino: {command.strip()}")
         
         # Also send to backend if available
         backend_client = getattr(current_app, 'backend_client', None)
@@ -182,6 +228,57 @@ def control_actuator():
                 severity='INFO'
             )
         
-        return jsonify({"status": "success", "room": room, "actuator": actuator, "state": state})
-    else:
-        return jsonify({"status": "error", "message": "Failed to send command to Arduino"}), 500
+        return jsonify({"success": True, "room": room, "actuator": actuator, "state": state})
+    except Exception as e:
+        logger.error(f"Failed to send command: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@web_bp.route('/api/set_auto_mode', methods=['POST'])
+def set_auto_mode():
+    """
+    API endpoint to toggle automatic control mode.
+    Receives: {"enabled": true/false}
+    """
+    data = request.get_json()
+    if 'enabled' not in data:
+        return jsonify({"success": False, "message": "Missing 'enabled' field"}), 400
+    
+    enabled = bool(data['enabled'])
+    
+    # Update config
+    config = current_app.config.get('MUSHROOM_CONFIG', {})
+    if 'system' not in config:
+        config['system'] = {}
+    config['system']['auto_mode'] = enabled
+    
+    logger.info(f"Auto mode {'enabled' if enabled else 'disabled'}")
+    
+    return jsonify({"success": True, "auto_mode": enabled})
+
+
+@web_bp.route('/api/actuator_states')
+def actuator_states():
+    """
+    API endpoint to get current actuator states.
+    Returns state of all actuators across all rooms.
+    """
+    # TODO: Implement actual state tracking
+    # For now, return dummy data
+    states = {
+        "fruiting": {
+            "mist_maker": {"state": False, "auto": False},
+            "humidifier_fan": {"state": False, "auto": False},
+            "exhaust_fan": {"state": False, "auto": False},
+            "intake_fan": {"state": False, "auto": False},
+            "led": {"state": False, "auto": True}
+        },
+        "spawning": {
+            "exhaust_fan": {"state": False, "auto": True, "mode": "passive"}
+        },
+        "device": {
+            "exhaust_fan": {"state": False, "auto": True}
+        }
+    }
+    
+    return jsonify(states)

@@ -8,6 +8,28 @@ system:
   data_sync_interval: 60  # seconds
   sensor_read_interval: 5  # seconds
 
+# Passive Fan Configuration (Timed Intervals)
+passive_fans:
+  spawning_exhaust:
+    enabled: true
+    interval_minutes: 30  # Run every 30 minutes
+    duration_seconds: 120  # Run for 2 minutes
+    flush_mode:  # Override passive when sensor threshold exceeded
+      enabled: true
+      co2_trigger: 2000  # Trigger flush when CO2 > 2000 ppm
+      duration_seconds: 300  # Flush for 5 minutes
+  
+  device_exhaust:
+    enabled: true
+    mode: "clock"  # Options: "interval" or "clock"
+    # Clock-based schedule (runs at specific times)
+    schedule:
+      - "08:00"  # 8 AM
+      - "12:00"  # 12 PM
+      - "16:00"  # 4 PM
+      - "20:00"  # 8 PM
+    duration_seconds: 180  # Run for 3 minutes each time
+
 # Fruiting Room Configuration
 fruiting_room:
   # Environmental Targets

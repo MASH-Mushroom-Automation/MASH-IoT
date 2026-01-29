@@ -1,63 +1,170 @@
 {% extends "base.html" %}
 {% block title %}Controls{% endblock %}
 {% block content %}
-<h1 class="page-title">Manual Actuator Controls</h1>
+<h1 class="page-title">Actuator Controls</h1>
 
-<div class="controls-container">
+<!-- Auto Control Toggle -->
+<div class="auto-control-bar">
+    <div class="auto-control-switch">
+        <label class="switch">
+            <input type="checkbox" id="auto-control-toggle" {% if auto_mode_enabled %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+        <span class="auto-label">
+            <i class="fas fa-robot"></i> 
+            <span id="auto-status-text">{% if auto_mode_enabled %}Automatic Control{% else %}Manual Control{% endif %}</span>
+        </span>
+    </div>
+    <div class="auto-info">
+        <small>Auto mode handles timed intervals and sensor-based actuation</small>
+    </div>
+</div>
+
+<div class="controls-grid-container">
     <!-- Fruiting Room Controls -->
-    <div class="control-room-section">
-        <h2 class="room-title">Fruiting Room</h2>
-        <div class="actuator-list">
-            <div class="actuator-item">
-                <span><i class="fas fa-wind"></i> Exhaust Fan</span>
-                <label class="switch">
-                    <input type="checkbox" id="fruiting-exhaust_fan" data-room="fruiting" data-actuator="exhaust_fan" {% if fruiting_actuators.exhaust_fan %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+    <div class="room-section">
+        <h2 class="room-header"><i class="fas fa-seedling"></i> Fruiting Room</h2>
+        <div class="actuator-grid">
+            <!-- Mist Maker Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="mist_maker" data-state="{% if fruiting_actuators.mist_maker %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-water"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Mist Maker</h3>
+                    <span class="card-voltage">45V</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.mist_maker %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.mist_maker %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.mist_maker_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-robot"></i> AUTO
+                </div>
             </div>
-            <div class="actuator-item">
-                <span><i class="fas fa-fan"></i> Blower Fan</span>
-                <label class="switch">
-                    <input type="checkbox" id="fruiting-blower_fan" data-room="fruiting" data-actuator="blower_fan" {% if fruiting_actuators.blower_fan %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+
+            <!-- Humidifier Fan Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="humidifier_fan" data-state="{% if fruiting_actuators.humidifier_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-fan"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Humidifier Fan</h3>
+                    <span class="card-voltage">12V</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.humidifier_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.humidifier_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.humidifier_fan_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-robot"></i> AUTO
+                </div>
             </div>
-            <div class="actuator-item">
-                <span><i class="fas fa-tint"></i> Humidifier</span>
-                <label class="switch">
-                    <input type="checkbox" id="fruiting-humidifier" data-room="fruiting" data-actuator="humidifier" {% if fruiting_actuators.humidifier %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+
+            <!-- Exhaust Fan Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="exhaust_fan" data-state="{% if fruiting_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-wind"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Exhaust Fan</h3>
+                    <span class="card-voltage">24V</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.exhaust_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.exhaust_fan_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-robot"></i> AUTO
+                </div>
             </div>
-            <div class="actuator-item">
-                <span><i class="fas fa-wind"></i> Humidifier Fan</span>
-                <label class="switch">
-                    <input type="checkbox" id="fruiting-humidifier_fan" data-room="fruiting" data-actuator="humidifier_fan" {% if fruiting_actuators.humidifier_fan %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+
+            <!-- Intake Fan Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="intake_fan" data-state="{% if fruiting_actuators.intake_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-wind"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Intake Blower</h3>
+                    <span class="card-voltage">12V</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.intake_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.intake_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.intake_fan_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-robot"></i> AUTO
+                </div>
             </div>
-            <div class="actuator-item">
-                <span><i class="fas fa-lightbulb"></i> LED Light</span>
-                <label class="switch">
-                    <input type="checkbox" id="fruiting-led" data-room="fruiting" data-actuator="led" {% if fruiting_actuators.led %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+
+            <!-- LED Lights Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="led" data-state="{% if fruiting_actuators.led %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="card-info">
+                    <h3>LED Lights</h3>
+                    <span class="card-voltage">5V</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.led %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.led %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.led_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-clock"></i> TIMED
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Spawning Room Controls -->
-    <div class="control-room-section">
-        <h2 class="room-title">Spawning Room</h2>
-        <div class="actuator-list">
-            <div class="actuator-item">
-                <span><i class="fas fa-wind"></i> Exhaust Fan</span>
-                <label class="switch">
-                    <input type="checkbox" id="spawning-exhaust_fan" data-room="spawning" data-actuator="exhaust_fan" {% if spawning_actuators.exhaust_fan %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
+    <div class="room-section">
+        <h2 class="room-header"><i class="fas fa-temperature-high"></i> Spawning Room</h2>
+        <div class="actuator-grid">
+            <!-- Exhaust Fan Card (Passive with Flush) -->
+            <div class="actuator-card" data-room="spawning" data-actuator="exhaust_fan" data-state="{% if spawning_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-wind"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Exhaust Fan</h3>
+                    <span class="card-voltage">12V · Passive</span>
+                </div>
+                <div class="card-status" data-status="{% if spawning_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if spawning_actuators.exhaust_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if spawning_actuators.exhaust_fan_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-clock"></i> TIMED
+                </div>
+                <div class="card-mode-badge" data-mode="{% if spawning_actuators.exhaust_fan_flush %}flush{% else %}passive{% endif %}">
+                    {% if spawning_actuators.exhaust_fan_flush %}
+                        <i class="fas fa-bolt"></i> FLUSH
+                    {% else %}
+                        <i class="fas fa-clock"></i> PASSIVE
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Room Controls -->
+    <div class="room-section">
+        <h2 class="room-header"><i class="fas fa-server"></i> Device Room</h2>
+        <div class="actuator-grid">
+            <!-- Device Exhaust Fan Card (Passive) -->
+            <div class="actuator-card" data-room="device" data-actuator="exhaust_fan" data-state="{% if device_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-wind"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Exhaust Fan</h3>
+                    <span class="card-voltage">12V · Passive</span>
+                </div>
+                <div class="card-status" data-status="{% if device_actuators.exhaust_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if device_actuators.exhaust_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if device_actuators.exhaust_fan_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-clock"></i> TIMED
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="{{ url_for('web.static', filename='js/controls.js') }}"></script>
 {% endblock %}

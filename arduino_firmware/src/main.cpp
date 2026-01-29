@@ -15,9 +15,8 @@ ActuatorManager actuators;
 SafetyWatchdog watchdog(WATCHDOG_TIMEOUT);
 
 // ==================== JSON & SERIAL ====================
-StaticJsonDocument<256> jsonSensorDoc;
-StaticJsonDocument<128> jsonCommandDoc;
-char serialBuffer[128];
+JsonDocument jsonSensorDoc;
+JsonDocument jsonCommandDoc;
 
 // ==================== FUNCTION PROTOTYPES ====================
 void handleSerialCommands();
@@ -83,13 +82,13 @@ void loop() {
         
         // Read both sensors
         SensorReading fruiting = sensors.readSensor1();
-        // SensorReading spawning = sensors.readSensor2();
+        SensorReading spawning = sensors.readSensor2();
         
         // Create JSON output
         jsonSensorDoc.clear();
         
         // Fruiting room data
-        JsonObject fruitingObj = jsonSensorDoc.createNestedObject("fruiting");
+        JsonObject fruitingObj = jsonSensorDoc["fruiting"].to<JsonObject>();
         if (fruiting.isValid) {
             fruitingObj["temp"] = round(fruiting.temperature * 10) / 10.0;
             fruitingObj["humidity"] = round(fruiting.humidity * 10) / 10.0;
@@ -98,9 +97,8 @@ void loop() {
             fruitingObj["error"] = "invalid_reading";
         }
         
-        // Spawning room data - DISABLED
-        /*
-        JsonObject spawningObj = jsonSensorDoc.createNestedObject("spawning");
+        // Spawning room data
+        JsonObject spawningObj = jsonSensorDoc["spawning"].to<JsonObject>();
         if (spawning.isValid) {
             spawningObj["temp"] = round(spawning.temperature * 10) / 10.0;
             spawningObj["humidity"] = round(spawning.humidity * 10) / 10.0;
@@ -108,7 +106,6 @@ void loop() {
         } else {
             spawningObj["error"] = "invalid_reading";
         }
-        */
         
         // Send JSON to RPi
         serializeJson(jsonSensorDoc, Serial);
@@ -134,10 +131,12 @@ void loop() {
         }
     }
     
-    // ==================== TASK 3: PET WATCHDOG ====================
+    // ==================== TASK 3: CHECK WATCHDOG ====================
     if (currentMillis - lastWatchdogCheck >= 1000) {
         lastWatchdogCheck = currentMillis;
-        watchdog.pet();
+        if (watchdog.checkTimeout()) {
+            actuators.shutdownAll();
+        }
     }
 }
 
@@ -149,9 +148,9 @@ void handleSerialCommands() {
     while (Serial.available() > 0) {
         char incomingChar = Serial.read();
 
-        if (incomingChar == '\\n' || incomingChar == '\\r') {
+        if (incomingChar == '\n' || incomingChar == '\r') {
             if (bufferPos > 0) {
-                serialBuffer[bufferPos] = '\\0'; // Null-terminate the string
+                serialBuffer[bufferPos] = '\0'; // Null-terminate the string
 
                 DeserializationError error = deserializeJson(jsonCommandDoc, serialBuffer);
 
@@ -185,7 +184,7 @@ void handleSerialCommands() {
                 bufferPos = 0; 
             }
         } else {
-            if (bufferPos < sizeof(serialBuffer) - 1) {
+            if ((size_t)bufferPos < sizeof(serialBuffer) - 1) {
                 serialBuffer[bufferPos++] = incomingChar;
             }
         }
@@ -193,12 +192,14 @@ void handleSerialCommands() {
 }
 
 ActuatorType stringToActuatorType(const char* str) {
-    if (strcmp(str, "SPAWNING_EXHAUST_FAN") == 0) return SPAWNING_EXHAUST_FAN;
-    if (strcmp(str, "FRUITING_EXHAUST_FAN") == 0) return FRUITING_EXHAUST_FAN;
-    if (strcmp(str, "FRUITING_BLOWER_FAN") == 0) return FRUITING_BLOWER_FAN;
+    if (strcmp(str, "MIST_MAKER") == 0) return MIST_MAKER;
     if (strcmp(str, "HUMIDIFIER_FAN") == 0) return HUMIDIFIER_FAN;
-    if (strcmp(str, "HUMIDIFIER") == 0) return HUMIDIFIER;
+    if (strcmp(str, "FRUITING_EXHAUST_FAN") == 0) return FRUITING_EXHAUST_FAN;
+    if (strcmp(str, "FRUITING_INTAKE_FAN") == 0) return FRUITING_INTAKE_FAN;
+    if (strcmp(str, "SPAWNING_EXHAUST_FAN") == 0) return SPAWNING_EXHAUST_FAN;
+    if (strcmp(str, "DEVICE_EXHAUST_FAN") == 0) return DEVICE_EXHAUST_FAN;
     if (strcmp(str, "FRUITING_LED") == 0) return FRUITING_LED;
+    if (strcmp(str, "RESERVED") == 0) return RESERVED;
     return (ActuatorType)-1; // Invalid actuator
 }
 

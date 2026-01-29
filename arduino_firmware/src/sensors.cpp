@@ -5,15 +5,24 @@
 #include "config.h"
 
 #include <Wire.h>
-// #include <SoftWire.h> // No longer needed for single sensor setup
 #include <SensirionI2CScd4x.h>
 
-// Hardware I2C sensor (Fruiting Room)
-SensirionI2CScd4x scd41_hw;
+// ==================== SENSOR CONFIGURATION ====================
+// USING TCA9548A I2C MULTIPLEXER FOR DUAL SENSORS
+// - Single Hardware I2C bus with TCA9548A multiplexer
+// - Configure multiplexer channels:
+//   * Channel 0 (SD0): Fruiting SCD41
+//   * Channel 1 (SD1): Spawning SCD41
+//   * Channel 2-7: Available for expansion
 
-// Software I2C sensor (Spawning Room) - DISABLED
-// SoftWire softWire(SENSOR2_SDA_PIN, SENSOR2_SCL_PIN);
-// SensirionI2CScd4x scd41_sw; // This was causing the error, Sensirion lib doesn't support SoftWire directly
+#define USE_MULTIPLEXER
+#define MUX_I2C_ADDRESS 0x70
+#define MUX_CHANNEL_FRUITING 0
+#define MUX_CHANNEL_SPAWNING 1
+
+// Both sensors use Hardware I2C through multiplexer
+SensirionI2CScd4x scd41_fruiting;
+SensirionI2CScd4x scd41_spawning;
 
 
 // ==================== MOVING AVERAGE FILTER ====================
@@ -69,55 +78,95 @@ SensorManager::SensorManager() {
     // Initialize filters for both sensors
     tempFilter1 = new MovingAverageFilter(FILTER_SIZE);
     humidityFilter1 = new MovingAverageFilter(FILTER_SIZE);
-    // tempFilter2 = new MovingAverageFilter(FILTER_SIZE);
-    // humidityFilter2 = new MovingAverageFilter(FILTER_SIZE);
+    tempFilter2 = new MovingAverageFilter(FILTER_SIZE);
+    humidityFilter2 = new MovingAverageFilter(FILTER_SIZE);
     
     // Initialize last readings
     lastReading1 = {0, 0, 0, false, 0};
-    // lastReading2 = {0, 0, 0, false, 0};
+    lastReading2 = {0, 0, 0, false, 0};
 }
 
 SensorManager::~SensorManager() {
     delete tempFilter1;
     delete humidityFilter1;
-    // delete tempFilter2;
-    // delete humidityFilter2;
+    delete tempFilter2;
+    delete humidityFilter2;
 }
 
-bool SensorManager::begin() {
-    // Initialize Hardware I2C
-    Wire.begin();
-    scd41_hw.begin(Wire);
+// ==================== MULTIPLEXER SUPPORT ====================
+bool SensorManager::selectMuxChannel(uint8_t channel) {
+    /**
+     * Switch TCA9548A multiplexer to specified channel.
+     * 
+     * @param channel: Channel number (0-7)
+     * @return true if successful, false if MUX not responding
+     */
+    if (channel > 7) return false;
     
-    // Initialize Software I2C - DISABLED
-    // softWire.begin();
-    // scd41_sw.begin(softWire);
+    Wire.beginTransmission(MUX_I2C_ADDRESS);
+    Wire.write(1 << channel);  // Set channel bit
     
-    // Stop potentially running measurements
-    scd41_hw.stopPeriodicMeasurement();
-    // scd41_sw.stopPeriodicMeasurement();
-    
-    delay(100);
-    
-    // Start periodic measurements
-    uint16_t error1 = scd41_hw.startPeriodicMeasurement();
-    // uint16_t error2 = scd41_sw.startPeriodicMeasurement();
-    
-    if (error1 != 0) {
-        Serial.println(F("[ERROR] Failed to start sensor 1 (fruiting)"));
+    if (Wire.endTransmission() != 0) {
+        Serial.println(F("[ERROR] Multiplexer not responding"));
         return false;
     }
     
-    // if (error2 != 0) {
-    //     Serial.println(F("[ERROR] Failed to start sensor 2 (spawning)"));
-    //     return false;
-    // }
-    
-    Serial.println(F("[OK] Fruiting sensor initialized"));
-    
-    // Wait for sensors to warm up
-    delay(SENSOR_WARMUP_TIME);
+    delay(5);  // Small delay for MUX switching
     return true;
+}
+
+bool SensorManager::detectMultiplexer() {
+    /**
+     * Check if TCA9548A multiplexer is present on I2C bus.
+     * 
+     * @return true if MUX detected
+     */
+    Wire.beginTransmission(MUX_I2C_ADDRESS);
+    return (Wire.endTransmission() == 0);
+}
+
+bool SensorManager::begin() {
+
+    Serial.println(F("[INIT] Checking for I2C multiplexer..."));
+    
+    Wire.begin();
+    
+    if (detectMultiplexer()) {
+        Serial.println(F("[OK] TCA9548A multiplexer detected!"));
+        
+        // Initialize Fruiting sensor on MUX channel 0
+        if (!selectMuxChannel(MUX_CHANNEL_FRUITING)) {
+            Serial.println(F("[ERROR] Failed to select MUX channel for Fruiting"));
+            return false;
+        }
+        scd41_fruiting.begin(Wire);
+        scd41_fruiting.stopPeriodicMeasurement();
+        delay(100);
+        uint16_t error1 = scd41_fruiting.startPeriodicMeasurement();
+        
+        // Initialize Spawning sensor (Channel 1)
+        if (!selectMuxChannel(MUX_CHANNEL_SPAWNING)) {
+            Serial.println(F("[ERROR] Failed to select MUX channel for Spawning"));
+            return false;
+        }
+        scd41_spawning.begin(Wire);
+        scd41_spawning.stopPeriodicMeasurement();
+        delay(100);
+        uint16_t error2 = scd41_spawning.startPeriodicMeasurement();
+        
+        if (error1 != 0 || error2 != 0) {
+            Serial.println(F("[ERROR] Sensor initialization via MUX failed"));
+            return false;
+        }
+        
+        Serial.println(F("[OK] Both sensors initialized via multiplexer"));
+        delay(SENSOR_WARMUP_TIME);
+        return true;
+    } else {
+        Serial.println(F("[ERROR] TCA9548A multiplexer not detected!"));
+        Serial.println(F("[ERROR] Check multiplexer wiring and address"));
+        return false;
+    }
 }
 
 bool SensorManager::validateReading(float temp, float humidity, uint16_t co2) {
@@ -134,10 +183,15 @@ SensorReading SensorManager::readSensor1() {
     reading.timestamp = millis();
     reading.isValid = false;
     
+    // Select multiplexer channel for fruiting sensor
+    if (!selectMuxChannel(MUX_CHANNEL_FRUITING)) {
+        return lastReading1;
+    }
+    
     uint16_t co2_raw;
     float temp_raw, humidity_raw;
     
-    uint16_t error = scd41_hw.readMeasurement(co2_raw, temp_raw, humidity_raw);
+    uint16_t error = scd41_fruiting.readMeasurement(co2_raw, temp_raw, humidity_raw);
     
     if (error != 0 || co2_raw == 0) {
         // Return last valid reading if current read fails
@@ -146,7 +200,7 @@ SensorReading SensorManager::readSensor1() {
     
     // Validate raw reading
     if (!validateReading(temp_raw, humidity_raw, co2_raw)) {
-        Serial.println(F("[WARNING] Sensor 1 out of range"));
+        Serial.println(F("[WARNING] Fruiting sensor out of range"));
         return lastReading1;
     }
     
@@ -162,16 +216,20 @@ SensorReading SensorManager::readSensor1() {
     return reading;
 }
 
-/*
 SensorReading SensorManager::readSensor2() {
     SensorReading reading;
     reading.timestamp = millis();
     reading.isValid = false;
     
+    // Select multiplexer channel for spawning sensor
+    if (!selectMuxChannel(MUX_CHANNEL_SPAWNING)) {
+        return lastReading2;
+    }
+    
     uint16_t co2_raw;
     float temp_raw, humidity_raw;
     
-    uint16_t error = scd41_sw.readMeasurement(co2_raw, temp_raw, humidity_raw);
+    uint16_t error = scd41_spawning.readMeasurement(co2_raw, temp_raw, humidity_raw);
     
     if (error != 0 || co2_raw == 0) {
         // Return last valid reading if current read fails
@@ -180,7 +238,7 @@ SensorReading SensorManager::readSensor2() {
     
     // Validate raw reading
     if (!validateReading(temp_raw, humidity_raw, co2_raw)) {
-        Serial.println(F("[WARNING] Sensor 2 out of range"));
+        Serial.println(F("[WARNING] Spawning sensor out of range"));
         return lastReading2;
     }
     
@@ -195,7 +253,6 @@ SensorReading SensorManager::readSensor2() {
     
     return reading;
 }
-*/
 
 void SensorManager::printReading(const char* room, SensorReading reading) {
     if (!reading.isValid) {
