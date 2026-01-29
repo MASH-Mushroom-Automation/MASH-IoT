@@ -1,11 +1,11 @@
 #!/bin/bash
-# M.A.S.H. IoT - Kiosk Mode Setup Script
-# Configures Raspberry Pi to auto-launch dashboard in kiosk mode on desktop
+# M.A.S.H. IoT - CLI Kiosk Setup (With Resolution Fix)
+# Reverts to Console Boot and adds 'matchbox-window-manager' to fix black bars.
 
 set -e
 
 echo "========================================="
-echo " M.A.S.H. IoT - Kiosk Mode Setup"
+echo " M.A.S.H. IoT - CLI Kiosk Setup (Fixed)"
 echo "========================================="
 
 # Check if running as normal user
@@ -17,39 +17,22 @@ fi
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICE_NAME="mash-iot"
 
-echo "Project directory: $PROJECT_DIR"
-
-# Set execute permissions on all scripts first
-echo "Setting execute permissions on scripts..."
+# Set execute permissions
 chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
-chmod +x "$0" 2>/dev/null || true  # Make sure this script itself is executable
-echo "✓ Script permissions updated"
 
 # ---------------------------------------------------------
-# Clean up any lingering resolution configs from old setups
+# 1. Cleanup Desktop Mode Settings
 # ---------------------------------------------------------
-echo "Cleaning up old resolution configs..."
+echo "[1/5] Cleaning up Desktop Mode settings..."
 
-# Remove any xrandr commands from existing autostart files
-if [ -f "$HOME/.config/lxsession/LXDE-pi/autostart" ]; then
-    sed -i '/xrandr/d' "$HOME/.config/lxsession/LXDE-pi/autostart" 2>/dev/null || true
-fi
-
-# Check and clean boot config if it has our old resolution settings
-for CONFIG_FILE in /boot/config.txt /boot/firmware/config.txt; do
-    if [ -f "$CONFIG_FILE" ] && sudo grep -q "M.A.S.H. IoT Display Configuration" "$CONFIG_FILE" 2>/dev/null; then
-        echo "Removing old resolution config from $CONFIG_FILE..."
-        sudo sed -i '/# M.A.S.H. IoT Display Configuration/,/^hdmi_cvt=/d' "$CONFIG_FILE" 2>/dev/null || true
-    fi
-done
-
-echo "✓ Old configs cleaned"
+# Remove Desktop autostart file if it exists
+rm "$HOME/.config/autostart/mash-kiosk.desktop" 2>/dev/null || true
 
 # ---------------------------------------------------------
-# 1. Create systemd service for M.A.S.H. backend
+# 2. Setup Backend Service
 # ---------------------------------------------------------
-echo "[1/4] Creating systemd service for M.A.S.H. backend..."
+echo "[2/5] Ensuring Backend Service is set..."
 
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
@@ -70,157 +53,104 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# Reload systemd and enable service
 sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}.service
-sudo systemctl restart ${SERVICE_NAME}.service
-
-echo "✓ systemd service created and started"
 
 # ---------------------------------------------------------
-# 2. Check for Chromium and Desktop Tools
+# 3. Install Window Manager (THE FIX)
 # ---------------------------------------------------------
-echo "[2/4] Checking for Chromium and tools..."
+echo "[3/5] Installing Window Manager to fix resolution..."
 
-if ! command -v chromium-browser &> /dev/null && ! command -v chromium &> /dev/null; then
-    echo "Installing Chromium browser..."
-    sudo apt-get update
-    sudo apt-get install -y chromium-browser unclutter
-fi
+# We install matchbox-window-manager. This forces the browser to full screen
+# without needing a heavy desktop environment.
+sudo apt-get update
+sudo apt-get install -y chromium-browser x11-xserver-utils unclutter matchbox-window-manager
 
 # ---------------------------------------------------------
-# 3. Create the Kiosk Launcher Script (Desktop Mode)
+# 4. Create the X Session Script
 # ---------------------------------------------------------
-echo "[3/4] Creating Kiosk Launcher Script..."
+echo "[4/5] Creating X Session Script..."
 
-# This script launches Chromium in kiosk mode from the desktop
-cat > "$PROJECT_DIR/scripts/launch_kiosk.sh" <<'LAUNCHEOF'
+cat > "$PROJECT_DIR/scripts/run_kiosk_x.sh" <<'XEOF'
 #!/bin/bash
-# M.A.S.H. IoT Kiosk Launcher (Desktop Mode)
 
-# Find Chromium executable
+# 1. Disable Screen Blanking
+xset s off
+xset -dpms
+xset s noblank
+
+# 2. Start the Window Manager (Fixes the black/void spaces)
+# "-use_titlebar no" ensures it looks like a kiosk (no close buttons)
+matchbox-window-manager -use_titlebar no &
+
+# 3. Hide Cursor
+unclutter -idle 0.1 &
+
+# 4. Find Chromium
 CHROMIUM_CMD=$(which chromium-browser || which chromium)
 
-if [ -z "$CHROMIUM_CMD" ]; then
-    echo "Chromium not found!" > ~/kiosk_error.log
-    exit 1
-fi
-
-# Wait for backend to be ready
-echo "Waiting for M.A.S.H. backend..."
+# 5. Wait for Backend
 for i in {1..30}; do
     if curl -s http://localhost:5000 > /dev/null 2>&1; then
-        echo "Backend ready!"
         break
     fi
     sleep 1
 done
 
-# Small delay for desktop to fully load
-sleep 3
-
-# Launch Chromium in kiosk mode (let desktop handle resolution)
+# 6. Launch Chromium
+# We add --window-size and --start-maximized to help matchbox do its job
 $CHROMIUM_CMD \
     --kiosk \
+    --start-maximized \
+    --window-position=0,0 \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
     --disable-translate \
+    --check-for-update-interval=31536000 \
     --no-first-run \
     --fast \
     --fast-start \
-    --disable-popup-blocking \
     --password-store=basic \
-    --enable-features=OverlayScrollbar \
-    http://localhost:5000 &
-LAUNCHEOF
+    http://localhost:5000
+XEOF
 
-chmod +x "$PROJECT_DIR/scripts/launch_kiosk.sh"
-echo "✓ launch_kiosk.sh created"
+chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
 
 # ---------------------------------------------------------
-# 4. Configure LXDE Autostart (Desktop Mode)
+# 5. Configure Boot Logic (Console -> startx)
 # ---------------------------------------------------------
-echo "[4/4] Configuring LXDE autostart..."
+echo "[5/5] Configuring Console Boot..."
 
-# Create LXDE autostart directory if it doesn't exist
-mkdir -p "$HOME/.config/lxsession/LXDE-pi"
-
-# Create autostart file
-cat > "$HOME/.config/lxsession/LXDE-pi/autostart" <<EOF
-@lxpanel --profile LXDE-pi
-@pcmanfm --desktop --profile LXDE-pi
-@xscreensaver -no-splash
-
-# Disable screen blanking
-@xset s off
-@xset -dpms
-@xset s noblank
-
-# Hide mouse cursor
-@unclutter -idle 0.1 -root
-
-# Launch M.A.S.H. IoT Kiosk
-@$PROJECT_DIR/scripts/launch_kiosk.sh
+# Create .xinitrc to run our script when X starts
+cat > "$HOME/.xinitrc" <<EOF
+#!/bin/sh
+exec $PROJECT_DIR/scripts/run_kiosk_x.sh
 EOF
+chmod +x "$HOME/.xinitrc"
 
-echo "✓ LXDE autostart configured"
+# Add auto-start to .bash_profile
+# (Check if it's already there to avoid duplicates)
+if ! grep -q "startx" "$HOME/.bash_profile"; then
+    cat >> "$HOME/.bash_profile" <<'EOF'
 
-# ---------------------------------------------------------
-# Final System Configuration
-# ---------------------------------------------------------
-echo ""
-echo "Configuring system boot mode..."
-
-# Enable auto-login to desktop (B4)
-echo "Enabling auto-login to desktop..."
-sudo raspi-config nonint do_boot_behaviour B4
-
-# Clean up old attempts
-if [ -f "/etc/systemd/system/mash-kiosk.service" ]; then
-    echo "Removing old service..."
-    sudo systemctl disable mash-kiosk.service 2>/dev/null || true
-    sudo rm -f /etc/systemd/system/mash-kiosk.service
+# M.A.S.H. IoT Kiosk Auto-Start
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    startx -- -nocursor
+fi
+EOF
 fi
 
-# Remove .bash_profile auto-start if it exists (from old setup)
-if grep -q "startx" "$HOME/.bash_profile" 2>/dev/null; then
-    echo "Cleaning up old .bash_profile auto-start..."
-    sed -i '/M.A.S.H. IoT Kiosk Auto-Start/,/^fi$/d' "$HOME/.bash_profile"
-fi
-
-# Remove .xinitrc if it exists (from old setup)
-if [ -f "$HOME/.xinitrc" ]; then
-    echo "Removing old .xinitrc..."
-    rm -f "$HOME/.xinitrc"
-fi
-
-# Remove run_kiosk_x.sh if it exists (from old setup)
-if [ -f "$PROJECT_DIR/scripts/run_kiosk_x.sh" ]; then
-    echo "Removing old run_kiosk_x.sh..."
-    rm -f "$PROJECT_DIR/scripts/run_kiosk_x.sh"
-fi
-
-# Make absolutely sure all our scripts are executable
-echo "Final permission check..."
-chmod +x "$PROJECT_DIR/scripts/launch_kiosk.sh" 2>/dev/null || true
-chmod +x "$PROJECT_DIR/scripts/setup_kiosk.sh" 2>/dev/null || true
-chmod +x "$PROJECT_DIR/scripts/update.sh" 2>/dev/null || true
-chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
-
-sudo systemctl daemon-reload
+# Force Boot to Console Autologin (B2)
+sudo raspi-config nonint do_boot_behaviour B2
 
 echo ""
 echo "========================================="
-echo " Kiosk Mode Setup Complete!"
+echo " Setup Complete!"
 echo "========================================="
+echo "1. Reverted to CLI/Console boot (Faster/More reliable)"
+echo "2. Added 'matchbox-window-manager' to fix resolution issues"
 echo ""
-echo "Configuration Summary:"
-echo "  1. Backend Service:   mash-iot.service (systemd)"
-echo "  2. Boot Mode:         Desktop Autologin (B4)"
-echo "  3. Auto-Start:        LXDE autostart -> launch_kiosk.sh"
-echo "  4. Display:           Native (handled by desktop)"
-echo ""
-echo "** REBOOT NOW TO START KIOSK MODE **"
+echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"
 echo ""
