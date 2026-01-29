@@ -36,10 +36,14 @@ fruiting_room:
   temp_target: 24.0  # °C
   temp_min: 22.0
   temp_max: 26.0
+  temp_tolerance: 2.0  # Alert if deviation exceeds this
   humidity_target: 90.0  # %
   humidity_min: 85.0
   humidity_max: 95.0
+  humidity_hysteresis: 5.0  # Prevent rapid on/off cycling
+  humidity_tolerance: 10.0  # Alert threshold
   co2_max: 1000  # ppm
+  co2_hysteresis: 100  # Hysteresis to prevent rapid fan cycling
   
   # Actuator Control Thresholds
   exhaust_fan:
@@ -69,10 +73,14 @@ spawning_room:
   temp_target: 25.0  # °C
   temp_min: 23.0
   temp_max: 27.0
+  temp_tolerance: 2.0  # Alert if deviation exceeds this
   humidity_target: 95.0  # %
   humidity_min: 90.0
   humidity_max: 98.0
+  humidity_hysteresis: 5.0  # Prevent rapid on/off cycling
+  humidity_tolerance: 10.0  # Alert threshold
   co2_max: 2000  # ppm (higher tolerance during spawn run)
+  co2_hysteresis: 100  # Hysteresis to prevent rapid fan cycling
   
   exhaust_fan:
     co2_trigger: 2000

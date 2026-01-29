@@ -16,9 +16,9 @@
         <tbody>
             {% for alert in alerts %}
             <tr class="alert-level-{{ alert.level | lower }}">
-                <td>{{ alert.timestamp }}</td>
-                <td>{{ alert.room | capitalize }}</td>
-                <td>{{ alert.level | capitalize }}</td>
+                <td>{{ alert.timestamp | int | strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ alert.component | capitalize }}</td>
+                <td><span class="badge badge-{{ alert.level | lower }}">{{ alert.level | capitalize }}</span></td>
                 <td>{{ alert.message }}</td>
             </tr>
             {% else %}

@@ -1,11 +1,21 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request
 import time
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 # Create Flask Blueprint
 web_bp = Blueprint('web', __name__, template_folder='templates', static_folder='static')
+
+# Add custom Jinja filter for timestamp formatting
+@web_bp.app_template_filter('strftime')
+def strftime_filter(timestamp, format_string='%Y-%m-%d %H:%M:%S'):
+    """Convert Unix timestamp to formatted datetime string."""
+    try:
+        return datetime.fromtimestamp(float(timestamp)).strftime(format_string)
+    except (ValueError, TypeError):
+        return 'Invalid timestamp'
 
 
 def get_live_data():
@@ -164,6 +174,17 @@ def ai_insights():
         
     return render_template('ai_insights.html', ml_enabled=ml_enabled)
 
+@web_bp.route('/alerts')
+def alerts():
+    """Display system alerts page."""
+    db = current_app.config.get('DB')
+    recent_alerts = []
+    
+    if db:
+        recent_alerts = db.get_recent_alerts(limit=100)
+    
+    return render_template('alerts.html', alerts=recent_alerts)
+
 @web_bp.route('/settings')
 def settings():
     """Renders the system settings page."""
@@ -188,6 +209,14 @@ def api_latest_data():
     This can be called by JavaScript to dynamically update the dashboard.
     """
     data = get_live_data()
+    
+    # Add uptime calculation
+    start_time = current_app.config.get('START_TIME', time.time())
+    uptime_seconds = int(time.time() - start_time)
+    hours = uptime_seconds // 3600
+    minutes = (uptime_seconds % 3600) // 60
+    data['uptime'] = f"{hours}h {minutes}m"
+    
     return jsonify(data)
 
 @web_bp.route('/api/control_actuator', methods=['POST'])

@@ -47,8 +47,12 @@ class BackendAPIClient:
         # Connection state
         self.is_connected = False
         self.last_connection_check = 0
+        self.connection_check_interval = 60  # Check every 60 seconds
         
         logger.info(f"[BACKEND] Initialized client for {self.base_url}")
+        
+        # Attempt initial connection
+        self._initial_connection_check()
     
     def _is_token_expired(self) -> bool:
         """Check if access token is expired or about to expire (within 5 min)."""
@@ -62,6 +66,18 @@ class BackendAPIClient:
             self.session.headers.update({
                 'Authorization': f'Bearer {self.access_token}'
             })
+    
+    def _initial_connection_check(self):
+        """Attempt initial connection to backend."""
+        try:
+            self.is_connected = self.check_connection()
+            if self.is_connected:
+                logger.info("[BACKEND] Initial connection successful")
+            else:
+                logger.warning("[BACKEND] Initial connection failed - will retry")
+        except Exception as e:
+            logger.warning(f"[BACKEND] Initial connection check failed: {e}")
+            self.is_connected = False
     
     def authenticate(self) -> bool:
         """

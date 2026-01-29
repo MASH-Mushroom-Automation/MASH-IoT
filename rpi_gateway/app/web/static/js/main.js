@@ -79,6 +79,12 @@ async function updateDashboardData() {
             }
         }
         
+        // Update Uptime
+        const uptimeEl = document.getElementById('uptime');
+        if (uptimeEl && data.uptime) {
+            uptimeEl.textContent = data.uptime;
+        }
+        
         // Update Fruiting Room sensor values
         if (data.fruiting_data) {
             const fruitingCO2 = document.querySelector('#fruiting-view .sensor-card.co2 .sensor-value');

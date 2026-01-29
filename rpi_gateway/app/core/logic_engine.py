@@ -159,23 +159,35 @@ class MushroomAI:
             }
 
     def _rule_based_fruiting_actuation(self, sensor_data: Dict) -> Dict[str, str]:
-        """Rule-based logic for the fruiting room."""
+        """Rule-based logic for the fruiting room with hysteresis."""
         config = self.config.get("fruiting_room", {})
         temp = sensor_data.get('temp', 0)
         humidity = sensor_data.get('humidity', 0)
         co2 = sensor_data.get('co2', 0)
 
-        # Exhaust Fan: Controlled by CO2 levels
+        # CO2 Control with hysteresis (prevent rapid on/off)
         co2_max = config.get('co2_max', 1000)
-        exhaust_fan_state = "ON" if co2 > co2_max else "OFF"
+        co2_hysteresis = config.get('co2_hysteresis', 100)
+        exhaust_fan_state = "ON" if co2 > co2_max else ("OFF" if co2 < (co2_max - co2_hysteresis) else "OFF")
 
-        # Humidity System: Controlled by humidity levels
+        # Humidity Control with hysteresis
         humidity_target = config.get('humidity_target', 90)
-        humidity_system_state = "ON" if humidity < humidity_target else "OFF"
+        humidity_hysteresis = config.get('humidity_hysteresis', 5)
+        humidity_system_state = "ON" if humidity < (humidity_target - humidity_hysteresis) else "OFF"
         
-        # For now, intake_fan can mirror the exhaust_fan or have its own logic.
-        # Let's assume it works in tandem with the exhaust fan.
-        intake_fan_state = exhaust_fan_state
+        # Temperature-based fan assist
+        temp_max = config.get('temp_target', 24) + 2
+        if temp > temp_max:
+            exhaust_fan_state = "ON"  # Emergency cooling
+        
+        # Intake fan works opposite to exhaust for air circulation
+        intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "OFF"
+
+        # Generate alerts for critical conditions and save to database
+        alerts = self._check_and_alert("fruiting", sensor_data, config)
+        if alerts and hasattr(self, 'db') and self.db:
+            for room, alert_type, message, severity in alerts:
+                self.db.insert_alert(room, alert_type, message, severity)
 
         return {
             "exhaust_fan": exhaust_fan_state,
@@ -209,6 +221,43 @@ class MushroomAI:
             "exhaust_fan": exhaust_fan_state
         }
 
+    def _check_and_alert(self, room: str, sensor_data: Dict, config: Dict):
+        """Check sensor data against thresholds and log alerts."""
+        temp = sensor_data.get('temp', 0)
+        humidity = sensor_data.get('humidity', 0)
+        co2 = sensor_data.get('co2', 0)
+        
+        alerts = []
+        
+        # Temperature alerts
+        temp_target = config.get('temp_target', 24)
+        temp_tolerance = config.get('temp_tolerance', 2)
+        if temp > (temp_target + temp_tolerance):
+            msg = f"{room.upper()} temperature HIGH: {temp}°C (target: {temp_target}°C)"
+            logger.warning(f"[ALERT] {msg}")
+            alerts.append((room, 'temperature_high', msg, 'warning'))
+        elif temp < (temp_target - temp_tolerance):
+            msg = f"{room.upper()} temperature LOW: {temp}°C (target: {temp_target}°C)"
+            logger.warning(f"[ALERT] {msg}")
+            alerts.append((room, 'temperature_low', msg, 'warning'))
+        
+        # Humidity alerts
+        humidity_target = config.get('humidity_target', 90)
+        humidity_tolerance = config.get('humidity_tolerance', 10)
+        if humidity < (humidity_target - humidity_tolerance):
+            msg = f"{room.upper()} humidity LOW: {humidity}% (target: {humidity_target}%)"
+            logger.warning(f"[ALERT] {msg}")
+            alerts.append((room, 'humidity_low', msg, 'warning'))
+        
+        # CO2 alerts
+        co2_max = config.get('co2_max', 1000)
+        if co2 > co2_max:
+            msg = f"{room.upper()} CO2 HIGH: {co2}ppm (max: {co2_max}ppm)"
+            logger.warning(f"[ALERT] {msg}")
+            alerts.append((room, 'co2_high', msg, 'warning'))
+        
+        return alerts
+    
     def process_sensor_reading(self, room_data: Dict) -> List[str]:
         """
         Main entry point: Process sensor readings for all rooms and generate commands.

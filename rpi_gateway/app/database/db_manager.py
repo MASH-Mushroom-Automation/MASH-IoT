@@ -210,6 +210,46 @@ class DatabaseManager:
             logger.error(f"[DB] Command insert failed: {e}")
             return None
     
+    def insert_alert(self, room: str, alert_type: str, message: str, severity: str = 'warning') -> Optional[int]:
+        """Insert system alert into database."""
+        if not self.conn:
+            return None
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO system_logs (timestamp, level, component, message, data)
+                VALUES (?, ?, ?, ?, ?)
+            """, (datetime.now().timestamp(), severity.upper(), room, message, alert_type))
+            
+            self.conn.commit()
+            return cursor.lastrowid
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Alert insert failed: {e}")
+            return None
+    
+    def get_recent_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get recent system alerts."""
+        if not self.conn:
+            return []
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM system_logs
+                WHERE level IN ('WARNING', 'ERROR', 'CRITICAL')
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (limit,))
+            
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Alerts query failed: {e}")
+            return []
+    
     def mark_command_executed(self, command_id: int):
         """Mark command as executed."""
         if not self.conn:

@@ -59,11 +59,13 @@ body {
 }
 
 .nav-links li a {
-    display: block;
+    display: flex;
+    align-items: center;
     color: #e0e0e0;
     text-decoration: none;
     padding: 15px 20px;
     transition: background-color 0.3s;
+    height: 60px;
 }
 
 .nav-links li a:hover, .nav-links li a.active {
@@ -73,6 +75,7 @@ body {
 
 .nav-links i {
     margin-right: 8px;
+    font-size: 1em;
 }
 
 /* Main Content Area */

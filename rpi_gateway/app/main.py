@@ -67,6 +67,7 @@ class MASHOrchestrator:
         ml_enabled = (self.config or {}).get('system', {}).get('ml_enabled', True)
         if ml_enabled:
             self.ai = MushroomAI(config=self.config)
+            self.ai.db = self.db  # Pass database reference for alerts
             logger.info("[ML] MushroomAI initialized")
         else:
             self.ai = None
@@ -74,6 +75,7 @@ class MASHOrchestrator:
         
         # State
         self.is_running = False
+        self.start_time = time.time()  # Track uptime
         self.latest_data = {
             'fruiting': None,
             'spawning': None
@@ -229,6 +231,7 @@ class MASHOrchestrator:
             self.app.backend_connected = self.backend.check_connection() if self.backend else False
             self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
+            self.app.config['START_TIME'] = self.start_time
             self.app.config['ACTUATOR_STATES'] = {
                 'fruiting': {
                     'exhaust_fan': False,
