@@ -26,6 +26,39 @@ chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
 echo "✓ Script permissions updated"
 
 # ---------------------------------------------------------
+# 0. Configure Display Resolution at Boot (config.txt)
+# ---------------------------------------------------------
+echo "[0/5] Configuring display resolution in /boot/config.txt..."
+
+if [ -f /boot/config.txt ]; then
+    # Backup original config
+    sudo cp /boot/config.txt /boot/config.txt.backup.$(date +%Y%m%d_%H%M%S)
+    
+    # Remove old framebuffer settings if they exist
+    sudo sed -i '/^framebuffer_width=/d' /boot/config.txt
+    sudo sed -i '/^framebuffer_height=/d' /boot/config.txt
+    sudo sed -i '/^hdmi_force_hotplug=/d' /boot/config.txt
+    sudo sed -i '/^hdmi_group=/d' /boot/config.txt
+    sudo sed -i '/^hdmi_mode=/d' /boot/config.txt
+    
+    # Add display configuration for 1024x600
+    cat | sudo tee -a /boot/config.txt > /dev/null <<'CONFIGEOF'
+
+# M.A.S.H. IoT Display Configuration (1024x600)
+framebuffer_width=1024
+framebuffer_height=600
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=87
+hdmi_cvt=1024 600 60 3 0 0 0
+CONFIGEOF
+    
+    echo "✓ Display configuration added to /boot/config.txt"
+else
+    echo "⚠ /boot/config.txt not found, skipping boot resolution config"
+fi
+
+# ---------------------------------------------------------
 # 1. Create systemd service for M.A.S.H. backend
 # ---------------------------------------------------------
 echo "[1/5] Creating systemd service for M.A.S.H. backend..."
@@ -119,12 +152,18 @@ echo "[4/5] Configuring X11 auto-start..."
 cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 
-# Set screen resolution to 1024x600 (for 7" touchscreen)
-# Try DSI-1 first (official RPi touchscreen), then HDMI
-xrandr --output DSI-1 --mode 1024x600 2>/dev/null || \
-xrandr --output HDMI-1 --mode 1024x600 2>/dev/null || \
-xrandr --output HDMI-2 --mode 1024x600 2>/dev/null || \
-true  # Continue even if xrandr fails
+# Force display to 1024x600 resolution (7" touchscreen)
+# Wait for X to initialize
+sleep 1
+
+# Get the actual connected display and force 1024x600
+DISPLAY_OUTPUT=\$(xrandr | grep " connected" | awk '{print \$1}' | head -n 1)
+if [ -n "\$DISPLAY_OUTPUT" ]; then
+    echo "Setting display \$DISPLAY_OUTPUT to 1024x600"
+    xrandr --output \$DISPLAY_OUTPUT --mode 1024x600 --rate 60 2>/dev/null || \
+    xrandr --output \$DISPLAY_OUTPUT --mode 1024x600 2>/dev/null || \
+    xrandr --output \$DISPLAY_OUTPUT --fb 1024x600 2>/dev/null
+fi
 
 # Disable screen blanking/energy saving
 xset s off
