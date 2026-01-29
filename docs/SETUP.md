@@ -218,6 +218,45 @@ Because you authenticated with a Personal Access Token when you cloned, the `upd
 
 ### 7. Troubleshooting
 
+#### Script Permission Issues
+
+Git does not preserve execute permissions on Unix systems. If you get "Permission denied" when running scripts:
+
+```bash
+cd ~/MASH-IoT/scripts
+bash fix_permissions.sh
+# Or manually:
+chmod +x *.sh *.py
+```
+
+The `update.sh` script now automatically fixes permissions after each pull.
+
+#### Splash Screen Not Centered or Resolution Issues
+
+If the RPi splash screen is misaligned or you're having resolution problems:
+
+1. **Check for lingering resolution configs:**
+   ```bash
+   cd ~/MASH-IoT/scripts
+   bash check_display_config.sh
+   ```
+
+2. **Clean up old configs:**
+   The `setup_kiosk.sh` script now automatically removes old resolution forcing code. If issues persist, manually check:
+   ```bash
+   # Check boot config
+   sudo nano /boot/config.txt
+   # Remove any lines with "M.A.S.H. IoT Display Configuration"
+   
+   # Check for old X configs
+   rm -f ~/.xinitrc
+   ```
+
+3. **Reboot after cleanup:**
+   ```bash
+   sudo reboot
+   ```
+
 #### `scikit-learn` Installation Fails on Raspberry Pi
 
 If you encounter an error while `pip` is trying to install `scikit-learn`, it's likely because it cannot find a pre-compiled version for your Raspberry Pi and is failing to build it from the source code.

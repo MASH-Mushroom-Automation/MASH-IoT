@@ -30,6 +30,12 @@ git clean -df
 echo "[3/6] Pulling latest changes from GitHub..."
 git pull origin main
 
+# 3.5. Set execute permissions on all scripts (Git doesn't preserve them)
+echo "[3.5/6] Setting execute permissions on scripts..."
+chmod +x scripts/*.sh 2>/dev/null || true
+chmod +x scripts/*.py 2>/dev/null || true
+echo "✓ Script permissions updated"
+
 # 4. Activate virtual environment and install/update dependencies
 echo "[4/6] Checking for updated Python dependencies..."
 if [ -f "rpi_gateway/requirements.txt" ]; then

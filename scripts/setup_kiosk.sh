@@ -23,7 +23,28 @@ echo "Project directory: $PROJECT_DIR"
 echo "Setting execute permissions on scripts..."
 chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
+chmod +x "$0" 2>/dev/null || true  # Make sure this script itself is executable
 echo "✓ Script permissions updated"
+
+# ---------------------------------------------------------
+# Clean up any lingering resolution configs from old setups
+# ---------------------------------------------------------
+echo "Cleaning up old resolution configs..."
+
+# Remove any xrandr commands from existing autostart files
+if [ -f "$HOME/.config/lxsession/LXDE-pi/autostart" ]; then
+    sed -i '/xrandr/d' "$HOME/.config/lxsession/LXDE-pi/autostart" 2>/dev/null || true
+fi
+
+# Check and clean boot config if it has our old resolution settings
+for CONFIG_FILE in /boot/config.txt /boot/firmware/config.txt; do
+    if [ -f "$CONFIG_FILE" ] && sudo grep -q "M.A.S.H. IoT Display Configuration" "$CONFIG_FILE" 2>/dev/null; then
+        echo "Removing old resolution config from $CONFIG_FILE..."
+        sudo sed -i '/# M.A.S.H. IoT Display Configuration/,/^hdmi_cvt=/d' "$CONFIG_FILE" 2>/dev/null || true
+    fi
+done
+
+echo "✓ Old configs cleaned"
 
 # ---------------------------------------------------------
 # 1. Create systemd service for M.A.S.H. backend
@@ -179,6 +200,13 @@ if [ -f "$PROJECT_DIR/scripts/run_kiosk_x.sh" ]; then
     echo "Removing old run_kiosk_x.sh..."
     rm -f "$PROJECT_DIR/scripts/run_kiosk_x.sh"
 fi
+
+# Make absolutely sure all our scripts are executable
+echo "Final permission check..."
+chmod +x "$PROJECT_DIR/scripts/launch_kiosk.sh" 2>/dev/null || true
+chmod +x "$PROJECT_DIR/scripts/setup_kiosk.sh" 2>/dev/null || true
+chmod +x "$PROJECT_DIR/scripts/update.sh" 2>/dev/null || true
+chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 
 sudo systemctl daemon-reload
 
