@@ -150,28 +150,40 @@ class MASHOrchestrator:
     def _run_automation(self, data):
         """Run ML-powered automation on sensor data."""
         try:
-            # Process each room
+            # Filter out invalid readings (sensor errors)
+            valid_rooms = {}
             for room in ['fruiting', 'spawning']:
                 if room in data and data[room]:
-                    sensor_reading = data[room]
+                    # Check if it's an error message
+                    if 'error' not in data[room]:
+                        valid_rooms[room] = data[room]
+                    else:
+                        logger.warning(f"[AUTO] Skipping {room} room - sensor error: {data[room].get('error')}")
+            
+            # Only run automation if we have valid data from at least one room
+            if not valid_rooms:
+                logger.debug("[AUTO] No valid sensor data to process")
+                return
+            
+            # Get recommended commands from AI (pass all rooms at once)
+            commands = self.ai.process_sensor_reading(valid_rooms)
+            
+            # Send commands to Arduino
+            for command in commands:
+                success = self.arduino.send_command(command)
+                
+                if success:
+                    logger.info(f"[AUTO] Sent command: {command}")
                     
-                    # Get recommended commands from AI
-                    commands = self.ai.process_sensor_reading(room, sensor_reading)
-                    
-                    # Send commands to Arduino
-                    for command in commands:
-                        success = self.arduino.send_command(command)
-                        
-                        if success:
-                            logger.info(f"[AUTO] Sent command: {command}")
-                            
-                            # Log to database
-                            self.db.insert_command(command, source='ml_automation')
-                        else:
-                            logger.warning(f"[AUTO] Failed to send command: {command}")
+                    # Log to database
+                    self.db.insert_command(command, source='ml_automation')
+                else:
+                    logger.warning(f"[AUTO] Failed to send command: {command}")
         
         except Exception as e:
             logger.error(f"[AUTO] Automation error: {e}")
+            import traceback
+            traceback.print_exc()
     
     def start_serial_listener(self):
         """Start Arduino serial communication in background thread."""

@@ -1,6 +1,6 @@
 #!/bin/bash
 # M.A.S.H. IoT - Kiosk Mode Setup Script
-# Configures Raspberry Pi to auto-launch dashboard in kiosk mode WITHOUT DESKTOP
+# Configures Raspberry Pi to auto-launch dashboard in kiosk mode using .bash_profile
 
 set -e
 
@@ -25,7 +25,9 @@ chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
 echo "✓ Script permissions updated"
 
+# ---------------------------------------------------------
 # 1. Create systemd service for M.A.S.H. backend
+# ---------------------------------------------------------
 echo "[1/5] Creating systemd service for M.A.S.H. backend..."
 
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
@@ -52,50 +54,26 @@ sudo systemctl enable ${SERVICE_NAME}.service
 
 echo "Service created: ${SERVICE_NAME}.service"
 
-# 2. Create DIRECT KIOSK MODE systemd service (boots straight to Chromium)
-echo "[2/5] Creating kiosk mode service (direct boot to browser)..."
+# ---------------------------------------------------------
+# 2. Install Dependencies
+# ---------------------------------------------------------
+echo "[2/5] Checking for Chromium and X11 tools..."
 
-# Install required packages if not present
 if ! command -v chromium-browser &> /dev/null && ! command -v chromium &> /dev/null; then
     echo "Installing Chromium browser..."
     sudo apt-get update
     sudo apt-get install -y chromium-browser x11-xserver-utils unclutter
 fi
 
-# Create kiosk systemd service that starts X server + Chromium directly
-sudo tee /etc/systemd/system/mash-kiosk.service > /dev/null <<EOF
-[Unit]
-Description=M.A.S.H. Kiosk Mode (Direct to Browser)
-After=graphical.target ${SERVICE_NAME}.service
-Wants=graphical.target
+# ---------------------------------------------------------
+# 3. Create the Kiosk Launcher Script
+# ---------------------------------------------------------
+echo "[3/5] Creating Kiosk Launcher Script..."
 
-[Service]
-Type=simple
-User=$USER
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/$USER/.Xauthority
-ExecStartPre=/bin/sleep 5
-ExecStart=/usr/bin/startx $PROJECT_DIR/scripts/run_kiosk_x.sh -- -nocursor
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=graphical.target
-EOF
-
-# Create X session script that launches only Chromium (no desktop)
-echo "Creating X session script..."
-cat > $PROJECT_DIR/scripts/run_kiosk_x.sh <<'XEOF'
+# This script actually runs the browser. It is called by startx.
+cat > "$PROJECT_DIR/scripts/run_kiosk_x.sh" <<'XEOF'
 #!/bin/bash
 # Minimal X session - just Chromium, no desktop environment
-
-# Disable screen blanking
-xset s off
-xset -dpms
-xset s noblank
-
-# Hide cursor after inactivity
-unclutter -idle 0.1 &
 
 # Find Chromium executable
 CHROMIUM_CMD=$(which chromium-browser || which chromium)
@@ -111,6 +89,7 @@ for i in {1..30}; do
 done
 
 # Launch Chromium in kiosk mode (FULLSCREEN, NO DESKTOP)
+# Added --no-sandbox strictly if needed, but usually safe to omit on Pi user
 $CHROMIUM_CMD \
     --kiosk \
     --noerrdialogs \
@@ -127,41 +106,81 @@ $CHROMIUM_CMD \
     http://localhost:5000
 XEOF
 
-chmod +x $PROJECT_DIR/scripts/run_kiosk_x.sh
-echo "✓ X session script created and made executable"
+chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
+echo "✓ run_kiosk_x.sh created"
 
-# Enable auto-login to console (no GUI login required)
-echo "[3/5] Enabling auto-login to console..."
-sudo raspi-config nonint do_boot_behaviour B2  # B2 = Console with auto-login
+# ---------------------------------------------------------
+# 4. Configure X11 (The "Profile" Method)
+# ---------------------------------------------------------
+echo "[4/5] Configuring X11 auto-start..."
 
-# Enable kiosk service
-echo "[4/5] Enabling kiosk service..."
-sudo systemctl daemon-reload
-sudo systemctl enable mash-kiosk.service
+# Create .xinitrc
+# This file tells 'startx' what to do when it loads.
+cat > "$HOME/.xinitrc" <<EOF
+#!/bin/sh
+
+# Disable screen blanking/energy saving
+xset s off
+xset -dpms
+xset s noblank
+
+# Hide cursor after inactivity
+unclutter -idle 0.1 &
+
+# Run our kiosk script
+exec $PROJECT_DIR/scripts/run_kiosk_x.sh
+EOF
+
+chmod +x "$HOME/.xinitrc"
+echo "✓ ~/.xinitrc created"
+
+# Update .bash_profile to auto-start X on login
+# This detects when the Pi auto-logs in to the console and runs 'startx'
+if ! grep -q "startx" "$HOME/.bash_profile"; then
+    cat >> "$HOME/.bash_profile" <<'EOF'
+
+# M.A.S.H. IoT Kiosk Auto-Start
+# If logged into tty1 (the physical screen) and no GUI is running, start X
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    startx -- -nocursor
+fi
+EOF
+    echo "✓ Added startx trigger to .bash_profile"
+else
+    echo "✓ .bash_profile already configured"
+fi
+
+# ---------------------------------------------------------
+# 5. System Configuration
+# ---------------------------------------------------------
+echo "[5/5] Final System Configuration..."
+
+# Enable auto-login to console (B2)
+# This is CRITICAL. It ensures the 'pi' user logs in, triggering .bash_profile
+sudo raspi-config nonint do_boot_behaviour B2
 
 # Disable unneeded services for faster boot
-echo "[5/5] Optimizing boot speed..."
 sudo systemctl disable bluetooth.service 2>/dev/null || true
 sudo systemctl disable hciuart.service 2>/dev/null || true
+
+# Clean up any old attempts (if the old service file exists)
+if [ -f "/etc/systemd/system/mash-kiosk.service" ]; then
+    echo "Removing old/broken mash-kiosk service..."
+    sudo systemctl disable mash-kiosk.service
+    sudo rm /etc/systemd/system/mash-kiosk.service
+    sudo systemctl daemon-reload
+fi
 
 echo ""
 echo "========================================="
 echo " Kiosk Mode Setup Complete!"
 echo "========================================="
 echo ""
-echo "The system will now:"
-echo "  • Boot directly to console (no desktop)"
-echo "  • Auto-start M.A.S.H. backend"
-echo "  • Launch Chromium in FULLSCREEN kiosk mode"
-echo "  • No desktop environment overhead"
+echo "Configuration Summary:"
+echo "  1. Backend Service:   mash-iot.service (Active)"
+echo "  2. Boot Mode:         Console Autologin (B2)"
+echo "  3. Auto-Start Logic:  .bash_profile -> startx -> .xinitrc -> Chromium"
 echo ""
-echo "Manual controls:"
-echo "  Backend:  sudo systemctl start/stop ${SERVICE_NAME}"
-echo "  Kiosk:    sudo systemctl start/stop mash-kiosk"
-echo "  Logs:     journalctl -u ${SERVICE_NAME} -f"
-echo "            journalctl -u mash-kiosk -f"
+echo "** PLEASE REBOOT NOW TO START KIOSK MODE **"
+echo "   sudo reboot"
 echo ""
-echo "To exit kiosk mode after boot: Press Alt+F4"
-echo ""
-echo "** REBOOT NOW to activate kiosk mode: sudo reboot **"
-
