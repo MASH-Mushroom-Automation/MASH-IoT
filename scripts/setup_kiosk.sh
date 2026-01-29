@@ -88,11 +88,8 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Launch Chromium in kiosk mode with 1024x600 resolution
+# Launch Chromium in kiosk mode
 $CHROMIUM_CMD \
-    --window-size=1024,600 \
-    --window-position=0,0 \
-    --force-device-scale-factor=1 \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
@@ -105,6 +102,7 @@ $CHROMIUM_CMD \
     --fast-start \
     --disable-popup-blocking \
     --password-store=basic \
+    --disable-gpu \
     http://localhost:5000
 XEOF
 
@@ -122,6 +120,8 @@ cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 
 # Set screen resolution to 1024x600 (for 7" touchscreen)
+# Try DSI-1 first (official RPi touchscreen), then HDMI
+xrandr --output DSI-1 --mode 1024x600 2>/dev/null || \
 xrandr --output HDMI-1 --mode 1024x600 2>/dev/null || \
 xrandr --output HDMI-2 --mode 1024x600 2>/dev/null || \
 true  # Continue even if xrandr fails
