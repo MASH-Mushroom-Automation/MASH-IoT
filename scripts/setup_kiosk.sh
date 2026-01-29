@@ -1,5 +1,5 @@
 #!/bin/bash
-# M.A.S.H. IoT - CLI Kiosk Setup (With Resolution Fix)
+# M.A.S.H. IoT - CLI Kiosk Setup (Fixed for Debian Trixie)
 # Reverts to Console Boot and adds 'matchbox-window-manager' to fix black bars.
 
 set -e
@@ -59,12 +59,11 @@ sudo systemctl enable ${SERVICE_NAME}.service
 # ---------------------------------------------------------
 # 3. Install Window Manager (THE FIX)
 # ---------------------------------------------------------
-echo "[3/5] Installing Window Manager to fix resolution..."
+echo "[3/5] Installing Window Manager and Chromium..."
 
-# We install matchbox-window-manager. This forces the browser to full screen
-# without needing a heavy desktop environment.
+# UPDATED: Replaced 'chromium-browser' with 'chromium' for newer OS compatibility
 sudo apt-get update
-sudo apt-get install -y chromium-browser x11-xserver-utils unclutter matchbox-window-manager
+sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager
 
 # ---------------------------------------------------------
 # 4. Create the X Session Script
@@ -86,8 +85,13 @@ matchbox-window-manager -use_titlebar no &
 # 3. Hide Cursor
 unclutter -idle 0.1 &
 
-# 4. Find Chromium
-CHROMIUM_CMD=$(which chromium-browser || which chromium)
+# 4. Find Chromium (Checks both old and new names)
+CHROMIUM_CMD=$(which chromium || which chromium-browser)
+
+if [ -z "$CHROMIUM_CMD" ]; then
+    echo "Error: Chromium not found!"
+    exit 1
+fi
 
 # 5. Wait for Backend
 for i in {1..30}; do
@@ -149,7 +153,8 @@ echo "========================================="
 echo " Setup Complete!"
 echo "========================================="
 echo "1. Reverted to CLI/Console boot (Faster/More reliable)"
-echo "2. Added 'matchbox-window-manager' to fix resolution issues"
+echo "2. Fixed package name to 'chromium'"
+echo "3. Added 'matchbox-window-manager' to fix resolution issues"
 echo ""
 echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"
