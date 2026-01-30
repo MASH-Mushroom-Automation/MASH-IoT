@@ -224,14 +224,12 @@ class BackendAPIClient:
                 self.last_connection_check = current_time
                 return False
             
-            # Send heartbeat to IoT device endpoint (matches backend API structure)
-            response = self.session.post(
-                f"{self.base_url}/iot/devices",
+            # Send heartbeat to IoT device endpoint - use PATCH to update existing device
+            response = self.session.patch(
+                f"{self.base_url}/iot/devices/{self.device_id}",
                 json={
-                    "deviceId": self.device_id,
-                    "serialNumber": self.serial_number,
                     "status": "ONLINE",
-                    "timestamp": datetime.now().isoformat()
+                    "lastSeen": datetime.now().isoformat()
                 },
                 timeout=10
             )
@@ -243,6 +241,25 @@ class BackendAPIClient:
                 logger.info(f"[BACKEND] Device heartbeat sent successfully")
             else:
                 logger.warning(f"[BACKEND] Heartbeat failed: {response.status_code} - {response.text}")
+                # Try fallback: POST to create/update
+                try:
+                    response = self.session.post(
+                        f"{self.base_url}/iot/devices",
+                        json={
+                            "id": self.device_id,
+                            "serialNumber": self.serial_number,
+                            "name": self.device_name,
+                            "status": "ONLINE"
+                        },
+                        timeout=10
+                    )
+                    if response.status_code in [200, 201]:
+                        logger.info("[BACKEND] Device registered/updated via POST fallback")
+                        self.is_connected = True
+                    else:
+                        logger.error(f"[BACKEND] POST fallback also failed: {response.status_code} - {response.text}")
+                except Exception as e:
+                    logger.error(f"[BACKEND] POST fallback error: {e}")
             
             return self.is_connected
             
