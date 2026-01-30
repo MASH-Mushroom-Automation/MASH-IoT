@@ -95,7 +95,8 @@ class BackendAPIClient:
             True if authentication successful, False otherwise
         """
         if not self.device_email or not self.device_password:
-            logger.error("[BACKEND] Device credentials not configured")
+            logger.error("[BACKEND] Device credentials not configured in .env file")
+            logger.error("[BACKEND] Please set DEVICE_EMAIL and DEVICE_PASSWORD")
             return False
         
         try:
@@ -103,6 +104,8 @@ class BackendAPIClient:
                 'email': self.device_email,
                 'password': self.device_password
             }
+            
+            logger.info(f"[BACKEND] Attempting authentication for: {self.device_email}")
             
             response = self.session.post(
                 f"{self.base_url}/auth/login",
@@ -115,17 +118,23 @@ class BackendAPIClient:
                 self.access_token = data.get('accessToken')
                 self.refresh_token = data.get('refreshToken')
                 
+                if not self.access_token:
+                    logger.error("[BACKEND] Authentication response missing accessToken")
+                    return False
+                
                 # Decode JWT to get expiry (without verification for expiry check only)
                 if self.access_token:
                     try:
                         decoded = jwt.decode(self.access_token, options={"verify_signature": False})
                         self.token_expiry = datetime.fromtimestamp(decoded.get('exp', 0))
-                    except Exception:
+                        logger.info(f"[BACKEND] JWT token received, expires at {self.token_expiry}")
+                    except Exception as e:
+                        logger.warning(f"[BACKEND] Could not decode JWT: {e}")
                         # Default to 1 hour expiry if decode fails
                         self.token_expiry = datetime.now() + timedelta(hours=1)
                 
                 self._update_auth_header()
-                logger.info(f"[BACKEND] Authentication successful, token expires at {self.token_expiry}")
+                logger.info(f"[BACKEND] ✓ Authentication successful")
                 return True
             else:
                 logger.error(f"[BACKEND] Authentication failed: {response.status_code} - {response.text}")
@@ -208,17 +217,22 @@ class BackendAPIClient:
             return self.is_connected
         
         try:
-            # Use device heartbeat endpoint for proper tracking
+            # First ensure we're authenticated
             if not self.ensure_authenticated():
                 logger.warning("[BACKEND] Authentication failed, cannot send heartbeat")
                 self.is_connected = False
                 self.last_connection_check = current_time
                 return False
             
-            # Send heartbeat to device-specific endpoint
+            # Send heartbeat to IoT device endpoint (matches backend API structure)
             response = self.session.post(
-                f"{self.base_url}/devices/{self.device_id}/heartbeat",
-                json={"status": "ONLINE", "timestamp": datetime.now().isoformat()},
+                f"{self.base_url}/iot/devices",
+                json={
+                    "deviceId": self.device_id,
+                    "serialNumber": self.serial_number,
+                    "status": "ONLINE",
+                    "timestamp": datetime.now().isoformat()
+                },
                 timeout=10
             )
             
