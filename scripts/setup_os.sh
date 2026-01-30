@@ -1,11 +1,11 @@
 #!/bin/bash
-# M.A.S.H. IoT - Kiosk Setup (Fixed: Instant Boot + Custom Splash Image)
-# Uses assets/splash.png for a seamless boot experience.
+# M.A.S.H. IoT - Desktop Kiosk Setup (Reliable Auto-Start)
+# Configures the Pi to boot into Desktop Mode and auto-launch the dashboard.
 
 set -e
 
 echo "========================================="
-echo " M.A.S.H. IoT - Kiosk Setup (Splash Image)"
+echo " M.A.S.H. IoT - Desktop Kiosk Setup"
 echo "========================================="
 
 if [ "$EUID" -eq 0 ]; then 
@@ -20,10 +20,24 @@ SERVICE_NAME="mash-iot"
 chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 chmod +x "$PROJECT_DIR/scripts/"*.py 2>/dev/null || true
 
-# 1. Clean up Desktop Mode
-rm "$HOME/.config/autostart/mash-kiosk.desktop" 2>/dev/null || true
+# ---------------------------------------------------------
+# 1. Cleanup CLI/Console Mode Settings
+# ---------------------------------------------------------
+echo "[1/6] Cleaning up CLI/Console settings..."
 
+# Remove startx trigger from .bash_profile
+if [ -f "$HOME/.bash_profile" ]; then
+    sed -i '/M.A.S.H. IoT Kiosk Auto-Start/,/fi/d' "$HOME/.bash_profile"
+fi
+
+# Remove .xinitrc
+rm "$HOME/.xinitrc" 2>/dev/null || true
+
+# ---------------------------------------------------------
 # 2. Setup Backend Service
+# ---------------------------------------------------------
+echo "[2/6] Ensuring Backend Service is set..."
+
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=M.A.S.H. IoT Gateway Service
@@ -46,17 +60,18 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}.service
 
-# 3. Install Dependencies
-echo "[3/5] Installing Chromium & Window Manager..."
+# ---------------------------------------------------------
+# 3. Install Desktop Dependencies
+# ---------------------------------------------------------
+echo "[3/6] Installing Chromium & Unclutter..."
 sudo apt-get update
-sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager
+sudo apt-get install -y chromium x11-xserver-utils unclutter
 
 # ---------------------------------------------------------
 # 4. Create Splash Screen (With Custom Image)
 # ---------------------------------------------------------
-echo "[4/5] Creating Splash Screen with assets/splash.png..."
+echo "[4/6] Creating Splash Screen..."
 
-# We use the absolute path to the image so Chromium can find it easily
 IMAGE_PATH="$PROJECT_DIR/assets/splash.png"
 
 cat > "$PROJECT_DIR/scripts/splash.html" <<EOF
@@ -65,7 +80,7 @@ cat > "$PROJECT_DIR/scripts/splash.html" <<EOF
 <head>
     <style>
         body {
-            background-color: #000000; /* Pure black to match boot */
+            background-color: #000000;
             color: #ffffff;
             font-family: Arial, sans-serif;
             display: flex;
@@ -77,117 +92,112 @@ cat > "$PROJECT_DIR/scripts/splash.html" <<EOF
             overflow: hidden;
             cursor: none;
         }
-        
-        /* The Splash Image */
         img {
             max-width: 80%;
             max-height: 60vh;
             object-fit: contain;
             margin-bottom: 30px;
         }
-
-        /* A small loader below the image */
         .loader {
             border: 4px solid #333;
-            border-top: 4px solid #4CAF50; /* MASH Green */
+            border-top: 4px solid #4CAF50;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
     <script>
         // Check server status every 1 second
         async function checkServer() {
             try {
-                // mode: 'no-cors' allows checking status even if CORS is strict
                 await fetch('http://localhost:5000', { mode: 'no-cors' });
-                // If fetch succeeds (server is up), redirect
                 window.location.href = 'http://localhost:5000';
             } catch (e) {
-                // If fetch fails (server down), retry in 1s
                 setTimeout(checkServer, 1000);
             }
         }
-        // Start checking immediately
         window.onload = checkServer;
     </script>
 </head>
 <body>
     <img src="file://$IMAGE_PATH" alt="M.A.S.H. IoT">
-    
     <div class="loader"></div>
 </body>
 </html>
 EOF
 
 # ---------------------------------------------------------
-# 5. Create Launch Script (No Wait Loop)
+# 5. Create Desktop Launcher Script
 # ---------------------------------------------------------
-echo "[5/5] Creating Launch Script..."
+echo "[5/6] Creating Desktop Launcher..."
 
-cat > "$PROJECT_DIR/scripts/run_kiosk_x.sh" <<XEOF
+cat > "$PROJECT_DIR/scripts/launch_desktop_kiosk.sh" <<XEOF
 #!/bin/bash
+# Wrapper to launch Kiosk on Desktop
 
-# 1. Disable Screen Blanking
+# 1. Safety Sleep: Wait for Desktop to fully render
+sleep 5
+
+# 2. Disable Screen Blanking
 xset s off
 xset -dpms
 xset s noblank
 
-# 2. Window Manager (Fixes resolution)
-matchbox-window-manager -use_titlebar no &
-
 # 3. Hide Cursor
-unclutter -idle 0.1 &
+unclutter -idle 0.1 -root &
 
-# 4. Launch Chromium IMMEDIATELY
+# 4. Find Chromium
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)
 
+# 5. Launch Chromium
 \$CHROMIUM_CMD \\
     --kiosk \\
     --start-maximized \\
     --window-position=0,0 \\
     --noerrdialogs \\
     --disable-infobars \\
-    --disable-session-crashed-bubble \
+    --disable-session-crashed-bubble \\
     --disable-translate \\
     --check-for-update-interval=31536000 \\
     --no-first-run \\
     --fast \\
-    --fast-start \\
+    --fast-start \
     --password-store=basic \\
     --user-data-dir=$HOME/.config/chromium-kiosk \\
     "file://$PROJECT_DIR/scripts/splash.html"
-
 XEOF
 
-chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
+chmod +x "$PROJECT_DIR/scripts/launch_desktop_kiosk.sh"
 
-# 6. Configure Console Boot
-cat > "$HOME/.xinitrc" <<EOF
-#!/bin/sh
-exec $PROJECT_DIR/scripts/run_kiosk_x.sh
+# ---------------------------------------------------------
+# 6. Configure Autostart (.desktop file)
+# ---------------------------------------------------------
+echo "[6/6] Configuring Desktop Autostart..."
+
+mkdir -p "$HOME/.config/autostart"
+
+cat > "$HOME/.config/autostart/mash-kiosk.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=MASH IoT Kiosk
+Comment=Auto-launch MASH IoT Dashboard
+Exec=$PROJECT_DIR/scripts/launch_desktop_kiosk.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true
 EOF
-chmod +x "$HOME/.xinitrc"
 
-if ! grep -q "startx" "$HOME/.bash_profile"; then
-    cat >> "$HOME/.bash_profile" <<'EOF'
-if [ -z "$DISPLAY" ] && [ "\$(tty)" = "/dev/tty1" ]; then
-    startx -- -nocursor
-fi
-EOF
-fi
-
-sudo raspi-config nonint do_boot_behaviour B2
+# Force Boot to Desktop Autologin (B4)
+sudo raspi-config nonint do_boot_behaviour B4
 
 echo ""
 echo "========================================="
-echo " Setup Complete!"
+echo " Setup Complete (Desktop Mode)"
 echo "========================================="
-echo "1. Configured custom splash image: $IMAGE_PATH"
-echo "2. Ensure the image exists at that location!"
+echo "1. Configured for Desktop Autologin."
+echo "2. Created standard autostart entry."
+echo "3. Added 5s safety delay to ensure desktop loads first."
 echo ""
 echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"
