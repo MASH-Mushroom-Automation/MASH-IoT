@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Connecting to WiFi{% endblock %}
+
+{% block content %}
+<style>
+    .connecting-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #667eea;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 30px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .connecting-title {
+        font-size: 2em;
+        color: #333;
+        margin-bottom: 20px;
+    }
+    .connecting-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px 35px;
+        border-radius: 12px;
+        max-width: 600px;
+        margin: 20px auto;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .connecting-ssid {
+        font-size: 1.3em;
+        font-weight: bold;
+        margin: 15px 0;
+    }
+    .connecting-instructions {
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        line-height: 1.6;
+    }
+    .warning-text {
+        color: #ffc107;
+        font-weight: bold;
+        margin: 15px 0;
+        font-size: 1.1em;
+    }
+    .back-button {
+        margin-top: 30px;
+        padding: 12px 30px;
+        background: #27ae60;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    .back-button:hover {
+        background: #2ecc71;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="connecting-container">
+    <div class="spinner"></div>
+    
+    <h1 class="connecting-title">
+        <i class="fas fa-wifi"></i> Connecting to WiFi
+    </h1>
+    
+    <div class="connecting-info">
+        <p>Attempting to connect to:</p>
+        <div class="connecting-ssid">{{ ssid }}</div>
+        
+        <div class="connecting-instructions">
+            <p><strong>What happens next:</strong></p>
+            <ul style="text-align: left; padding-left: 20px;">
+                <li>The device will disconnect from the provisioning hotspot</li>
+                <li>It will attempt to connect to your selected network</li>
+                <li>If successful, you can access the device on your WiFi network</li>
+                <li>If it fails, the <strong>{{ hotspot_ssid }}</strong> hotspot will restart automatically</li>
+            </ul>
+        </div>
+        
+        <div class="warning-text">
+            <i class="fas fa-exclamation-triangle"></i> Please wait 30 seconds
+        </div>
+        
+        <p style="font-size: 0.9em; margin-top: 15px;">
+            <em>This page may become unreachable during the connection process.</em>
+        </p>
+    </div>
+    
+    <a href="{{ url_for('web.wifi_setup') }}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Back to WiFi Setup
+    </a>
+</div>
+
+<script>
+    // Optional: Auto-redirect to dashboard after 35 seconds
+    setTimeout(function() {
+        // Try to redirect to dashboard (will only work if connection succeeded)
+        window.location.href = "{{ url_for('web.dashboard') }}";
+    }, 35000);
+</script>
+{% endblock %}

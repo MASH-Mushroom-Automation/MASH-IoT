@@ -2,9 +2,143 @@
 {% block title %}WiFi Setup{% endblock %}
 
 {% block content %}
-<h1 class="page-title">WiFi Setup</h1>
-<div class="content-area">
-    <p>WiFi connection and provisioning settings will be available here.</p>
-    <!-- Existing WiFi setup form can be integrated here -->
+<style>
+    .wifi-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        max-width: 450px;
+        margin: 40px auto;
+    }
+    .wifi-card h2 {
+        color: white;
+        margin-bottom: 25px;
+        text-align: center;
+        font-size: 1.8em;
+    }
+    .wifi-form-group {
+        margin-bottom: 20px;
+    }
+    .wifi-label {
+        display: block;
+        color: rgba(255,255,255,0.9);
+        font-size: 14px;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    .wifi-select, .wifi-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.95);
+        color: #333;
+        font-size: 16px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+    }
+    .wifi-select:focus, .wifi-input:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
+    }
+    .wifi-button {
+        width: 100%;
+        padding: 14px;
+        background: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+    .wifi-button:hover {
+        background: #2ecc71;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(46,204,113,0.4);
+    }
+    .wifi-button:active {
+        transform: translateY(0);
+    }
+    .wifi-info {
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        color: white;
+        font-size: 14px;
+    }
+    .wifi-info-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        display: block;
+    }
+    #manual_ssid {
+        display: none;
+        margin-top: 10px;
+    }
+</style>
+
+<script>
+    function toggleManual(select) {
+        var input = document.getElementById("manual_ssid");
+        if (select.value === "OTHER") {
+            input.style.display = "block";
+            input.required = true;
+        } else {
+            input.style.display = "none";
+            input.required = false;
+        }
+    }
+</script>
+
+<div class="wifi-card">
+    <h2><i class="fas fa-wifi"></i> WiFi Setup</h2>
+    
+    <form action="{{ url_for('web.wifi_connect') }}" method="post">
+        <div class="wifi-form-group">
+            <label class="wifi-label">Choose Network:</label>
+            <select name="ssid_select" class="wifi-select" onchange="toggleManual(this)">
+                {% if networks and networks|length > 0 %}
+                    {% for net in networks %}
+                        <option value="{{ net }}">{{ net }}</option>
+                    {% endfor %}
+                    <option value="OTHER">✏️ Enter Manually...</option>
+                {% else %}
+                    <option value="OTHER">✏️ Enter Manually...</option>
+                {% endif %}
+            </select>
+            
+            <input type="text" 
+                   id="manual_ssid" 
+                   name="manual_ssid" 
+                   class="wifi-input"
+                   placeholder="Type network name...">
+        </div>
+        
+        <div class="wifi-form-group">
+            <label class="wifi-label">Password:</label>
+            <input type="password" 
+                   name="password" 
+                   class="wifi-input"
+                   placeholder="WiFi Password" 
+                   required>
+        </div>
+        
+        <button type="submit" class="wifi-button">
+            <i class="fas fa-plug"></i> Connect to Network
+        </button>
+    </form>
+    
+    <div class="wifi-info">
+        <span class="wifi-info-title">ℹ️ Connection Info</span>
+        After submitting, the device will attempt to connect to the selected network.
+        If successful, the provisioning hotspot will disconnect.
+        If the connection fails, the hotspot will automatically restart.
+    </div>
 </div>
 {% endblock %}

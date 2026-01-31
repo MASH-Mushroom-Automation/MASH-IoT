@@ -181,10 +181,52 @@ def settings():
 
 @web_bp.route('/wifi-setup')
 def wifi_setup():
-    """Renders the WiFi provisioning page."""
-    # In a real scenario, this would call wifi_manager.get_wifi_list()
-    networks = ["WiFi_Network_1", "Another_SSID", "MyHomeWiFi"] 
+    """Renders the WiFi provisioning page with available networks."""
+    from app.utils import wifi_manager
+    
+    # Scan for available WiFi networks
+    networks = wifi_manager.get_wifi_list()
+    
     return render_template('wifi_setup.html', networks=networks)
+
+@web_bp.route('/wifi-connect', methods=['POST'])
+def wifi_connect():
+    """Handles WiFi connection request."""
+    from app.utils import wifi_manager
+    import threading
+    
+    # Get form data
+    selection = request.form.get('ssid_select')
+    manual = request.form.get('manual_ssid')
+    password = request.form.get('password')
+    
+    # Determine target SSID
+    target_ssid = manual if selection == "OTHER" else selection
+    
+    logger.info(f"WiFi connection request for: {target_ssid}")
+    
+    def delayed_switch(ssid, password):
+        """Background thread to handle WiFi switching with failsafe."""
+        import time
+        time.sleep(2)  # Give browser time to receive response
+        
+        success = wifi_manager.connect_to_wifi(ssid, password)
+        
+        if success:
+            logger.info(f"Successfully connected to {ssid}")
+        else:
+            logger.warning(f"Failed to connect to {ssid}, restarting hotspot")
+            wifi_manager.start_hotspot()
+    
+    # Start connection attempt in background
+    thread = threading.Thread(target=delayed_switch, args=(target_ssid, password))
+    thread.daemon = True
+    thread.start()
+    
+    # Return status page
+    return render_template('wifi_connecting.html', 
+                         ssid=target_ssid, 
+                         hotspot_ssid=wifi_manager.HOTSPOT_SSID)
 
 
 # =======================================================
