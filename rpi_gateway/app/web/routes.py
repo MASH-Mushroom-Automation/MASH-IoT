@@ -18,6 +18,61 @@ def strftime_filter(timestamp, format_string='%Y-%m-%d %H:%M:%S'):
         return 'Invalid timestamp'
 
 
+def calculate_room_condition(room_type, sensor_data, targets):
+    """
+    Calculate dynamic condition status based on sensor values and targets.
+    Returns: ('Optimal'|'Warning'|'Critical', color_class)
+    """
+    if not sensor_data or 'error' in sensor_data:
+        return 'Sensor Error', 'error'
+    
+    temp = sensor_data.get('temp')
+    humidity = sensor_data.get('humidity')
+    co2 = sensor_data.get('co2')
+    
+    if temp is None or humidity is None or co2 is None:
+        return 'No Data', 'warning'
+    
+    # Get thresholds
+    temp_target = targets.get('temp_target', 24)
+    temp_tolerance = targets.get('temp_tolerance', 2)
+    humidity_target = targets.get('humidity_target', 90)
+    humidity_tolerance = targets.get('humidity_tolerance', 10)
+    co2_max = targets.get('co2_max', 1000)
+    
+    # Count issues by severity
+    critical_issues = 0
+    warning_issues = 0
+    
+    # Temperature checks
+    temp_diff = abs(temp - temp_target)
+    if temp_diff > temp_tolerance * 1.5:  # Critical if beyond 1.5x tolerance
+        critical_issues += 1
+    elif temp_diff > temp_tolerance:
+        warning_issues += 1
+    
+    # Humidity checks
+    humidity_diff = abs(humidity - humidity_target)
+    if humidity_diff > humidity_tolerance * 1.5:
+        critical_issues += 1
+    elif humidity_diff > humidity_tolerance:
+        warning_issues += 1
+    
+    # CO2 checks
+    if co2 > co2_max * 1.3:  # Critical if 30% above max
+        critical_issues += 1
+    elif co2 > co2_max:
+        warning_issues += 1
+    
+    # Determine overall status
+    if critical_issues > 0:
+        return 'Critical', 'error'
+    elif warning_issues > 0:
+        return 'Warning', 'warning'
+    else:
+        return 'Optimal', 'ok'
+
+
 def get_live_data():
     """
     Fetches the latest data and actuator states from the orchestrator.
@@ -81,6 +136,14 @@ def get_live_data():
         'exhaust_fan': False
     })
     
+    # Calculate dynamic condition status
+    fruiting_condition, fruiting_condition_class = calculate_room_condition(
+        'fruiting', fruiting_data, fruiting_targets
+    )
+    spawning_condition, spawning_condition_class = calculate_room_condition(
+        'spawning', spawning_data, spawning_targets
+    )
+    
     return {
         "fruiting_data": fruiting_data,
         "spawning_data": spawning_data,
@@ -90,6 +153,10 @@ def get_live_data():
         "spawning_targets": spawning_targets,
         "fruiting_actuators": fruiting_actuators,
         "spawning_actuators": spawning_actuators,
+        "fruiting_condition": fruiting_condition,
+        "fruiting_condition_class": fruiting_condition_class,
+        "spawning_condition": spawning_condition,
+        "spawning_condition_class": spawning_condition_class,
         "backend_connected": getattr(current_app, 'backend_connected', False),
         "arduino_connected": serial_comm.is_connected if serial_comm else False
     }
@@ -157,11 +224,26 @@ def ai_insights():
     # Check if the ML libraries were imported successfully
     try:
         from sklearn.ensemble import IsolationForest
-        ml_enabled = True
+        ml_available = True
     except ImportError:
-        ml_enabled = False
+        ml_available = False
+    
+    # Check if ML is actually enabled and models are loaded
+    logic_engine = getattr(current_app, 'logic_engine', None)
+    ml_enabled = False
+    anomaly_model_loaded = False
+    actuation_model_loaded = False
+    
+    if logic_engine and hasattr(logic_engine, 'ml_enabled'):
+        ml_enabled = logic_engine.ml_enabled
+        anomaly_model_loaded = logic_engine.anomaly_detector is not None
+        actuation_model_loaded = logic_engine.actuator_model is not None
         
-    return render_template('ai_insights.html', ml_enabled=ml_enabled)
+    return render_template('ai_insights.html', 
+                         ml_available=ml_available,
+                         ml_enabled=ml_enabled,
+                         anomaly_model_loaded=anomaly_model_loaded,
+                         actuation_model_loaded=actuation_model_loaded)
 
 @web_bp.route('/alerts')
 def alerts():

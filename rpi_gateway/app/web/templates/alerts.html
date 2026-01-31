@@ -1,32 +1,140 @@
 {% extends "base.html" %}
 {% block title %}Alerts{% endblock %}
 {% block content %}
-<h1 class="page-title">System Alerts</h1>
+<style>
+    .alerts-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .alerts-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .alert-stats {
+        display: flex;
+        gap: 15px;
+    }
+    .stat-card {
+        padding: 10px 20px;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card .count {
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+    .stat-card.critical { color: #e74c3c; }
+    .stat-card.warning { color: #f39c12; }
+    .stat-card.error { color: #e74c3c; }
+    .alerts-table {
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .alerts-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .alerts-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+    }
+    .alerts-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .alerts-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    .badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+    .badge-critical {
+        background: #e74c3c;
+        color: white;
+    }
+    .badge-error {
+        background: #e74c3c;
+        color: white;
+    }
+    .badge-warning {
+        background: #f39c12;
+        color: white;
+    }
+    .badge-info {
+        background: #3498db;
+        color: white;
+    }
+    .no-alerts {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    .no-alerts i {
+        font-size: 4em;
+        margin-bottom: 20px;
+        display: block;
+        color: #4CAF50;
+    }
+</style>
+
+<h1 class="page-title">System Alerts & Notifications</h1>
 
 <div class="alerts-container">
+    {% if alerts and alerts|length > 0 %}
+    <div class="alerts-header">
+        <div class="alert-stats">
+            <div class="stat-card critical">
+                <div class="count">{{ alerts|selectattr('level', 'equalto', 'CRITICAL')|list|length }}</div>
+                <div class="label">Critical</div>
+            </div>
+            <div class="stat-card error">
+                <div class="count">{{ alerts|selectattr('level', 'equalto', 'ERROR')|list|length }}</div>
+                <div class="label">Errors</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="count">{{ alerts|selectattr('level', 'equalto', 'WARNING')|list|length }}</div>
+                <div class="label">Warnings</div>
+            </div>
+        </div>
+    </div>
+    
     <table class="alerts-table">
         <thead>
             <tr>
-                <th>Timestamp</th>
-                <th>Room</th>
-                <th>Level</th>
+                <th style="width: 180px;">Timestamp</th>
+                <th style="width: 120px;">Room</th>
+                <th style="width: 100px;">Level</th>
                 <th>Message</th>
             </tr>
         </thead>
         <tbody>
             {% for alert in alerts %}
-            <tr class="alert-level-{{ alert.level | lower }}">
+            <tr>
                 <td>{{ alert.timestamp | int | strftime('%Y-%m-%d %H:%M:%S') }}</td>
                 <td>{{ alert.component | capitalize }}</td>
-                <td><span class="badge badge-{{ alert.level | lower }}">{{ alert.level | capitalize }}</span></td>
+                <td><span class="badge badge-{{ alert.level | lower }}">{{ alert.level }}</span></td>
                 <td>{{ alert.message }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="4" style="text-align: center; padding: 20px;">No alerts to display. System is nominal.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <div class="no-alerts">
+        <i class="fas fa-check-circle"></i>
+        <h2>All Systems Nominal</h2>
+        <p>No alerts or warnings at this time. Your mushroom cultivation system is operating within normal parameters.</p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,29 +1,210 @@
 {% extends "base.html" %}
 {% block title %}AI Insights{% endblock %}
 {% block content %}
+<style>
+    .insights-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .insight-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .insight-card h2 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+    }
+    .insight-card p {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 10px;
+    }
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .status-ok {
+        background: #d4edda;
+        color: #155724;
+    }
+    .status-error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .status-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .insight-highlight {
+        color: #667eea;
+        font-weight: bold;
+    }
+    .insight-note {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    .model-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .model-status {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .model-status i {
+        font-size: 3em;
+        margin-bottom: 10px;
+    }
+    .diagnostic-section {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+</style>
+
 <h1 class="page-title">AI & Machine Learning Insights</h1>
 
 <div class="insights-container">
     <div class="insight-card">
-        <h2>System Status</h2>
-        <p>The machine learning system is currently <span class="status-{{ 'ok' if ml_enabled else 'error' }}">{{ 'ENABLED' if ml_enabled else 'DISABLED' }}</span>.</p>
-        {% if not ml_enabled %}
-        <p class="insight-note">The `scikit-learn` library is not installed. The system has fallen back to rule-based logic.</p>
+        <h2><i class="fas fa-robot"></i> System Status</h2>
+        {% if ml_available %}
+            <div class="status-indicator status-ok">
+                <i class="fas fa-check-circle"></i>
+                <span>scikit-learn library INSTALLED</span>
+            </div>
+        {% else %}
+            <div class="status-indicator status-error">
+                <i class="fas fa-times-circle"></i>
+                <span>scikit-learn library NOT INSTALLED</span>
+            </div>
+            <p class="insight-note">
+                <strong>Action Required:</strong> Install scikit-learn to enable ML features:<br>
+                <code style="background:#333;color:#fff;padding:5px 10px;border-radius:4px;display:inline-block;margin-top:10px;">
+                    pip install scikit-learn joblib
+                </code>
+            </p>
         {% endif %}
+        
+        {% if ml_enabled %}
+            <div class="status-indicator status-ok">
+                <i class="fas fa-check-circle"></i>
+                <span>Machine Learning ENABLED</span>
+            </div>
+        {% else %}
+            <div class="status-indicator status-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Fallback to Rule-Based Logic</span>
+            </div>
+        {% endif %}
+        
+        <p style="margin-top:15px;">The system uses a two-stage ML pipeline for intelligent automation:</p>
+    </div>
+
+    <div class="model-grid">
+        <div class="model-status">
+            <i class="fas fa-search"></i>
+            <h3>Anomaly Detection</h3>
+            {% if anomaly_model_loaded %}
+                <div style="margin-top:15px;background:rgba(255,255,255,0.2);padding:10px;border-radius:6px;">
+                    <i class="fas fa-check-circle"></i> Model Loaded
+                </div>
+            {% else %}
+                <div style="margin-top:15px;background:rgba(255,255,255,0.2);padding:10px;border-radius:6px;">
+                    <i class="fas fa-times-circle"></i> Model Not Found
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="model-status">
+            <i class="fas fa-cogs"></i>
+            <h3>Actuation Control</h3>
+            {% if actuation_model_loaded %}
+                <div style="margin-top:15px;background:rgba(255,255,255,0.2);padding:10px;border-radius:6px;">
+                    <i class="fas fa-check-circle"></i> Model Loaded
+                </div>
+            {% else %}
+                <div style="margin-top:15px;background:rgba(255,255,255,0.2);padding:10px;border-radius:6px;">
+                    <i class="fas fa-times-circle"></i> Model Not Found
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <div class="insight-card">
-        <h2>Stage 1: Anomaly Detection</h2>
-        <p>This stage uses an <span class="insight-highlight">Isolation Forest</span> algorithm to identify and filter out sensor readings that are unrealistic or indicative of a hardware fault (e.g., a sudden temperature spike to 70°C).</p>
-        <p>By filtering anomalies, we prevent the system from taking incorrect actions based on faulty data.</p>
-        <p><b>Status:</b> {{ 'Active' if ml_enabled else 'Inactive (using basic range checks)' }}</p>
+        <h2><i class="fas fa-brain"></i> Stage 1: Anomaly Detection (Isolation Forest)</h2>
+        <p>Identifies and filters sensor readings that are unrealistic or indicate hardware faults.</p>
+        <div class="diagnostic-section">
+            <strong>How It Works:</strong>
+            <ul style="margin-top:10px;line-height:1.8;">
+                <li>Analyzes temperature, humidity, and CO2 patterns</li>
+                <li>Flags readings outside normal cultivation ranges</li>
+                <li>Prevents incorrect actions based on faulty sensor data</li>
+                <li>Example: Filters out temperature spikes above 50°C or CO2 below 400ppm</li>
+            </ul>
+            <p style="margin-top:15px;"><b>Status:</b> 
+                {% if ml_enabled and anomaly_model_loaded %}
+                    <span class="status-ok" style="display:inline-block;">Active - Using ML Model</span>
+                {% else %}
+                    <span class="status-warning" style="display:inline-block;">Fallback - Using Range Checks</span>
+                {% endif %}
+            </p>
+        </div>
     </div>
 
     <div class="insight-card">
-        <h2>Stage 2: Actuation Control</h2>
-        <p>This stage uses a <span class="insight-highlight">Decision Tree Classifier</span> to predict the optimal state for each actuator (fans, mist, etc.) based on the current environmental conditions and the time of day.</p>
-        <p>The model is trained on data from ideal growth cycles to make intelligent, automated decisions.</p>
-        <p><b>Status:</b> {{ 'Active' if ml_enabled else 'Inactive (using rule-based thresholds)' }}</p>
+        <h2><i class="fas fa-sliders-h"></i> Stage 2: Actuation Control (Decision Tree)</h2>
+        <p>Predicts optimal actuator states based on environmental conditions and cultivation targets.</p>
+        <div class="diagnostic-section">
+            <strong>How It Works:</strong>
+            <ul style="margin-top:10px;line-height:1.8;">
+                <li>Trained on ideal mushroom cultivation data</li>
+                <li>Considers temperature, humidity, CO2, and time of day</li>
+                <li>Determines when to activate fans, humidifiers, and lights</li>
+                <li>Uses hysteresis to prevent rapid on/off cycling</li>
+            </ul>
+            <p style="margin-top:15px;"><b>Status:</b> 
+                {% if ml_enabled and actuation_model_loaded %}
+                    <span class="status-ok" style="display:inline-block;">Active - Using ML Model</span>
+                {% else %}
+                    <span class="status-warning" style="display:inline-block;">Fallback - Using Rule-Based Thresholds</span>
+                {% endif %}
+            </p>
+        </div>
     </div>
+    
+    {% if not ml_enabled or not anomaly_model_loaded or not actuation_model_loaded %}
+    <div class="insight-card">
+        <h2><i class="fas fa-tools"></i> Training ML Models</h2>
+        <p>To generate and train ML models for the system:</p>
+        <div class="insight-note">
+            <strong>Steps:</strong><br>
+            1. Ensure scikit-learn is installed<br>
+            2. Run the training script:<br>
+            <code style="background:#333;color:#fff;padding:5px 10px;border-radius:4px;display:inline-block;margin-top:10px;">
+                python -m app.core.logic_engine
+            </code><br>
+            <small style="display:block;margin-top:10px;">This will generate models in rpi_gateway/data/models/</small>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -41,6 +41,7 @@ class MushroomAI:
         self.anomaly_detector = None
         self.actuator_model = None
         self.ml_enabled = ML_AVAILABLE
+        self.db = None  # Database reference (set by orchestrator)
         
         if self.ml_enabled:
             self._load_models()
@@ -185,9 +186,13 @@ class MushroomAI:
 
         # Generate alerts for critical conditions and save to database
         alerts = self._check_and_alert("fruiting", sensor_data, config)
-        if alerts and hasattr(self, 'db') and self.db:
+        if alerts and self.db is not None:
             for room, alert_type, message, severity in alerts:
-                self.db.insert_alert(room, alert_type, message, severity)
+                try:
+                    self.db.insert_alert(room, alert_type, message, severity)
+                    logger.info(f"[ALERT] {message}")
+                except Exception as e:
+                    logger.error(f"[ALERT] Failed to save alert: {e}")
 
         return {
             "exhaust_fan": exhaust_fan_state,

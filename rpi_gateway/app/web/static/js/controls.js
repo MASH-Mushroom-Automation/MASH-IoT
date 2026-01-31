@@ -7,7 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const autoStatusText = document.getElementById('auto-status-text');
     const allCards = document.querySelectorAll('.actuator-card');
 
+    // Initialize card states based on auto mode
     if (autoControlToggle) {
+        // Set initial disabled state
+        const isAutoMode = autoControlToggle.checked;
+        updateCardsDisabledState(isAutoMode);
+        
         autoControlToggle.addEventListener('change', function() {
             const isAutoMode = this.checked;
             
@@ -15,16 +20,24 @@ document.addEventListener('DOMContentLoaded', function() {
             autoStatusText.textContent = isAutoMode ? 'Automatic Control' : 'Manual Control';
             
             // Disable/enable manual cards based on auto mode
-            allCards.forEach(card => {
-                if (isAutoMode) {
-                    card.classList.add('disabled');
-                } else {
-                    card.classList.remove('disabled');
-                }
-            });
+            updateCardsDisabledState(isAutoMode);
             
             // Send auto mode change to backend
             toggleAutoMode(isAutoMode);
+        });
+    }
+    
+    function updateCardsDisabledState(isAutoMode) {
+        allCards.forEach(card => {
+            if (isAutoMode) {
+                card.classList.add('disabled');
+                card.style.opacity = '0.6';
+                card.style.cursor = 'not-allowed';
+            } else {
+                card.classList.remove('disabled');
+                card.style.opacity = '1';
+                card.style.cursor = 'pointer';
+            }
         });
     }
 
@@ -33,7 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
         card.addEventListener('click', function() {
             // Don't toggle if auto mode is enabled
             if (this.classList.contains('disabled')) {
-                showNotification('Auto mode is enabled. Disable it to manually control actuators.', 'warning');
+                showNotification(
+                    'Automatic control is enabled. Switch to Manual mode to control actuators directly.',
+                    'warning'
+                );
                 return;
             }
 

@@ -230,6 +230,7 @@ class MASHOrchestrator:
             self.app.serial_comm = self.arduino
             self.app.backend_client = self.backend
             self.app.backend_connected = self.backend.check_connection() if self.backend else False
+            self.app.logic_engine = self.ai  # Pass ML engine to routes
             self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
             self.app.config['START_TIME'] = self.start_time
