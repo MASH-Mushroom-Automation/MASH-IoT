@@ -620,6 +620,13 @@ input:checked + .slider:before {
     animation: blink 1s infinite;
 }
 
+.diagnostic-section {
+    color: #2c2c2c;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #444;
+}
+
 @keyframes blink {
     0%, 50%, 100% { opacity: 1; }
     25%, 75% { opacity: 0.6; }
