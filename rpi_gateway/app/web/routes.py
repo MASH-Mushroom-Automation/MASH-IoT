@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request
+from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request, send_from_directory
 import time
 import logging
+import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,9 @@ def strftime_filter(timestamp, format_string='%Y-%m-%d %H:%M:%S'):
 def calculate_room_condition(room_type, sensor_data, targets):
     """
     Calculate dynamic condition status based on sensor values and targets.
-    Returns: ('Optimal'|'Warning'|'Critical', color_class)
+    Returns: ('Optimal'|'Warning'|'Critical'|'Waiting', color_class)
     """
+    # Check if we have sensor data
     if not sensor_data or 'error' in sensor_data:
         return 'Sensor Error', 'error'
     
@@ -30,8 +32,13 @@ def calculate_room_condition(room_type, sensor_data, targets):
     humidity = sensor_data.get('humidity')
     co2 = sensor_data.get('co2')
     
+    # If all values are None or 0, system is initializing - show "Waiting"
     if temp is None or humidity is None or co2 is None:
-        return 'No Data', 'warning'
+        return 'Waiting...', 'warning'
+    
+    # If values are 0 (sensors not yet read), show "Initializing"
+    if temp == 0 and humidity == 0 and co2 == 0:
+        return 'Initializing', 'warning'
     
     # Get thresholds
     temp_target = targets.get('temp_target', 24)
@@ -167,8 +174,14 @@ def get_live_data():
 
 @web_bp.route('/')
 def index():
-    """Redirects the root URL to the main dashboard."""
-    return redirect(url_for('web.dashboard'))
+    """Show intro video on first load, then redirect to dashboard."""
+    return render_template('intro.html')
+
+@web_bp.route('/assets/<path:filename>')
+def serve_assets(filename):
+    """Serve files from the assets directory."""
+    assets_dir = os.path.join(os.path.dirname(__file__), '../../../assets')
+    return send_from_directory(assets_dir, filename)
 
 @web_bp.route('/dashboard')
 def dashboard():
@@ -269,7 +282,10 @@ def wifi_setup():
     # Scan for available WiFi networks
     networks = wifi_manager.get_wifi_list()
     
-    return render_template('wifi_setup.html', networks=networks)
+    # Get current connected network
+    current_network = wifi_manager.get_current_network()
+    
+    return render_template('wifi_setup.html', networks=networks, current_network=current_network)
 
 @web_bp.route('/wifi-connect', methods=['POST'])
 def wifi_connect():
@@ -330,7 +346,20 @@ def api_latest_data():
     minutes = (uptime_seconds % 3600) // 60
     data['uptime'] = f"{hours}h {minutes}m"
     
-    return jsonify(data)
+    # Make sure condition data is included
+    return jsonify({
+        "arduino_connected": data.get('arduino_connected', False),
+        "backend_connected": data.get('backend_connected', False),
+        "uptime": data['uptime'],
+        "fruiting_data": data.get('fruiting_data'),
+        "spawning_data": data.get('spawning_data'),
+        "fruiting_actuators": data.get('fruiting_actuators'),
+        "spawning_actuators": data.get('spawning_actuators'),
+        "fruiting_condition": data.get('fruiting_condition'),
+        "fruiting_condition_class": data.get('fruiting_condition_class'),
+        "spawning_condition": data.get('spawning_condition'),
+        "spawning_condition_class": data.get('spawning_condition_class')
+    })
 
 @web_bp.route('/api/control_actuator', methods=['POST'])
 def control_actuator():

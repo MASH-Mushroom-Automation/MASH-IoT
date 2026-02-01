@@ -21,6 +21,7 @@ from core.logic_engine import MushroomAI
 from database.db_manager import DatabaseManager
 from cloud.backend_api import BackendAPIClient
 from web.routes import web_bp
+from utils.user_preferences import UserPreferencesManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,8 +41,11 @@ class MASHOrchestrator:
     """
     
     def __init__(self, config_path='config/config.yaml'):
-        # Load configuration
-        self.config = self._load_config(config_path)
+        # Initialize user preferences manager
+        self.user_prefs = UserPreferencesManager()
+        
+        # Load configuration (with user preferences merged)
+        self.config = self.user_prefs.get_merged_config()
         
         # Flask app
         self.app = Flask(__name__, 
@@ -50,6 +54,10 @@ class MASHOrchestrator:
         
         # Register web blueprint
         self.app.register_blueprint(web_bp)
+        
+        # Store user prefs in app context for access in routes
+        self.app.config['USER_PREFS'] = self.user_prefs
+        self.app.config['MUSHROOM_CONFIG'] = self.config
         
         # Components
         self.db = DatabaseManager()

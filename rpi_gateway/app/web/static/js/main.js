@@ -85,6 +85,26 @@ async function updateDashboardData() {
             uptimeEl.textContent = data.uptime;
         }
         
+        // Update Fruiting Room condition
+        if (data.fruiting_condition) {
+            const fruitingConditionEl = document.querySelector('#fruiting-view .room-condition span');
+            if (fruitingConditionEl) {
+                fruitingConditionEl.textContent = data.fruiting_condition;
+                // Update class based on condition
+                fruitingConditionEl.className = 'status-' + data.fruiting_condition_class;
+            }
+        }
+        
+        // Update Spawning Room condition
+        if (data.spawning_condition) {
+            const spawningConditionEl = document.querySelector('#spawning-view .room-condition span');
+            if (spawningConditionEl) {
+                spawningConditionEl.textContent = data.spawning_condition;
+                // Update class based on condition
+                spawningConditionEl.className = 'status-' + data.spawning_condition_class;
+            }
+        }
+        
         // Update Fruiting Room sensor values
         if (data.fruiting_data) {
             const fruitingCO2 = document.querySelector('#fruiting-view .sensor-card.co2 .sensor-value');

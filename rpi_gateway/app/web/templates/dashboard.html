@@ -8,8 +8,10 @@
         <button id="show-spawning" class="toggle-btn">Spawning Room</button>
     </div>
     <div class="system-status">
-        <span>Arduino: <span class="{% if arduino_connected %}status-ok{% else %}status-error{% endif %}">{% if arduino_connected %}Connected{% else %}Offline{% endif %}</span></span>
-        <span>Backend: <span class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected %}Online{% else %}Offline{% endif %}</span></span>
+        <span>Sensors: <span class="{% if arduino_connected %}status-ok{% else %}status-error{% endif %}">{% if arduino_connected %}Connected{% else %}Offline{% endif %}</span></span>
+         | 
+        <span>Network: <span class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected %}Online{% else %}Offline{% endif %}</span></span>
+         | 
         <span>Uptime: <span id="uptime">--</span></span>
     </div>
 </div>

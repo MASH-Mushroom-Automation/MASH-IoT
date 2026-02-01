@@ -35,6 +35,26 @@ def get_wifi_list():
         print(f"[!] Scan Error: {e}")
         return []
 
+def get_current_network():
+    """
+    Returns the currently connected WiFi network SSID, or None if not connected.
+    """
+    try:
+        cmd = "nmcli -t -f active,ssid dev wifi | grep '^yes'"
+        result = subprocess.check_output(cmd, shell=True, text=True)
+        # Format is "yes:SSID_NAME"
+        if result:
+            parts = result.strip().split(':')
+            if len(parts) >= 2:
+                return parts[1]
+        return None
+    except subprocess.CalledProcessError:
+        # Not connected to any WiFi
+        return None
+    except Exception as e:
+        print(f"[!] Error getting current network: {e}")
+        return None
+
 def start_hotspot():
     """
     Creates and starts the Provisioning Hotspot (OPEN/No Password).

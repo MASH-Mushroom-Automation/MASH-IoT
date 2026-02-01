@@ -16,14 +16,17 @@ logger = logging.getLogger(__name__)
 # Arduino Actuator Name Constants (matches Arduino firmware)
 ACTUATORS = {
     'fruiting': {
-        'exhaust_fan': 'FRUITING_EXHAUST_FAN',
-        'blower_fan': 'FRUITING_BLOWER_FAN',
+        'mist_maker': 'MIST_MAKER',
         'humidifier_fan': 'HUMIDIFIER_FAN',
-        'humidifier': 'HUMIDIFIER',
+        'exhaust_fan': 'FRUITING_EXHAUST_FAN',
+        'intake_fan': 'FRUITING_INTAKE_FAN',
         'led': 'FRUITING_LED'
     },
     'spawning': {
         'exhaust_fan': 'SPAWNING_EXHAUST_FAN'
+    },
+    'device': {
+        'exhaust_fan': 'DEVICE_EXHAUST_FAN'
     }
 }
 
@@ -173,8 +176,22 @@ class ArduinoSerialComm:
             return False
         
         try:
-            # Ensure command ends with a newline character, as Arduino expects
-            cmd_with_newline = f"{command}\n".encode('utf-8')
+            # Check if it's a JSON command or old-style command
+            if command.startswith('{'):
+                # Already JSON format
+                cmd_with_newline = f"{command}\n".encode('utf-8')
+            else:
+                # Old-style command, convert to JSON
+                # Format: ACTUATOR_NAME_STATE
+                parts = command.rsplit('_', 1)
+                if len(parts) == 2:
+                    actuator_name, state = parts
+                    json_cmd = json.dumps({"actuator": actuator_name, "state": state})
+                    cmd_with_newline = f"{json_cmd}\n".encode('utf-8')
+                else:
+                    # Keep old format if can't parse
+                    cmd_with_newline = f"{command}\n".encode('utf-8')
+            
             self.serial_conn.write(cmd_with_newline)
             self.serial_conn.flush() # Wait until all data is written
             logger.info(f"Sent command to Arduino: {command}")
@@ -381,10 +398,11 @@ class ArduinoSerialComm:
     def control_actuator(self, room: str, actuator_type: str, state: str) -> bool:
         """
         Control a specific actuator with friendly names.
+        Sends JSON command to Arduino.
         
         Args:
-            room: 'fruiting' or 'spawning'
-            actuator_type: 'exhaust_fan', 'humidifier', 'led', etc.
+            room: 'fruiting', 'spawning', or 'device'
+            actuator_type: 'exhaust_fan', 'mist_maker', 'led', etc.
             state: 'ON' or 'OFF'
         
         Returns:
@@ -392,7 +410,7 @@ class ArduinoSerialComm:
             
         Example:
             control_actuator('fruiting', 'exhaust_fan', 'ON')
-            -> Sends "FRUITING_EXHAUST_FAN_ON\n" to Arduino
+            -> Sends '{"actuator": "FRUITING_EXHAUST_FAN", "state": "ON"}\n' to Arduino
         """
         if room not in ACTUATORS:
             logger.error(f"Invalid room: {room}")
@@ -408,9 +426,11 @@ class ArduinoSerialComm:
             return False
         
         actuator_name = ACTUATORS[room][actuator_type]
-        command = f"{actuator_name}_{state}"
         
-        return self.send_command(command)
+        # Send JSON command
+        json_cmd = json.dumps({"actuator": actuator_name, "state": state})
+        
+        return self.send_command(json_cmd)
     
     def get_latest_data(self) -> Dict[str, Any]:
         """Get the most recent sensor data received from Arduino."""

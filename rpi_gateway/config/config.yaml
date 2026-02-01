@@ -13,7 +13,7 @@ device:
 # System Configuration
 system:
   ml_enabled: true
-  auto_mode: true
+  auto_mode: false
   data_sync_interval: 300  # seconds (5 minutes - reduced to avoid backend strain)
   sensor_read_interval: 5  # seconds
 
