@@ -1,55 +1,66 @@
 #!/bin/bash
 # Configure On-Screen Keyboard for MASH IoT Kiosk
-# This script configures matchbox-keyboard to:
-# 1. Only show when text input is focused
-# 2. Appear at the bottom of screen
-# 3. Proper size for touchscreen input
+# This script configures matchbox-keyboard with proper settings for touchscreen use
 
 echo "Configuring On-Screen Keyboard..."
 
-# Create matchbox-keyboard config directory
-mkdir -p "$HOME/.matchbox"
+# Install Florence Virtual Keyboard (better auto-show/hide than matchbox)
+echo "Installing Florence Virtual Keyboard..."
+sudo apt-get update
+sudo apt-get install -y florence at-spi2-core
 
-# Configure matchbox-keyboard settings
+# Configure Florence to start minimized and auto-show on focus
+mkdir -p "$HOME/.config/florence"
+cat > "$HOME/.config/florence/florence.conf" <<'EOF'
+[window]
+xid=0
+decorated=false
+keep_on_top=true
+startup_show=false
+task_bar=false
+
+[layout]
+style=/usr/share/florence/styles/default
+file=/usr/share/florence/layouts/compact.xml
+
+[behaviour]
+hide_on_start=true
+auto_hide=true
+EOF
+
+# Alternative: Configure matchbox-keyboard for better behavior
+mkdir -p "$HOME/.matchbox"
 cat > "$HOME/.matchbox/keyboard.xml" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <keyboard>
   <options>
-    <font>Sans 18</font>
+    <font>Sans 20</font>
     <layout>us</layout>
     <landscape>true</landscape>
   </options>
 </keyboard>
 EOF
 
-# Create a system service for on-demand keyboard launch
-sudo tee /usr/local/bin/launch_osk.sh > /dev/null <<'EOF'
-#!/bin/bash
-# Launch matchbox-keyboard on-demand
-if ! pgrep -x "matchbox-keyboa" > /dev/null; then
-    matchbox-keyboard &
-fi
-EOF
-
-sudo chmod +x /usr/local/bin/launch_osk.sh
-
-# Configure input method to auto-show keyboard
-# Use onboard settings if available
-if command -v gsettings &> /dev/null; then
-    gsettings set org.onboard.keyboard show-status-icon false 2>/dev/null || true
-    gsettings set org.onboard auto-show enabled 2>/dev/null || true
-fi
-
 echo ""
 echo "========================================="
 echo " On-Screen Keyboard Configured!"
 echo "========================================="
-echo "Changes applied:"
-echo "  - Keyboard launches on text input focus"
-echo "  - Positioned at bottom of screen"
-echo "  - Larger font for touchscreen (18pt)"
 echo ""
-echo "Note: The keyboard will now only appear when"
-echo "you tap on text input fields (like WiFi setup)"
-echo "and will hide automatically when done."
+echo "Two options configured:"
+echo ""
+echo "Option 1: Florence (Recommended)"
+echo "  - Auto-shows on text input focus"
+echo "  - Auto-hides when done"
+echo "  - Better for touchscreen kiosks"
+echo "  To use: Edit run_kiosk_x.sh and replace"
+echo "    'matchbox-keyboard' with 'florence'"
+echo ""
+echo "Option 2: Matchbox (Simple)"
+echo "  - Manual toggle mode"
+echo "  - Larger font (20pt) configured"
+echo "  - Already in use"
+echo ""
+echo "Current setup uses matchbox with toggle mode (-s 50)"
+echo "Keyboard will start minimized and can be toggled"
+echo "via the keyboard button in the UI."
 echo ""

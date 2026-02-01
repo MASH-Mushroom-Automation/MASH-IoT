@@ -31,9 +31,9 @@ logger = logging.getLogger(__name__)
 class HumidifierCycleManager:
     """
     Manages the Humidifier System cycle:
-    - Mist Maker ON for 5 seconds
-    - Humidifier Fan ON for 10 seconds
-    - Repeat when system is active
+    - Mist Maker ON for 10 seconds (Fan OFF)
+    - Humidifier Fan ON for 30 seconds (Mist OFF)
+    - Alternates between the two when system is active
     """
     
     def __init__(self):
@@ -43,8 +43,8 @@ class HumidifierCycleManager:
         self.phase_start_time = 0
         
         # Cycle timings
-        self.MIST_DURATION = 5.0  # seconds
-        self.FAN_DURATION = 10.0  # seconds
+        self.MIST_DURATION = 10.0  # seconds
+        self.FAN_DURATION = 30.0  # seconds
     
     def start_cycle(self):
         """Start the humidifier cycle"""
@@ -80,9 +80,10 @@ class HumidifierCycleManager:
                 # Switch to fan phase
                 self.current_phase = "fan"
                 self.phase_start_time = current_time
-                logger.debug("[HUMIDIFIER] Switching to FAN phase")
+                logger.info("[HUMIDIFIER] Switching: MIST OFF -> FAN ON")
                 return {"mist_maker": "OFF", "humidifier_fan": "ON"}
             else:
+                # During mist phase: mist ON, fan OFF
                 return {"mist_maker": "ON", "humidifier_fan": "OFF"}
         
         elif self.current_phase == "fan":
@@ -90,9 +91,10 @@ class HumidifierCycleManager:
                 # Switch back to mist phase
                 self.current_phase = "mist"
                 self.phase_start_time = current_time
-                logger.debug("[HUMIDIFIER] Switching to MIST phase")
+                logger.info("[HUMIDIFIER] Switching: FAN OFF -> MIST ON")
                 return {"mist_maker": "ON", "humidifier_fan": "OFF"}
             else:
+                # During fan phase: mist OFF, fan ON
                 return {"mist_maker": "OFF", "humidifier_fan": "ON"}
         
         return {"mist_maker": "OFF", "humidifier_fan": "OFF"}

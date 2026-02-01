@@ -68,16 +68,19 @@ async function updateDashboardData() {
         }
         
         // Update Backend connection status
-        const backendStatus = document.querySelector('.system-status span:nth-child(2) span:last-child');
-        if (backendStatus) {
+        const cloudStatus = document.querySelector('.system-status span:nth-child(3) span:last-child');
+        if (cloudStatus) {
             if (data.backend_connected) {
-                backendStatus.textContent = 'Online';
-                backendStatus.className = 'status-ok';
+                cloudStatus.textContent = 'Online';
+                cloudStatus.className = 'status-ok';
             } else {
-                backendStatus.textContent = 'Offline';
-                backendStatus.className = 'status-warning';
+                cloudStatus.textContent = 'Offline';
+                cloudStatus.className = 'status-warning';
             }
         }
+        
+        // Update WiFi status
+        updateWiFiStatus();
         
         // Update Uptime
         const uptimeEl = document.getElementById('uptime');
@@ -154,22 +157,56 @@ function updateActuatorIcons(viewSelector, actuators) {
     const view = document.querySelector(viewSelector);
     if (!view || !actuators) return;
     
-    const fanIcon = view.querySelector('.icon-fan');
-    const blowerIcon = view.querySelector('.icon-blower');
+    // Updated to match new actuator structure
     const mistIcon = view.querySelector('.icon-mist');
+    const humidifierFanIcon = view.querySelector('.icon-humidifier-fan');
+    const exhaustIcon = view.querySelector('.icon-exhaust');
+    const intakeIcon = view.querySelector('.icon-intake');
     const lightIcon = view.querySelector('.icon-light');
     
-    if (fanIcon) {
-        actuators.exhaust_fan ? fanIcon.classList.add('active') : fanIcon.classList.remove('active');
-    }
-    if (blowerIcon) {
-        actuators.blower_fan ? blowerIcon.classList.add('active') : blowerIcon.classList.remove('active');
-    }
     if (mistIcon) {
-        actuators.humidifier ? mistIcon.classList.add('active') : mistIcon.classList.remove('active');
+        actuators.mist_maker ? mistIcon.classList.add('active') : mistIcon.classList.remove('active');
+    }
+    if (humidifierFanIcon) {
+        actuators.humidifier_fan ? humidifierFanIcon.classList.add('active') : humidifierFanIcon.classList.remove('active');
+    }
+    if (exhaustIcon) {
+        actuators.exhaust_fan ? exhaustIcon.classList.add('active') : exhaustIcon.classList.remove('active');
+    }
+    if (intakeIcon) {
+        actuators.intake_fan ? intakeIcon.classList.add('active') : intakeIcon.classList.remove('active');
     }
     if (lightIcon) {
         actuators.led ? lightIcon.classList.add('active') : lightIcon.classList.remove('active');
+    }
+}
+
+// Function to check WiFi status
+async function updateWiFiStatus() {
+    try {
+        const response = await fetch('/api/wifi_status');
+        const data = await response.json();
+        
+        const wifiStatusEl = document.getElementById('wifi-status');
+        if (wifiStatusEl) {
+            if (data.connected && data.current_network) {
+                wifiStatusEl.textContent = data.current_network;
+                wifiStatusEl.className = 'status-ok';
+            } else if (data.last_known_network) {
+                wifiStatusEl.textContent = 'Disconnected';
+                wifiStatusEl.className = 'status-warning';
+            } else {
+                wifiStatusEl.textContent = 'Not Configured';
+                wifiStatusEl.className = 'status-error';
+            }
+        }
+    } catch (error) {
+        console.error('WiFi status check failed:', error);
+        const wifiStatusEl = document.getElementById('wifi-status');
+        if (wifiStatusEl) {
+            wifiStatusEl.textContent = 'Unknown';
+            wifiStatusEl.className = 'status-warning';
+        }
     }
 }
 

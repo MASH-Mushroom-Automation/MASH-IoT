@@ -105,10 +105,10 @@ xset s noblank
 # Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
 
-# Start Virtual Keyboard (on-demand mode)
-# Don't launch at startup - it will show automatically when text input is focused
-# and hide when not needed. This is handled by the system.
-# matchbox-keyboard &  # DISABLED: Let it launch on-demand only
+# Start Virtual Keyboard (toggle mode)
+# Use toggle mode - keyboard shows/hides when input is focused
+# The -s option makes it smaller and properly positioned
+matchbox-keyboard -s 50 extended &
 
 # Hide Mouse Cursor (Optional: remove if you need mouse for keyboard)
 unclutter -idle 0.1 &

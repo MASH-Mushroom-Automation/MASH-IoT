@@ -8,11 +8,13 @@
         <button id="show-spawning" class="toggle-btn">Spawning Room</button>
     </div>
     <div class="system-status">
-        <span>Sensors: <span class="{% if arduino_connected %}status-ok{% else %}status-error{% endif %}">{% if arduino_connected %}Connected{% else %}Offline{% endif %}</span></span>
+        <span><i class="fas fa-microchip"></i> Sensors: <span class="{% if arduino_connected %}status-ok{% else %}status-error{% endif %}">{% if arduino_connected %}Connected{% else %}Offline{% endif %}</span></span>
          | 
-        <span>Network: <span class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected %}Online{% else %}Offline{% endif %}</span></span>
+        <span><i class="fas fa-wifi"></i> WiFi: <span id="wifi-status" class="status-warning">Checking...</span></span>
          | 
-        <span>Uptime: <span id="uptime">--</span></span>
+        <span><i class="fas fa-cloud"></i> Cloud: <span class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected %}Online{% else %}Offline{% endif %}</span></span>
+         | 
+        <span><i class="fas fa-clock"></i> Uptime: <span id="uptime">--</span></span>
     </div>
 </div>
 
@@ -22,9 +24,10 @@
         <h2 class="room-title">Fruiting Room</h2>
         <div class="room-condition">Condition: <span class="status-{{ fruiting_condition_class }}">{{ fruiting_condition }}</span></div>
         <div class="actuator-icons">
-            <i class="fas fa-wind icon-fan {% if fruiting_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
-            <i class="fas fa-fan icon-blower {% if fruiting_actuators.blower_fan %}active{% endif %}" title="Blower Fan"></i>
-            <i class="fas fa-tint icon-mist {% if fruiting_actuators.humidifier %}active{% endif %}" title="Humidifier"></i>
+            <i class="fas fa-water icon-mist {% if fruiting_actuators.mist_maker %}active{% endif %}" title="Mist Maker"></i>
+            <i class="fas fa-wind icon-humidifier-fan {% if fruiting_actuators.humidifier_fan %}active{% endif %}" title="Humidifier Fan"></i>
+            <i class="fas fa-wind icon-exhaust {% if fruiting_actuators.exhaust_fan %}active{% endif %}" title="Exhaust Fan"></i>
+            <i class="fas fa-wind icon-intake {% if fruiting_actuators.intake_fan %}active{% endif %}" title="Intake Fan"></i>
             <i class="fas fa-lightbulb icon-light {% if fruiting_actuators.led %}active{% endif %}" title="LED Light"></i>
         </div>
     </div>

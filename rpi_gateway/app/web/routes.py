@@ -174,8 +174,8 @@ def get_live_data():
 
 @web_bp.route('/')
 def index():
-    """Show intro video on first load, then redirect to dashboard."""
-    return render_template('intro.html')
+    """Redirect to dashboard (intro page removed)."""
+    return redirect(url_for('web.dashboard'))
 
 @web_bp.route('/assets/<path:filename>')
 def serve_assets(filename):
@@ -552,3 +552,32 @@ def actuator_states():
                     states[room][actuator_name]['state'] = is_on
     
     return jsonify(states)
+
+
+@web_bp.route('/api/toggle-keyboard', methods=['POST'])
+def toggle_keyboard():
+    """
+    API endpoint to toggle on-screen keyboard (matchbox-keyboard).
+    Uses xdotool to send toggle command to keyboard process.
+    """
+    try:
+        import subprocess
+        # Try to toggle matchbox-keyboard window
+        result = subprocess.run(['pkill', '-USR1', 'matchbox-keyboard'], 
+                              capture_output=True, timeout=2)
+        
+        if result.returncode == 0:
+            return jsonify({"success": True, "message": "Keyboard toggled"})
+        else:
+            # Fallback: try to show/hide window
+            subprocess.run(['xdotool', 'search', '--name', 'Keyboard', 'windowactivate'],
+                         capture_output=True, timeout=2)
+            return jsonify({"success": True, "message": "Keyboard window activated"})
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({"success": False, "message": "Keyboard toggle timeout"}), 500
+    except FileNotFoundError:
+        return jsonify({"success": False, "message": "xdotool or keyboard not found"}), 500
+    except Exception as e:
+        logger.error(f"Keyboard toggle error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
