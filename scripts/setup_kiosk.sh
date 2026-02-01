@@ -105,9 +105,10 @@ xset s noblank
 # Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
 
-# Start Virtual Keyboard
-# We launch it in background. It typically docks to the bottom.
-matchbox-keyboard &
+# Start Virtual Keyboard (on-demand mode)
+# Don't launch at startup - it will show automatically when text input is focused
+# and hide when not needed. This is handled by the system.
+# matchbox-keyboard &  # DISABLED: Let it launch on-demand only
 
 # Hide Mouse Cursor (Optional: remove if you need mouse for keyboard)
 unclutter -idle 0.1 &
