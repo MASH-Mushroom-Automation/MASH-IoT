@@ -214,7 +214,7 @@ class MASHOrchestrator:
         
         except Exception as e:
             logger.error(f"[AUTO] Automation error: {e}")
-            import traceback:
+            import traceback
             traceback.print_exc()
     
     def _update_actuator_state_from_command(self, command):
