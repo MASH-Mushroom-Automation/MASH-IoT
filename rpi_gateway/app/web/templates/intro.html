@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MASH IoT - Loading</title>
+    <title>MASH IoT - Starting</title>
     <style>
         body {
             margin: 0;
@@ -43,40 +43,32 @@
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
-        
-        .skip-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(76, 175, 80, 0.8);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        
-        .skip-btn:hover {
-            background: rgba(76, 175, 80, 1);
-            transform: scale(1.05);
-        }
     </style>
 </head>
 <body>
     <div class="intro-container">
-        <video id="intro-video" autoplay muted>
+        <video id="intro-video" autoplay muted playsinline>
             <source src="/assets/mash-intro.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
         <div class="loading-text">Initializing M.A.S.H. IoT System...</div>
     </div>
     
-    <button class="skip-btn" onclick="skipIntro()">Skip</button>
-    
     <script>
         const video = document.getElementById('intro-video');
+        
+        // Redirect to dashboard after video ends (or after 10 seconds as fallback)
+        video.addEventListener('ended', function() {
+            window.location.href = '/';
+        });
+        
+        // Fallback timeout in case video doesn't fire 'ended' event
+        setTimeout(function() {
+            window.location.href = '/';
+        }, 10000); // 10 seconds (9s video + 1s buffer)
+    </script>
+</body>
+</html>
         
         // Redirect to dashboard after video ends or after 10 seconds
         video.addEventListener('ended', () => {

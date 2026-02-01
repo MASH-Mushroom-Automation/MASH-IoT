@@ -42,6 +42,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========== ACTUATOR CARD CLICK HANDLERS ==========
+    
+    // Cooldown tracking to prevent spamming
+    const actuatorCooldowns = new Map(); // Format: "room-actuator" -> timestamp
+    const COOLDOWN_MS = 5000; // 5 second cooldown
+    
     allCards.forEach(card => {
         card.addEventListener('click', function() {
             // Don't toggle if auto mode is enabled
@@ -55,8 +60,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const room = this.dataset.room;
             const actuator = this.dataset.actuator;
+            const actuatorKey = `${room}-${actuator}`;
+            
+            // Check cooldown
+            const now = Date.now();
+            const lastActivation = actuatorCooldowns.get(actuatorKey) || 0;
+            const timeSinceLastActivation = now - lastActivation;
+            
+            if (timeSinceLastActivation < COOLDOWN_MS) {
+                const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastActivation) / 1000);
+                showNotification(
+                    `Please wait ${remainingSeconds}s before toggling ${actuator.replace('_', ' ')} again`,
+                    'warning'
+                );
+                return;
+            }
+            
             const currentState = this.dataset.state;
             const newState = currentState === 'on' ? 'off' : 'on';
+            
+            // Set cooldown
+            actuatorCooldowns.set(actuatorKey, now);
             
             // Optimistically update UI
             this.dataset.state = newState;

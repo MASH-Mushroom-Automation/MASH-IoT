@@ -3,10 +3,16 @@ M.A.S.H. IoT - Logic Engine with Machine Learning
 Implements two-stage ML pipeline for mushroom cultivation automation:
 1. Anomaly Detection (Isolation Forest) - Filters sensor noise
 2. Actuation Control (Decision Tree) - Automates relay states
+
+Features:
+- Smart Humidifier System: Alternating mist (5s) and fan (10s) cycles
+- Predictive humidity control to prevent overshooting
+- Hysteresis to prevent rapid on/off cycling
 """
 
 import os
 import logging
+import time
 from typing import Dict, List, Tuple
 from datetime import datetime
 import numpy as np
@@ -21,6 +27,99 @@ except ImportError:
     logging.warning("scikit-learn not available, ML features disabled")
 
 logger = logging.getLogger(__name__)
+
+class HumidifierCycleManager:
+    """
+    Manages the Humidifier System cycle:
+    - Mist Maker ON for 5 seconds
+    - Humidifier Fan ON for 10 seconds
+    - Repeat when system is active
+    """
+    
+    def __init__(self):
+        self.cycle_active = False
+        self.cycle_start_time = 0
+        self.current_phase = "idle"  # "idle", "mist", "fan"
+        self.phase_start_time = 0
+        
+        # Cycle timings
+        self.MIST_DURATION = 5.0  # seconds
+        self.FAN_DURATION = 10.0  # seconds
+    
+    def start_cycle(self):
+        """Start the humidifier cycle"""
+        if not self.cycle_active:
+            self.cycle_active = True
+            self.cycle_start_time = time.time()
+            self.current_phase = "mist"
+            self.phase_start_time = time.time()
+            logger.info("[HUMIDIFIER] Starting cycle: MIST phase")
+    
+    def stop_cycle(self):
+        """Stop the humidifier cycle"""
+        if self.cycle_active:
+            self.cycle_active = False
+            self.current_phase = "idle"
+            logger.info("[HUMIDIFIER] Stopping cycle")
+    
+    def get_current_states(self) -> Dict[str, str]:
+        """
+        Get current actuator states based on cycle phase.
+        
+        Returns:
+            Dict with mist_maker and humidifier_fan states
+        """
+        if not self.cycle_active:
+            return {"mist_maker": "OFF", "humidifier_fan": "OFF"}
+        
+        current_time = time.time()
+        elapsed = current_time - self.phase_start_time
+        
+        if self.current_phase == "mist":
+            if elapsed >= self.MIST_DURATION:
+                # Switch to fan phase
+                self.current_phase = "fan"
+                self.phase_start_time = current_time
+                logger.debug("[HUMIDIFIER] Switching to FAN phase")
+                return {"mist_maker": "OFF", "humidifier_fan": "ON"}
+            else:
+                return {"mist_maker": "ON", "humidifier_fan": "OFF"}
+        
+        elif self.current_phase == "fan":
+            if elapsed >= self.FAN_DURATION:
+                # Switch back to mist phase
+                self.current_phase = "mist"
+                self.phase_start_time = current_time
+                logger.debug("[HUMIDIFIER] Switching to MIST phase")
+                return {"mist_maker": "ON", "humidifier_fan": "OFF"}
+            else:
+                return {"mist_maker": "OFF", "humidifier_fan": "ON"}
+        
+        return {"mist_maker": "OFF", "humidifier_fan": "OFF"}
+    
+    def get_phase_info(self) -> Dict:
+        """Get detailed cycle information for monitoring"""
+        if not self.cycle_active:
+            return {"active": False, "phase": "idle", "elapsed": 0, "remaining": 0}
+        
+        current_time = time.time()
+        elapsed = current_time - self.phase_start_time
+        
+        if self.current_phase == "mist":
+            remaining = max(0, self.MIST_DURATION - elapsed)
+        elif self.current_phase == "fan":
+            remaining = max(0, self.FAN_DURATION - elapsed)
+        else:
+            remaining = 0
+        
+        return {
+            "active": True,
+            "phase": self.current_phase,
+            "elapsed": round(elapsed, 1),
+            "remaining": round(remaining, 1),
+            "total_runtime": round(current_time - self.cycle_start_time, 1)
+        }
+
 
 class MushroomAI:
     """
@@ -42,6 +141,13 @@ class MushroomAI:
         self.actuator_model = None
         self.ml_enabled = ML_AVAILABLE
         self.db = None  # Database reference (set by orchestrator)
+        
+        # Humidifier cycle manager
+        self.humidifier_cycle = HumidifierCycleManager()
+        
+        # Humidity control state tracking
+        self.last_humidity_readings = []  # Track last 3 readings for trend analysis
+        self.humidity_rising_rate = 0  # Rate of humidity increase (% per second)
         
         if self.ml_enabled:
             self._load_models()
@@ -159,8 +265,76 @@ class MushroomAI:
                 "humidity_system": "OFF", "light": "OFF"
             }
 
+    def _calculate_humidity_trend(self, current_humidity: float) -> float:
+        """
+        Calculate humidity rising rate based on recent readings.
+        
+        Args:
+            current_humidity: Current humidity reading
+            
+        Returns:
+            Rate of change in % per second (positive = rising, negative = falling)
+        """
+        self.last_humidity_readings.append({
+            'value': current_humidity,
+            'timestamp': time.time()
+        })
+        
+        # Keep only last 3 readings (15 seconds of data at 5s intervals)
+        if len(self.last_humidity_readings) > 3:
+            self.last_humidity_readings.pop(0)
+        
+        if len(self.last_humidity_readings) < 2:
+            return 0  # Not enough data
+        
+        # Calculate rate of change
+        first = self.last_humidity_readings[0]
+        last = self.last_humidity_readings[-1]
+        
+        time_delta = last['timestamp'] - first['timestamp']
+        if time_delta == 0:
+            return 0
+        
+        humidity_delta = last['value'] - first['value']
+        rate = humidity_delta / time_delta  # % per second
+        
+        return rate
+    
+    def _predict_humidity_overshoot(self, current_humidity: float, target: float, rate: float) -> bool:
+        """
+        Predict if humidity will overshoot target if misting continues.
+        
+        Args:
+            current_humidity: Current humidity %
+            target: Target humidity %
+            rate: Current rate of change (% per second)
+            
+        Returns:
+            True if likely to overshoot, False otherwise
+        """
+        if rate <= 0:
+            return False  # Not rising
+        
+        # Predict humidity after one full cycle (15 seconds)
+        predicted_humidity = current_humidity + (rate * 15)
+        
+        # Add 2% safety margin to prevent overshooting
+        safety_margin = 2
+        
+        return predicted_humidity > (target + safety_margin)
+
     def _rule_based_fruiting_actuation(self, sensor_data: Dict) -> Dict[str, str]:
-        """Rule-based logic for the fruiting room with hysteresis."""
+        """
+        Enhanced rule-based actuation logic for FRUITING stage with AI-controlled humidifier.
+        Uses hysteresis to prevent rapid on/off cycling.
+        Implements smart humidity control with predictive stopping.
+        
+        Args:
+            sensor_data: Sensor readings dict
+            
+        Returns:
+            Dict mapping actuator names to states ("ON"/"OFF")
+        """
         config = self.config.get("fruiting_room", {})
         temp = sensor_data.get('temp', 0)
         humidity = sensor_data.get('humidity', 0)
@@ -171,10 +345,50 @@ class MushroomAI:
         co2_hysteresis = config.get('co2_hysteresis', 100)
         exhaust_fan_state = "ON" if co2 > co2_max else ("OFF" if co2 < (co2_max - co2_hysteresis) else "OFF")
 
-        # Humidity Control with hysteresis
+        # ===== SMART HUMIDITY CONTROL WITH AI CYCLE =====
         humidity_target = config.get('humidity_target', 90)
-        humidity_hysteresis = config.get('humidity_hysteresis', 5)
-        humidity_system_state = "ON" if humidity < (humidity_target - humidity_hysteresis) else "OFF"
+        humidity_min = humidity_target - 5  # 85%
+        humidity_max = humidity_target + 5  # 95%
+        
+        # Calculate humidity trend
+        humidity_rate = self._calculate_humidity_trend(humidity)
+        
+        # Decision logic for humidifier cycle
+        cycle_info = self.humidifier_cycle.get_phase_info()
+        
+        if humidity < humidity_min - 2:
+            # Far below target - start cycle if not active
+            if not cycle_info['active']:
+                self.humidifier_cycle.start_cycle()
+                logger.info(f"[AI-HUMIDIFIER] Started cycle - Humidity {humidity:.1f}% < target {humidity_min}%")
+        
+        elif humidity >= humidity_target and cycle_info['active']:
+            # At or above target - check if we should stop
+            will_overshoot = self._predict_humidity_overshoot(humidity, humidity_max, humidity_rate)
+            
+            if will_overshoot:
+                # Stop cycle to prevent overshooting
+                self.humidifier_cycle.stop_cycle()
+                logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Predicted overshoot (humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s)")
+            elif humidity >= humidity_max:
+                # At maximum - stop immediately
+                self.humidifier_cycle.stop_cycle()
+                logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Max humidity reached ({humidity:.1f}%)")
+        
+        elif humidity > humidity_max + 2:
+            # Significantly over target - ensure cycle is stopped
+            if cycle_info['active']:
+                self.humidifier_cycle.stop_cycle()
+                logger.warning(f"[AI-HUMIDIFIER] Emergency stop - Humidity too high ({humidity:.1f}%)")
+        
+        # Get actuator states from cycle manager
+        humidifier_states = self.humidifier_cycle.get_current_states()
+        mist_maker_state = humidifier_states['mist_maker']
+        humidifier_fan_state = humidifier_states['humidifier_fan']
+        
+        # Log cycle status periodically
+        if cycle_info['active'] and int(cycle_info.get('total_runtime', 0)) % 5 == 0:
+            logger.debug(f"[HUMIDIFIER] Phase={cycle_info['phase']}, elapsed={cycle_info['elapsed']}s, humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s")
         
         # Temperature-based fan assist
         temp_max = config.get('temp_target', 24) + 2
@@ -197,7 +411,8 @@ class MushroomAI:
         return {
             "exhaust_fan": exhaust_fan_state,
             "intake_fan": intake_fan_state,
-            "humidity_system": humidity_system_state,
+            "mist_maker": mist_maker_state,
+            "humidifier_fan": humidifier_fan_state,
         }
 
     def _rule_based_spawning_actuation(self, sensor_data: Dict) -> Dict[str, str]:

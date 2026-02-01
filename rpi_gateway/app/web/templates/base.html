@@ -21,23 +21,11 @@
                 <li><a href="{{ url_for('web.wifi_setup') }}"><i class="fas fa-wifi"></i> WiFi</a></li>
                 <li><a href="{{ url_for('web.settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
-            <!-- On-Screen Keyboard Toggle (Kiosk Mode Only) -->
-            <button id="keyboard-toggle" class="keyboard-toggle" onclick="toggleKeyboard()" title="Toggle On-Screen Keyboard">
-                <i class="fas fa-keyboard"></i>
-            </button>
         </nav>
         <main class="main-content">
             {% block content %}{% endblock %}
         </main>
     </div>
-    <script>
-        function toggleKeyboard() {
-            // Toggle matchbox-keyboard visibility via wmctrl or xdotool
-            // This requires the keyboard to be running in background
-            fetch('/api/toggle_keyboard', { method: 'POST' })
-                .catch(err => console.log('Keyboard toggle not available'));
-        }
-    </script>
     <script src="{{ url_for('web.static', filename='js/main.js') }}"></script>
 </body>
 </html>

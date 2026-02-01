@@ -549,7 +549,7 @@ input:checked + .slider:before {
 }
 
 .actuator-card[data-state=\"on\"] .card-info h3,
-.actuator-card[data-state=\"on\"] .card-info .card-voltage,
+.actuator-card[data-state=\"on\"] .card-info .card-description,
 .actuator-card[data-state=\"on\"] .card-icon i {
     color: #fff;
 }
@@ -588,11 +588,12 @@ input:checked + .slider:before {
     font-weight: 600;
 }
 
-.card-voltage {
+.card-description {
     font-size: 0.85em;
     color: #888;
     margin-top: 5px;
     display: block;
+    font-style: italic;
 }
 
 /* Card Status */
