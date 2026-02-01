@@ -327,6 +327,43 @@ def wifi_connect():
                          hotspot_ssid=wifi_manager.HOTSPOT_SSID)
 
 
+@web_bp.route('/wifi-disconnect', methods=['POST'])
+def wifi_disconnect():
+    """Disconnect from current WiFi network."""
+    from app.utils import wifi_manager
+    
+    current = wifi_manager.get_current_network()
+    
+    if wifi_manager.disconnect_wifi():
+        logger.info(f"Successfully disconnected from {current}")
+        return jsonify({
+            'success': True,
+            'message': f'Disconnected from {current}' if current else 'Disconnected',
+            'previous_network': current
+        })
+    else:
+        logger.error("Failed to disconnect from WiFi")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to disconnect from WiFi'
+        }), 500
+
+
+@web_bp.route('/api/wifi_status')
+def wifi_status():
+    """Get current WiFi connection status."""
+    from app.utils import wifi_manager
+    
+    current_network = wifi_manager.get_current_network()
+    saved_ssid, _ = wifi_manager.load_wifi_credentials()
+    
+    return jsonify({
+        'connected': current_network is not None,
+        'current_network': current_network,
+        'last_known_network': saved_ssid
+    })
+
+
 # =======================================================
 #                    API ENDPOINTS
 # =======================================================

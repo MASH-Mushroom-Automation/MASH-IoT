@@ -1,0 +1,1 @@
+cd MASH-IoT/scripts/; chmod +x ./fix_permissions.sh; ./fix_permissions.sh; ./update.sh; chmod +x ./setup_os.sh; ./setup_os.sh; sudo reboot

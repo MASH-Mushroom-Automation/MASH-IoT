@@ -734,6 +734,32 @@ input:checked + .slider:before {
     transform: translateY(0);
 }
 
+.btn-danger {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #d32f2f, #c62828);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+}
+
 /* Info Cards */
 .info-card {
     background-color: #2c2c2c;

@@ -18,6 +18,9 @@
                 <strong>{{ current_network }}</strong>
             </div>
             <p class="info-text">Your device is connected to this network.</p>
+            <button onclick="disconnectWiFi()" class="btn-danger" style="margin-top: 10px;">
+                <i class="fas fa-unlink"></i> Disconnect
+            </button>
         </div>
     </div>
     {% else %}
@@ -90,9 +93,10 @@
         </div>
         <div class="info-body">
             <ul class="info-list">
-                <li>After submitting, the device will attempt to connect to the selected network.</li>
-                <li>If successful, the provisioning hotspot will disconnect.</li>
-                <li>If the connection fails, the hotspot will automatically restart.</li>
+                <li><strong>Smart Switching:</strong> If connected, the device will disconnect first, then connect to the new network.</li>
+                <li><strong>Automatic Fallback:</strong> If the connection fails, it will automatically reconnect to your previous network.</li>
+                <li><strong>Credentials Saved:</strong> Your last successful connection is saved for easy fallback.</li>
+                <li><strong>Hotspot Failsafe:</strong> If reconnection fails entirely, the provisioning hotspot will restart.</li>
                 <li>Make sure you have the correct password for the network.</li>
             </ul>
         </div>
@@ -109,6 +113,32 @@
         } else {
             manualGroup.style.display = "none";
             manualInput.required = false;
+        }
+    }
+    
+    async function disconnectWiFi() {
+        if (!confirm('Are you sure you want to disconnect from WiFi?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/wifi-disconnect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Disconnected successfully!');
+                location.reload();
+            } else {
+                alert('Failed to disconnect: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error disconnecting: ' + error.message);
         }
     }
 </script>

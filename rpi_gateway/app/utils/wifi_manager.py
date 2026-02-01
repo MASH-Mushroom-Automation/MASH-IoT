@@ -1,10 +1,13 @@
 import subprocess
 import time
 import os
+import json
+from pathlib import Path
 
 # --- CONFIGURATION ---
 HOTSPOT_SSID = "MASH-Device" 
 HOTSPOT_IP = "10.42.0.1"
+WIFI_CREDENTIALS_FILE = "config/wifi_credentials.json"
 
 def run_command(command, ignore_fail=False):
     """Executes a shell command and returns True if successful."""
@@ -55,6 +58,69 @@ def get_current_network():
         print(f"[!] Error getting current network: {e}")
         return None
 
+def save_wifi_credentials(ssid, password):
+    """
+    Save WiFi credentials to local storage for fallback.
+    """
+    try:
+        credentials_path = Path(WIFI_CREDENTIALS_FILE)
+        credentials_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        credentials = {
+            "last_known_ssid": ssid,
+            "last_known_password": password,
+            "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        with open(credentials_path, 'w') as f:
+            json.dump(credentials, f, indent=2)
+        
+        print(f"[*] Saved credentials for {ssid}")
+        return True
+    except Exception as e:
+        print(f"[!] Failed to save credentials: {e}")
+        return False
+
+def load_wifi_credentials():
+    """
+    Load last known WiFi credentials from storage.
+    Returns: (ssid, password) tuple or (None, None) if not found
+    """
+    try:
+        credentials_path = Path(WIFI_CREDENTIALS_FILE)
+        if not credentials_path.exists():
+            return None, None
+        
+        with open(credentials_path, 'r') as f:
+            credentials = json.load(f)
+        
+        ssid = credentials.get("last_known_ssid")
+        password = credentials.get("last_known_password")
+        
+        return ssid, password
+    except Exception as e:
+        print(f"[!] Failed to load credentials: {e}")
+        return None, None
+
+def disconnect_wifi():
+    """
+    Disconnect from current WiFi network.
+    """
+    print("[*] Disconnecting from WiFi...")
+    try:
+        # Get current connection
+        current = get_current_network()
+        if current:
+            run_command(f"nmcli connection down '{current}'", ignore_fail=True)
+            print(f"[SUCCESS] Disconnected from {current}")
+            return True
+        else:
+            print("[INFO] No active WiFi connection to disconnect")
+            return True
+    except Exception as e:
+        print(f"[!] Error disconnecting: {e}")
+        return False
+
 def start_hotspot():
     """
     Creates and starts the Provisioning Hotspot (OPEN/No Password).
@@ -98,34 +164,104 @@ def start_hotspot():
         print("[FAIL] Could not start Hotspot.")
         return False
 
-def connect_to_wifi(ssid, password):
+def connect_to_wifi(ssid, password, save_credentials=True):
     """
-    Attempts to switch from Hotspot to a standard WiFi network.
-    Includes timeout protection.
+    Attempts to connect to a WiFi network with automatic fallback.
+    
+    Flow:
+    1. Save current network as backup (if connected)
+    2. Disconnect from current network
+    3. Try to connect to new network
+    4. On failure, reconnect to previous network
+    5. Save credentials on success
+    
+    Args:
+        ssid: Target network SSID
+        password: Network password
+        save_credentials: Whether to save credentials for future fallback
+    
+    Returns:
+        True if successful, False otherwise
     """
-    print("-" * 30)
-    print(f"[*] Utils: Attempting to connect to '{ssid}'...")
-
-    # 1. Clean up old connection with same name
+    print("-" * 50)
+    print(f"[*] WiFi Manager: Switching to '{ssid}'...")
+    
+    # Step 1: Get current network for potential rollback
+    current_network = get_current_network()
+    backup_ssid, backup_password = None, None
+    
+    if current_network and current_network != ssid:
+        print(f"[*] Currently connected to: {current_network}")
+        # Load backup credentials in case we need to rollback
+        backup_ssid, backup_password = load_wifi_credentials()
+        
+        # Disconnect from current network
+        print("[*] Disconnecting from current network...")
+        disconnect_wifi()
+        time.sleep(2)
+    
+    # Step 2: Clean up any existing connection profile with same name
     run_command(f"nmcli connection delete '{ssid}'", ignore_fail=True)
 
-    # 2. Create the new Client connection profile
-    run_command(f"nmcli con add type wifi ifname wlan0 con-name '{ssid}' ssid '{ssid}'")
+    # Step 3: Create the new connection profile
+    print(f"[*] Creating connection profile for '{ssid}'...")
+    if not run_command(f"nmcli con add type wifi ifname wlan0 con-name '{ssid}' ssid '{ssid}'"):
+        print("[!] Failed to create connection profile")
+        return _rollback_connection(backup_ssid, backup_password, current_network)
     
-    # 3. Apply Security
-    run_command(f"nmcli con modify '{ssid}' wifi-sec.key-mgmt wpa-psk wifi-sec.psk '{password}'")
+    # Step 4: Apply WPA2-PSK security
+    if not run_command(f"nmcli con modify '{ssid}' wifi-sec.key-mgmt wpa-psk wifi-sec.psk '{password}'"):
+        print("[!] Failed to configure security")
+        return _rollback_connection(backup_ssid, backup_password, current_network)
 
-    # 4. The Critical Switch
-    print("[*] Utils: Switching networks...")
-    
+    # Step 5: Attempt connection with timeout
+    print("[*] Connecting to network...")
     try:
-        # 25s timeout: If nmcli hangs (common with wrong passwords), we kill it.
         subprocess.check_call(f"nmcli con up '{ssid}'", shell=True, timeout=25)
         print(f"[SUCCESS] Connected to {ssid}!")
+        
+        # Save credentials for future fallback
+        if save_credentials:
+            save_wifi_credentials(ssid, password)
+        
         return True
+        
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] Connection timed out (Possible wrong password).")
-        return False
-    except subprocess.CalledProcessError:
-        print(f"[FAIL] Connection refused or failed.")
-        return False
+        print(f"[FAIL] Connection timed out (wrong password or weak signal)")
+        return _rollback_connection(backup_ssid, backup_password, current_network)
+        
+    except subprocess.CalledProcessError as e:
+        print(f"[FAIL] Connection failed: {e}")
+        return _rollback_connection(backup_ssid, backup_password, current_network)
+
+def _rollback_connection(backup_ssid, backup_password, original_network):
+    """
+    Internal helper to rollback to previous network on connection failure.
+    """
+    if backup_ssid and backup_password:
+        print("-" * 50)
+        print(f"[*] ROLLBACK: Attempting to reconnect to {backup_ssid}...")
+        try:
+            # Try to reconnect using saved credentials
+            subprocess.check_call(
+                f"nmcli con up '{backup_ssid}'", 
+                shell=True, 
+                timeout=20
+            )
+            print(f"[SUCCESS] Rolled back to {backup_ssid}")
+            return False  # Original connection failed, but rollback succeeded
+        except:
+            print(f"[FAIL] Rollback failed. Trying to recreate connection...")
+            # Recreate the connection profile
+            run_command(f"nmcli connection delete '{backup_ssid}'", ignore_fail=True)
+            run_command(f"nmcli con add type wifi ifname wlan0 con-name '{backup_ssid}' ssid '{backup_ssid}'")
+            run_command(f"nmcli con modify '{backup_ssid}' wifi-sec.key-mgmt wpa-psk wifi-sec.psk '{backup_password}'")
+            try:
+                subprocess.check_call(f"nmcli con up '{backup_ssid}'", shell=True, timeout=20)
+                print(f"[SUCCESS] Reconnected to {backup_ssid}")
+            except:
+                print(f"[FAIL] Could not reconnect to previous network")
+    else:
+        print("[!] No backup credentials available for rollback")
+    
+    return False
