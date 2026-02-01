@@ -57,38 +57,17 @@
     <script>
         const video = document.getElementById('intro-video');
         
-        // Redirect to dashboard after video ends (or after 10 seconds as fallback)
-        video.addEventListener('ended', function() {
-            window.location.href = '/';
-        });
-        
-        // Fallback timeout in case video doesn't fire 'ended' event
-        setTimeout(function() {
-            window.location.href = '/';
-        }, 10000); // 10 seconds (9s video + 1s buffer)
-    </script>
-</body>
-</html>
-        
-        // Redirect to dashboard after video ends or after 10 seconds
-        video.addEventListener('ended', () => {
-            redirectToDashboard();
-        });
-        
-        // Fallback timeout in case video doesn't load
-        setTimeout(() => {
-            redirectToDashboard();
-        }, 10000);
-        
-        function skipIntro() {
-            redirectToDashboard();
-        }
-        
+        // Function to redirect to dashboard
         function redirectToDashboard() {
-            // Set a flag in sessionStorage to prevent showing intro again
             sessionStorage.setItem('introShown', 'true');
             window.location.href = '/dashboard';
         }
+        
+        // Redirect to dashboard after video ends
+        video.addEventListener('ended', redirectToDashboard);
+        
+        // Fallback timeout in case video doesn't load or play
+        setTimeout(redirectToDashboard, 10000); // 10 seconds (9s video + 1s buffer)
     </script>
 </body>
 </html>

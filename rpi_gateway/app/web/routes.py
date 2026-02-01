@@ -194,20 +194,24 @@ def controls():
     """Renders the manual controls page with current actuator states."""
     context = get_live_data()
     
+    # Get current actuator states from config
+    actuator_states = current_app.config.get('ACTUATOR_STATES', {})
+    
     # Add device room actuators
+    device_room_states = actuator_states.get('device', {})
     device_actuators = {
-        'exhaust_fan': False,
+        'exhaust_fan': device_room_states.get('exhaust_fan', False),
         'exhaust_fan_auto': False
     }
     
-    # Update actuator names to match Arduino firmware
-    # Map: mist_maker, humidifier_fan, exhaust_fan, intake_fan, led
+    # Get fruiting room actuator states
+    fruiting_room_states = actuator_states.get('fruiting', {})
     fruiting_actuators = {
-        'mist_maker': False,
-        'humidifier_fan': False,
-        'exhaust_fan': False,
-        'intake_fan': False,
-        'led': False,
+        'mist_maker': fruiting_room_states.get('mist_maker', False),
+        'humidifier_fan': fruiting_room_states.get('humidifier_fan', False),
+        'exhaust_fan': fruiting_room_states.get('exhaust_fan', False),
+        'intake_fan': fruiting_room_states.get('intake_fan', False),
+        'led': fruiting_room_states.get('led', False),
         'mist_maker_auto': False,
         'humidifier_fan_auto': False,
         'exhaust_fan_auto': False,
@@ -215,8 +219,10 @@ def controls():
         'led_auto': False
     }
     
+    # Get spawning room actuator states
+    spawning_room_states = actuator_states.get('spawning', {})
     spawning_actuators = {
-        'exhaust_fan': False,
+        'exhaust_fan': spawning_room_states.get('exhaust_fan', False),
         'exhaust_fan_auto': False,
         'exhaust_fan_flush': False  # Flush mode indicator
     }

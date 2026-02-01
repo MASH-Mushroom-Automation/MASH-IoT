@@ -244,13 +244,16 @@ class MASHOrchestrator:
             self.app.config['START_TIME'] = self.start_time
             self.app.config['ACTUATOR_STATES'] = {
                 'fruiting': {
-                    'exhaust_fan': False,
-                    'blower_fan': False,
-                    'humidifier': False,
+                    'mist_maker': False,
                     'humidifier_fan': False,
+                    'exhaust_fan': False,
+                    'intake_fan': False,
                     'led': False
                 },
                 'spawning': {
+                    'exhaust_fan': False
+                },
+                'device': {
                     'exhaust_fan': False
                 }
             }
