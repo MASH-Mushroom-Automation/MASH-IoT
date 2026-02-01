@@ -441,6 +441,29 @@ def control_actuator():
     if state not in ['ON', 'OFF']:
         return jsonify({"success": False, "message": "Invalid state (must be ON or OFF)"}), 400
 
+    # Special handling for humidifier system (cycle manager)
+    if actuator == 'mist_maker' and room == 'fruiting':
+        # Get AI engine from orchestrator
+        orchestrator = getattr(current_app, 'orchestrator', None)
+        if orchestrator and orchestrator.ai:
+            if state == 'ON':
+                # Start the humidifier cycle
+                orchestrator.ai.humidifier_cycle.start_cycle()
+                logger.info("[MANUAL] Started humidifier cycle")
+            else:
+                # Stop the humidifier cycle
+                orchestrator.ai.humidifier_cycle.stop_cycle()
+                logger.info("[MANUAL] Stopped humidifier cycle")
+            
+            # Update state tracking
+            actuator_states = current_app.config.get('ACTUATOR_STATES', {'fruiting': {}, 'spawning': {}})
+            if room not in actuator_states:
+                actuator_states[room] = {}
+            actuator_states[room][actuator] = (state == 'ON')
+            current_app.config['ACTUATOR_STATES'] = actuator_states
+            
+            return jsonify({"success": True, "message": f"Humidifier cycle {state.lower()}"})
+    
     # Map web UI actuator names to Arduino firmware names
     actuator_map = {
         'mist_maker': 'MIST_MAKER',

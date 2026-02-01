@@ -55,6 +55,9 @@ class MASHOrchestrator:
         # Register web blueprint
         self.app.register_blueprint(web_bp)
         
+        # Store orchestrator reference in app for routes to access cycle manager
+        self.app.config['orchestrator'] = self
+        
         # Store user prefs in app context for access in routes
         self.app.config['USER_PREFS'] = self.user_prefs
         self.app.config['MUSHROOM_CONFIG'] = self.config
@@ -172,6 +175,24 @@ class MASHOrchestrator:
             # ML Automation: Process readings and generate commands
             if self.ai is not None:
                 self._run_automation(data)
+            
+            # Always update humidifier cycle (even in manual mode)
+            # This ensures the cycle continues running and sends commands
+            if self.ai and self.ai.humidifier_cycle.cycle_active:
+                cycle_states = self.ai.humidifier_cycle.get_current_states()
+                # Send cycle commands to Arduino
+                for actuator, state in cycle_states.items():
+                    if actuator == 'mist_maker':
+                        command = f"MIST_MAKER_{state}"
+                    elif actuator == 'humidifier_fan':
+                        command = f"HUMIDIFIER_FAN_{state}"
+                    else:
+                        continue
+                    
+                    if self.arduino.send_command(command):
+                        logger.debug(f"[CYCLE] Sent: {command}")
+                        self._update_actuator_state_from_command(command)
+                        self.db.insert_command(command, source='humidifier_cycle')
             
         except Exception as e:
             logger.error(f"[ERROR] Failed to process sensor data: {e}")
@@ -300,6 +321,7 @@ class MASHOrchestrator:
             self.app.backend_client = self.backend
             self.app.backend_connected = self.backend.check_connection() if self.backend else False
             self.app.logic_engine = self.ai  # Pass ML engine to routes
+            self.app.orchestrator = self  # Pass orchestrator for cycle manager access
             self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
             self.app.config['START_TIME'] = self.start_time
