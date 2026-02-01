@@ -163,10 +163,10 @@ class ArduinoSerialComm:
     
     def send_command(self, command: str) -> bool:
         """
-        Send a command string to the Arduino.
+        Send a JSON command string to the Arduino.
         
         Args:
-            command: The command to send (e.g., "FRUITING_FAN_ON").
+            command: JSON command string (e.g., '{"actuator": "MIST_MAKER", "state": "ON"}').
             
         Returns:
             True if successful, False otherwise.
@@ -176,28 +176,15 @@ class ArduinoSerialComm:
             return False
         
         try:
-            # Check if it's a JSON command or old-style command
-            if command.startswith('{'):
-                # Already JSON format
-                cmd_with_newline = f"{command}\n".encode('utf-8')
-            else:
-                # Old-style command, convert to JSON
-                # Format: ACTUATOR_NAME_STATE
-                parts = command.rsplit('_', 1)
-                if len(parts) == 2:
-                    actuator_name, state = parts
-                    json_cmd = json.dumps({"actuator": actuator_name, "state": state})
-                    cmd_with_newline = f"{json_cmd}\n".encode('utf-8')
-                else:
-                    # Keep old format if can't parse
-                    cmd_with_newline = f"{command}\n".encode('utf-8')
+            # Add newline and encode
+            cmd_with_newline = f"{command}\n".encode('utf-8')
             
             self.serial_conn.write(cmd_with_newline)
-            self.serial_conn.flush() # Wait until all data is written
-            logger.info(f"Sent command to Arduino: {command}")
+            self.serial_conn.flush()  # Wait until all data is written
+            logger.info(f"[SERIAL] Sent command: {command}")
             return True
         except Exception as e:
-            logger.error(f"Failed to send command '{command}': {e}")
+            logger.error(f"[SERIAL] Failed to send command '{command}': {e}")
             return False
     
     def read_line(self) -> Optional[str]:

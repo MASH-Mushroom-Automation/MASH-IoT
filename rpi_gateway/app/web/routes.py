@@ -441,14 +441,16 @@ def control_actuator():
 
     # Send command to Arduino
     try:
-        command = f'{arduino_actuator}_{state}'
-        success = serial_comm.send_command(command)
+        # Use JSON format for consistency
+        import json
+        json_cmd = json.dumps({"actuator": arduino_actuator, "state": state})
+        success = serial_comm.send_command(json_cmd)
         
         if not success:
-            logger.warning(f"Failed to send command to Arduino: {command}")
+            logger.warning(f"Failed to send command to Arduino: {json_cmd}")
             return jsonify({"success": False, "message": "Failed to communicate with Arduino"}), 503
         
-        logger.info(f"Sent command to Arduino: {command}")
+        logger.info(f"Sent JSON command to Arduino: {json_cmd}")
         
         # Update actuator state in app config
         actuator_states = current_app.config.get('ACTUATOR_STATES', {'fruiting': {}, 'spawning': {}})

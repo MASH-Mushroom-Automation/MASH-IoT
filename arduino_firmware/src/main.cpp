@@ -112,25 +112,6 @@ void loop() {
         Serial.println();  // End with newline
     }
     
-    // ==================== TASK 2: LISTEN FOR COMMANDS ====================
-    while (Serial.available() > 0) {
-        char c = Serial.read();
-        
-        // Update watchdog (received data = RPi is alive)
-        watchdog.heartbeat();
-        
-        if (c == '\n' || c == '\r') {
-            // End of command
-            if (bufferIndex > 0) {
-                serialBuffer[bufferIndex] = '\0';  // Null terminate
-                actuators.executeCommand(serialBuffer);
-                bufferIndex = 0;  // Reset buffer
-            }
-        } else if (bufferIndex < 127) {
-            serialBuffer[bufferIndex++] = c;
-        }
-    }
-    
     // ==================== TASK 3: CHECK WATCHDOG ====================
     if (currentMillis - lastWatchdogCheck >= 1000) {
         lastWatchdogCheck = currentMillis;
@@ -147,6 +128,9 @@ void handleSerialCommands() {
 
     while (Serial.available() > 0) {
         char incomingChar = Serial.read();
+        
+        // Update watchdog heartbeat on ANY serial data received
+        watchdog.heartbeat();
 
         if (incomingChar == '\n' || incomingChar == '\r') {
             if (bufferPos > 0) {
