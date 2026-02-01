@@ -511,22 +511,31 @@ def actuator_states():
     API endpoint to get current actuator states.
     Returns state of all actuators across all rooms.
     """
-    # TODO: Implement actual state tracking
-    # For now, return dummy data
+    # Get actual state from app config
+    actuator_state_data = current_app.config.get('ACTUATOR_STATES', {})
+    
+    # Initialize default structure
     states = {
         "fruiting": {
             "mist_maker": {"state": False, "auto": False},
             "humidifier_fan": {"state": False, "auto": False},
             "exhaust_fan": {"state": False, "auto": False},
             "intake_fan": {"state": False, "auto": False},
-            "led": {"state": False, "auto": True}
+            "led": {"state": False, "auto": False}
         },
         "spawning": {
-            "exhaust_fan": {"state": False, "auto": True, "mode": "passive"}
+            "exhaust_fan": {"state": False, "auto": False}
         },
         "device": {
-            "exhaust_fan": {"state": False, "auto": True}
+            "exhaust_fan": {"state": False, "auto": False}
         }
     }
+    
+    # Update with actual states from config
+    for room in ['fruiting', 'spawning', 'device']:
+        if room in actuator_state_data:
+            for actuator_name, is_on in actuator_state_data[room].items():
+                if actuator_name in states[room]:
+                    states[room][actuator_name]['state'] = is_on
     
     return jsonify(states)

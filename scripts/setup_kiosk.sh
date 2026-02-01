@@ -60,7 +60,7 @@ sudo systemctl enable ${SERVICE_NAME}.service
 # ---------------------------------------------------------
 echo "[3/5] Verifying Dependencies..."
 sudo apt-get update
-sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit
+sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit matchbox-keyboard
 
 # ---------------------------------------------------------
 # 4. CREATE LAUNCH SCRIPTS
@@ -102,6 +102,10 @@ xset -dpms
 xset s noblank
 matchbox-window-manager -use_titlebar no &
 unclutter -idle 0.1 &
+
+# Start on-screen keyboard (hidden by default)
+matchbox-keyboard -s 50 extended &
+
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)
 \$CHROMIUM_CMD --kiosk --start-maximized --window-position=0,0 --noerrdialogs --disable-infobars --no-first-run --fast --fast-start --password-store=basic --user-data-dir=\$HOME/.config/chromium-kiosk "file://$PROJECT_DIR/scripts/splash.html"
 XEOF
