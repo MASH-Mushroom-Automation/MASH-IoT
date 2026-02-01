@@ -389,11 +389,18 @@ def api_latest_data():
     minutes = (uptime_seconds % 3600) // 60
     data['uptime'] = f"{hours}h {minutes}m"
     
+    # Add sensor warmup status
+    warmup_complete = current_app.config.get('SENSOR_WARMUP_COMPLETE', False)
+    warmup_duration = current_app.config.get('WARMUP_DURATION', 30)
+    remaining_warmup = max(0, warmup_duration - uptime_seconds) if not warmup_complete else 0
+    
     # Make sure condition data is included
     return jsonify({
         "arduino_connected": data.get('arduino_connected', False),
         "backend_connected": data.get('backend_connected', False),
         "uptime": data['uptime'],
+        "warmup_complete": warmup_complete,
+        "warmup_remaining": remaining_warmup,
         "fruiting_data": data.get('fruiting_data'),
         "spawning_data": data.get('spawning_data'),
         "fruiting_actuators": data.get('fruiting_actuators'),

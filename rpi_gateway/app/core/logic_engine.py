@@ -487,9 +487,19 @@ class MushroomAI:
                        e.g., {"fruiting": {"temp":...}, "spawning": {"temp":...}}
         
         Returns:
-            List of command strings to send to Arduino (e.g., ["FRUITING_EXHAUST_FAN_ON"])
+            List of command strings to send to Arduino (e.g., ["MIST_MAKER_ON"])
         """
         all_commands = []
+        
+        # Actuator name mapping for Arduino commands
+        # Some actuators don't need room prefix (shared), others do (room-specific)
+        actuator_name_map = {
+            'mist_maker': 'MIST_MAKER',  # Shared actuator (no room prefix)
+            'humidifier_fan': 'HUMIDIFIER_FAN',  # Shared actuator
+            'exhaust_fan': 'EXHAUST_FAN',  # Will add room prefix
+            'intake_fan': 'INTAKE_FAN',  # Will add room prefix
+            'led': 'LED'  # Will add room prefix
+        }
         
         for room, sensor_data in room_data.items():
             if room not in ["fruiting", "spawning"]:
@@ -501,8 +511,18 @@ class MushroomAI:
             room_prefix = room.upper()
             
             for actuator, state in actuator_states.items():
-                command = f"{room_prefix}_{actuator.upper()}_{state.upper()}"
+                # Get mapped actuator name
+                arduino_actuator = actuator_name_map.get(actuator, actuator.upper())
+                
+                # Add room prefix for room-specific actuators
+                if actuator in ['exhaust_fan', 'intake_fan', 'led']:
+                    command = f"{room_prefix}_{arduino_actuator}_{state.upper()}"
+                else:
+                    # Shared actuators (mist_maker, humidifier_fan)
+                    command = f"{arduino_actuator}_{state.upper()}"
+                
                 all_commands.append(command)
+                logger.debug(f"[COMMAND] Generated: {command} for {room}/{actuator}")
                 
         return all_commands
 

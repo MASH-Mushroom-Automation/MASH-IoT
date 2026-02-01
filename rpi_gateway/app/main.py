@@ -85,6 +85,8 @@ class MASHOrchestrator:
         # State
         self.is_running = False
         self.start_time = time.time()  # Track uptime
+        self.sensor_warmup_complete = False  # Track sensor calibration
+        self.warmup_duration = 30  # Wait 30 seconds for sensors to stabilize
         self.latest_data = {
             'fruiting': None,
             'spawning': None
@@ -133,6 +135,22 @@ class MASHOrchestrator:
     def on_sensor_data(self, data):
         """Callback when sensor data is received from Arduino."""
         try:
+            # Check if sensor warmup period is complete
+            time_since_boot = time.time() - self.start_time
+            if not self.sensor_warmup_complete:
+                if time_since_boot < self.warmup_duration:
+                    logger.info(f"[WARMUP] Sensor calibration in progress... {int(self.warmup_duration - time_since_boot)}s remaining")
+                    # Store data but don't run automation yet
+                    if 'fruiting' in data:
+                        self.latest_data['fruiting'] = data['fruiting']
+                    if 'spawning' in data:
+                        self.latest_data['spawning'] = data['spawning']
+                    return
+                else:
+                    self.sensor_warmup_complete = True
+                    self.app.config['SENSOR_WARMUP_COMPLETE'] = True  # Update Flask config
+                    logger.info("[WARMUP] ✅ Sensor calibration complete! Starting automatic control...")
+            
             # Store latest data (for web UI)
             if 'fruiting' in data:
                 self.latest_data['fruiting'] = data['fruiting']
@@ -242,6 +260,8 @@ class MASHOrchestrator:
             self.app.config['MUSHROOM_CONFIG'] = self.config
             self.app.config['LATEST_DATA'] = self.latest_data
             self.app.config['START_TIME'] = self.start_time
+            self.app.config['SENSOR_WARMUP_COMPLETE'] = False  # Track sensor calibration status
+            self.app.config['WARMUP_DURATION'] = self.warmup_duration
             self.app.config['ACTUATOR_STATES'] = {
                 'fruiting': {
                     'mist_maker': False,

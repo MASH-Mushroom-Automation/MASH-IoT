@@ -1,13 +1,13 @@
 #!/bin/bash
-# M.A.S.H. IoT - CLI Kiosk Final Fix
-# 1. FIXES the .bash_profile syntax error by overwriting the file.
-# 2. Ensures the CLI auto-start logic is valid.
-# 3. Keeps the Splash Screen and Resolution Fix.
+# M.A.S.H. IoT - CLI Kiosk Setup (With Keyboard)
+# 1. FIXES .bash_profile syntax errors.
+# 2. ADDS 'matchbox-keyboard' for touch input.
+# 3. KEEPS Splash Screen & Resolution Fix.
 
 set -e
 
 echo "========================================="
-echo " M.A.S.H. IoT - Kiosk Fix (Syntax Error)"
+echo " M.A.S.H. IoT - Kiosk Setup (Keyboard)"
 echo "========================================="
 
 # Check if running as normal user
@@ -56,16 +56,17 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}.service
 
 # ---------------------------------------------------------
-# 3. INSTALL DEPENDENCIES
+# 3. INSTALL DEPENDENCIES (Added Keyboard)
 # ---------------------------------------------------------
-echo "[3/5] Verifying Dependencies..."
+echo "[3/5] Installing Dependencies & Keyboard..."
 sudo apt-get update
+# ADDED: matchbox-keyboard
 sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit matchbox-keyboard
 
 # ---------------------------------------------------------
 # 4. CREATE LAUNCH SCRIPTS
 # ---------------------------------------------------------
-echo "[4/5] writing Launch Scripts..."
+echo "[4/5] Writing Launch Scripts..."
 
 # A. Splash Screen HTML
 IMAGE_PATH="$PROJECT_DIR/assets/splash.png"
@@ -94,19 +95,25 @@ cat > "$PROJECT_DIR/scripts/splash.html" <<EOF
 </html>
 EOF
 
-# B. X Session Script (Run Kiosk)
+# B. X Session Script (Run Kiosk + Keyboard)
 cat > "$PROJECT_DIR/scripts/run_kiosk_x.sh" <<XEOF
 #!/bin/bash
 xset s off
 xset -dpms
 xset s noblank
+
+# Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
+
+# Start Virtual Keyboard
+# We launch it in background. It typically docks to the bottom.
+matchbox-keyboard &
+
+# Hide Mouse Cursor (Optional: remove if you need mouse for keyboard)
 unclutter -idle 0.1 &
 
-# Start on-screen keyboard (hidden by default)
-matchbox-keyboard -s 50 extended &
-
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)
+
 \$CHROMIUM_CMD --kiosk --start-maximized --window-position=0,0 --noerrdialogs --disable-infobars --no-first-run --fast --fast-start --password-store=basic --user-data-dir=\$HOME/.config/chromium-kiosk "file://$PROJECT_DIR/scripts/splash.html"
 XEOF
 chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
@@ -115,21 +122,19 @@ chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
 echo "exec $PROJECT_DIR/scripts/run_kiosk_x.sh" > "$HOME/.xinitrc"
 
 # ---------------------------------------------------------
-# 5. FIX .BASH_PROFILE (The Critical Step)
+# 5. FIX .BASH_PROFILE (Safe Overwrite)
 # ---------------------------------------------------------
 echo "[5/5] Overwriting .bash_profile..."
 
-# We completely OVERWRITE the file to eliminate syntax errors from previous runs.
 cat > "$HOME/.bash_profile" <<'EOF'
 # .bash_profile for M.A.S.H. IoT Kiosk
 
-# Source .bashrc if it exists (Standard Linux behavior)
 if [ -f ~/.bashrc ]; then
     . ~/.bashrc
 fi
 
 # M.A.S.H. IoT Kiosk Auto-Start
-# Only run if we are on the physical screen (tty1) and X isn't running
+# Check if we are on the physical screen (tty1) and X isn't running
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
     echo "M.A.S.H. IoT: Starting Kiosk..."
     exec startx -- -nocursor > "$HOME/kiosk_startup.log" 2>&1
@@ -141,10 +146,11 @@ sudo raspi-config nonint do_boot_behaviour B2
 
 echo ""
 echo "========================================="
-echo " Fix Complete!"
+echo " Setup Complete!"
 echo "========================================="
-echo "The .bash_profile has been completely reset."
-echo "Your syntax error should be gone."
+echo "1. On-Screen Keyboard installed (matchbox-keyboard)."
+echo "2. .bash_profile syntax errors fixed."
+echo "3. Splash screen configured."
 echo ""
 echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"
