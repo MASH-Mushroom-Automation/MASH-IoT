@@ -105,12 +105,11 @@ xset s noblank
 # Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
 
-# Start Virtual Keyboard (toggle mode)
-# Use toggle mode - keyboard shows/hides when input is focused
-# The -s option makes it smaller and properly positioned
-matchbox-keyboard -s 50 extended &
+# Start Virtual Keyboard using wvkbd (better for touch input)
+# wvkbd will auto-show when text input is focused
+wvkbd-mobintl -L 200 &
 
-# Hide Mouse Cursor (Optional: remove if you need mouse for keyboard)
+# Hide Mouse Cursor
 unclutter -idle 0.1 &
 
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)

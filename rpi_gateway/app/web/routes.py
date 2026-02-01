@@ -278,7 +278,20 @@ def alerts():
 @web_bp.route('/settings')
 def settings():
     """Renders the system settings page."""
-    return render_template('settings.html')
+    # Get system info for settings page
+    context = {
+        'arduino_connected': False,
+        'backend_connected': False
+    }
+    
+    # Try to get connection status
+    serial_comm = getattr(current_app, 'serial_comm', None)
+    if serial_comm:
+        context['arduino_connected'] = serial_comm.is_connected
+    
+    context['backend_connected'] = getattr(current_app, 'backend_connected', False)
+    
+    return render_template('settings.html', **context)
 
 @web_bp.route('/wifi-setup')
 def wifi_setup():

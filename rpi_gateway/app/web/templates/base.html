@@ -21,30 +21,12 @@
                 <li><a href="{{ url_for('web.wifi_setup') }}"><i class="fas fa-wifi"></i> WiFi</a></li>
                 <li><a href="{{ url_for('web.settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
-            <!-- On-Screen Keyboard Toggle Button -->
-            <button class="keyboard-toggle" onclick="toggleKeyboard()" title="Toggle On-Screen Keyboard">
-                <i class="fas fa-keyboard"></i>
-            </button>
         </nav>
         <main class="main-content">
             {% block content %}{% endblock %}
         </main>
     </div>
     <script>
-        // Toggle on-screen keyboard (matchbox-keyboard)
-        function toggleKeyboard() {
-            // Send signal to toggle keyboard visibility
-            // This uses D-Bus or XDotool to toggle matchbox-keyboard
-            fetch('/api/toggle-keyboard', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            }).catch(err => {
-                console.log('Keyboard toggle via API not available, using local method');
-                // Fallback: Try to toggle via window focus
-                // This won't work directly from browser, but provides UX feedback
-            });
-        }
-        
         // Auto-focus management for text inputs (helps trigger OSK)
         document.addEventListener('DOMContentLoaded', function() {
             const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], textarea');

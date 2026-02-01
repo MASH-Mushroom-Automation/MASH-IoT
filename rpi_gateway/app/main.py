@@ -204,6 +204,9 @@ class MASHOrchestrator:
                 if success:
                     logger.info(f"[AUTO] Sent command: {command}")
                     
+                    # Update actuator states in app config for UI
+                    self._update_actuator_state_from_command(command)
+                    
                     # Log to database
                     self.db.insert_command(command, source='ml_automation')
                 else:
@@ -211,8 +214,48 @@ class MASHOrchestrator:
         
         except Exception as e:
             logger.error(f"[AUTO] Automation error: {e}")
-            import traceback
+            import traceback:
             traceback.print_exc()
+    
+    def _update_actuator_state_from_command(self, command):
+        """Parse Arduino command and update actuator state in app config."""
+        try:
+            # Command format: ACTUATOR_NAME_ON or ACTUATOR_NAME_OFF
+            # Examples: MIST_MAKER_ON, FRUITING_EXHAUST_FAN_OFF
+            
+            if '_ON' in command:
+                state = True
+                actuator_cmd = command.replace('_ON', '')
+            elif '_OFF' in command:
+                state = False
+                actuator_cmd = command.replace('_OFF', '')
+            else:
+                return
+            
+            # Get actuator states from app config
+            actuator_states = self.app.config.get('ACTUATOR_STATES', {})
+            
+            # Map Arduino commands to rooms and actuators
+            if actuator_cmd == 'MIST_MAKER':
+                actuator_states['fruiting']['mist_maker'] = state
+            elif actuator_cmd == 'HUMIDIFIER_FAN':
+                actuator_states['fruiting']['humidifier_fan'] = state
+            elif actuator_cmd == 'FRUITING_EXHAUST_FAN':
+                actuator_states['fruiting']['exhaust_fan'] = state
+            elif actuator_cmd == 'FRUITING_INTAKE_FAN':
+                actuator_states['fruiting']['intake_fan'] = state
+            elif actuator_cmd == 'FRUITING_LED':
+                actuator_states['fruiting']['led'] = state
+            elif actuator_cmd == 'SPAWNING_EXHAUST_FAN':
+                actuator_states['spawning']['exhaust_fan'] = state
+            elif actuator_cmd == 'DEVICE_EXHAUST_FAN':
+                actuator_states['device']['exhaust_fan'] = state
+            
+            # Update app config
+            self.app.config['ACTUATOR_STATES'] = actuator_states
+            
+        except Exception as e:
+            logger.error(f"[STATE] Failed to update actuator state: {e}")
     
     def start_serial_listener(self):
         """Start Arduino serial communication in background thread."""
