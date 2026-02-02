@@ -7,6 +7,7 @@ import logging
 import time
 import yaml
 from flask import Flask
+from flask_cors import CORS
 from threading import Thread
 from dotenv import load_dotenv
 
@@ -64,6 +65,15 @@ class MASHOrchestrator:
         self.app = Flask(__name__, 
                          template_folder='web/templates',
                          static_folder='web/static')
+        
+        # Enable CORS for mobile app access
+        CORS(self.app, resources={
+            r"/api/*": {"origins": "*"},
+            r"/status": {"origins": "*"},
+            r"/dashboard": {"origins": "*"},
+            r"/provisioning/*": {"origins": "*"},
+            r"/wifi-*": {"origins": "*"},
+        })
         
         # Register web blueprint
         self.app.register_blueprint(web_bp)

@@ -2,6 +2,7 @@ import subprocess
 import time
 import os
 import json
+import socket
 from pathlib import Path
 import qrcode
 from io import BytesIO
@@ -11,6 +12,44 @@ import base64
 HOTSPOT_SSID = "MASH-Device" 
 HOTSPOT_IP = "10.42.0.1"
 WIFI_CREDENTIALS_FILE = "config/wifi_credentials.json"
+
+
+def get_local_ip():
+    """
+    Get the local IP address of the device.
+    
+    Returns:
+        str: Local IP address or None if not connected
+    """
+    try:
+        # Try to get IP from primary interface
+        result = subprocess.run(
+            ['hostname', '-I'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            # Return first IP (primary interface)
+            ips = result.stdout.strip().split()
+            if ips:
+                return ips[0]
+        
+        # Fallback: Try socket connection method
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # Connect to a public DNS server (doesn't actually send data)
+            s.connect(('8.8.8.8', 80))
+            local_ip = s.getsockname()[0]
+            return local_ip
+        finally:
+            s.close()
+            
+    except Exception as e:
+        print(f"Error getting local IP: {e}")
+        return None
+
 
 def generate_wifi_qr_code(ssid: str, password: str = "", security: str = "nopass") -> str:
     """

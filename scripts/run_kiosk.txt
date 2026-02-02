@@ -1,3 +1,4 @@
-cd MASH-IoT/scripts/; chmod +x ./update.sh; ./update.sh; chmod +x ./setup_kiosk.sh; ./setup_kiosk.sh; chmod +x ./configure_osk.sh; ./configure_osk.sh; sudo reboot
+cd MASH-IoT/scripts/; chmod +x ./update.sh; ./update.sh; chmod +x ./setup_kiosk.sh; ./setup_kiosk.sh; sudo reboot
 
 cd MASH-IoT/scripts/; chmod +x ./update.sh; ./update.sh; sudo reboot
+

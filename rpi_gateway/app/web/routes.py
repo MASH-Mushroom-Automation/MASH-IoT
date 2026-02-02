@@ -9,6 +9,22 @@ logger = logging.getLogger(__name__)
 # Create Flask Blueprint
 web_bp = Blueprint('web', __name__, template_folder='templates', static_folder='static')
 
+
+@web_bp.route('/status', methods=['GET'])
+def get_status():
+    """Health check endpoint for device connection testing."""
+    try:
+        return jsonify({
+            'success': True,
+            'status': 'online',
+            'device_id': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('serial_number', 'unknown'),
+            'device_name': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('name', 'MASH IoT Chamber'),
+            'timestamp': time.time()
+        }), 200
+    except Exception as e:
+        logger.error(f"Status check error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Add custom Jinja filter for timestamp formatting
 @web_bp.app_template_filter('strftime')
 def strftime_filter(timestamp, format_string='%Y-%m-%d %H:%M:%S'):
@@ -631,6 +647,49 @@ def set_auto_mode():
     logger.info(f"Auto mode {'enabled' if enabled else 'disabled'}")
     
     return jsonify({"success": True, "auto_mode": enabled})
+
+
+@web_bp.route('/provisioning/info', methods=['GET'])
+def provisioning_info():
+    """
+    API endpoint for device provisioning information.
+    Used by mobile app to check if device is in provisioning mode and get connection details.
+    """
+    try:
+        from utils import wifi_manager
+        
+        # Check if hotspot is active
+        is_provisioning = wifi_manager.is_hotspot_active()
+        
+        # Get device config
+        device_config = current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {})
+        
+        # Get current network status
+        current_network = wifi_manager.get_current_network()
+        network_connected = current_network is not None
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'active': is_provisioning,
+                'ssid': 'MASH-Device' if is_provisioning else (current_network or 'Not Connected'),
+                'ip_address': wifi_manager.get_local_ip() or '10.42.0.1',
+                'password_protected': False,  # Provisioning hotspot is open
+                'channel': 6,  # Default channel for 2.4GHz
+                'device_id': device_config.get('serial_number', 'mash-iot-gateway'),
+                'network_connected': network_connected,
+                'current_connection': {
+                    'ssid': current_network,
+                    'connected': network_connected
+                } if current_network else None
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting provisioning info: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @web_bp.route('/api/actuator_states')
