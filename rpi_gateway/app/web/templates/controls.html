@@ -25,19 +25,36 @@
     <div class="room-section">
         <h2 class="room-header"><i class="fas fa-seedling"></i> Fruiting Room</h2>
         <div class="actuator-grid">
-            <!-- Humidifier System (Mist Maker + Fan Combined) -->
+            <!-- Mist Maker Card -->
             <div class="actuator-card" data-room="fruiting" data-actuator="mist_maker" data-state="{% if fruiting_actuators.mist_maker %}on{% else %}off{% endif %}">
                 <div class="card-icon">
                     <i class="fas fa-water"></i>
                 </div>
                 <div class="card-info">
-                    <h3>Humidifier System</h3>
-                    <span class="card-description">Mist 5s → Fan 10s cycle</span>
+                    <h3>Mist Maker</h3>
+                    <span class="card-description">Humidity control misting</span>
                 </div>
                 <div class="card-status" data-status="{% if fruiting_actuators.mist_maker %}on{% else %}off{% endif %}">
                     <span class="status-text">{% if fruiting_actuators.mist_maker %}ON{% else %}OFF{% endif %}</span>
                 </div>
                 <div class="card-auto-badge" style="display: {% if fruiting_actuators.mist_maker_auto %}block{% else %}none{% endif %};">
+                    <i class="fas fa-robot"></i> AUTO
+                </div>
+            </div>
+
+            <!-- Humidifier Fan Card -->
+            <div class="actuator-card" data-room="fruiting" data-actuator="humidifier_fan" data-state="{% if fruiting_actuators.humidifier_fan %}on{% else %}off{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-fan"></i>
+                </div>
+                <div class="card-info">
+                    <h3>Humidifier Fan</h3>
+                    <span class="card-description">Humidity distribution</span>
+                </div>
+                <div class="card-status" data-status="{% if fruiting_actuators.humidifier_fan %}on{% else %}off{% endif %}">
+                    <span class="status-text">{% if fruiting_actuators.humidifier_fan %}ON{% else %}OFF{% endif %}</span>
+                </div>
+                <div class="card-auto-badge" style="display: {% if fruiting_actuators.humidifier_fan_auto %}block{% else %}none{% endif %};">
                     <i class="fas fa-robot"></i> AUTO
                 </div>
             </div>

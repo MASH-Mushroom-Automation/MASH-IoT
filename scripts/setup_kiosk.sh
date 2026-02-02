@@ -1,13 +1,13 @@
 #!/bin/bash
-# M.A.S.H. IoT - CLI Kiosk Setup (With Keyboard)
-# 1. FIXES .bash_profile syntax errors.
-# 2. ADDS 'matchbox-keyboard' for touch input.
-# 3. KEEPS Splash Screen & Resolution Fix.
+# M.A.S.H. IoT - CLI Kiosk Setup (Better Keyboard)
+# 1. FIXES: Replaces clunky matchbox-keyboard with 'onboard' (Smartphone style).
+# 2. CONFIG: Auto-docks to bottom, distinct keys, high contrast.
+# 3. KEEPS: Splash Screen, Auto-start, Resolution Fix.
 
 set -e
 
 echo "========================================="
-echo " M.A.S.H. IoT - Kiosk Setup (Keyboard)"
+echo " M.A.S.H. IoT - Kiosk Setup (Onboard)"
 echo "========================================="
 
 # Check if running as normal user
@@ -56,17 +56,36 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}.service
 
 # ---------------------------------------------------------
-# 3. INSTALL DEPENDENCIES (Added Keyboard)
+# 3. INSTALL DEPENDENCIES (Switched to Onboard)
 # ---------------------------------------------------------
-echo "[3/5] Installing Dependencies & Keyboard..."
+echo "[3/5] Installing Dependencies & Onboard..."
 sudo apt-get update
-# ADDED: matchbox-keyboard
-sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit matchbox-keyboard
+# ADDED: onboard (Better UI than matchbox)
+sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit onboard dconf-cli
 
 # ---------------------------------------------------------
-# 4. CREATE LAUNCH SCRIPTS
+# 4. CONFIGURE ONBOARD (Make it look good)
 # ---------------------------------------------------------
-echo "[4/5] Writing Launch Scripts..."
+echo "[4/5] Configuring Keyboard Theme..."
+
+# Configure Onboard settings (Requires dconf)
+# We set it to dock to bottom, force show, and use the "Nightshade" (Dark) theme
+mkdir -p $HOME/.config/onboard
+cat > $HOME/.config/onboard/onboard-defaults.conf <<EOF
+[main]
+layout=Phone
+theme=Nightshade
+x-docking-enabled=True
+dock-gravity=south
+dock-width=100
+dock-height=25
+force-to-top=True
+EOF
+
+# ---------------------------------------------------------
+# 5. CREATE LAUNCH SCRIPTS
+# ---------------------------------------------------------
+echo "[5/5] Writing Launch Scripts..."
 
 # A. Splash Screen HTML
 IMAGE_PATH="$PROJECT_DIR/assets/splash.png"
@@ -105,12 +124,13 @@ xset s noblank
 # Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
 
-# Start Virtual Keyboard using wvkbd (better for touch input)
-# wvkbd will auto-show when text input is focused
-wvkbd-mobintl -L 200 &
+# Start Onboard Keyboard
+# We force it to start in the background
+onboard &
 
-# Hide Mouse Cursor
-unclutter -idle 0.1 &
+# Hide Mouse Cursor (Optional - remove if you need mouse to click keys)
+# We use 'idle 5' so if you touch the screen, cursor shows briefly then hides
+unclutter -idle 5 &
 
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)
 
@@ -121,11 +141,7 @@ chmod +x "$PROJECT_DIR/scripts/run_kiosk_x.sh"
 # C. .xinitrc (Tells startx what to run)
 echo "exec $PROJECT_DIR/scripts/run_kiosk_x.sh" > "$HOME/.xinitrc"
 
-# ---------------------------------------------------------
-# 5. FIX .BASH_PROFILE (Safe Overwrite)
-# ---------------------------------------------------------
-echo "[5/5] Overwriting .bash_profile..."
-
+# D. .bash_profile (Auto-start)
 cat > "$HOME/.bash_profile" <<'EOF'
 # .bash_profile for M.A.S.H. IoT Kiosk
 
@@ -148,9 +164,9 @@ echo ""
 echo "========================================="
 echo " Setup Complete!"
 echo "========================================="
-echo "1. On-Screen Keyboard installed (matchbox-keyboard)."
-echo "2. .bash_profile syntax errors fixed."
-echo "3. Splash screen configured."
+echo "1. INSTALLED: 'onboard' keyboard (Phone layout, Dark theme)."
+echo "2. CONFIGURED: Auto-dock to bottom of screen."
+echo "3. NOTE: If keyboard covers inputs, you can drag it by the corner."
 echo ""
 echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"

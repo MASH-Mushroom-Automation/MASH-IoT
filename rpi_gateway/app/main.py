@@ -176,36 +176,42 @@ class MASHOrchestrator:
             auto_mode = self.config.get('system', {}).get('auto_mode', True)
             
             # ML Automation: Process readings and generate commands (only in auto mode)
+            # In manual mode, actuators stay in whatever state the user set them to
             if self.ai is not None and auto_mode:
                 self._run_automation(data)
-            
-            # Always update humidifier cycle (runs independent of auto mode)
-            # This ensures the cycle continues running and sends commands
-            if self.ai and self.ai.humidifier_cycle.cycle_active:
-                import json
-                cycle_states = self.ai.humidifier_cycle.get_current_states()
                 
-                # Only send commands when state changes (avoid redundant sends)
-                for actuator, state in cycle_states.items():
-                    if actuator == 'mist_maker':
-                        arduino_name = 'MIST_MAKER'
-                    elif actuator == 'humidifier_fan':
-                        arduino_name = 'HUMIDIFIER_FAN'
-                    else:
-                        continue
+                # Only run humidifier cycle in auto mode
+                if self.ai.humidifier_cycle.cycle_active:
+                    import json
+                    cycle_states = self.ai.humidifier_cycle.get_current_states()
                     
-                    # Check if state changed since last send
-                    last_state = self.ai.last_cycle_commands.get(actuator)
-                    if last_state != state:
-                        json_cmd = json.dumps({"actuator": arduino_name, "state": state})
-                        if self.arduino.send_command(json_cmd):
-                            logger.info(f"[CYCLE] State changed: {actuator} -> {state}")
-                            # Update UI state
-                            command_for_state = f"{arduino_name}_{state}"
-                            self._update_actuator_state_from_command(command_for_state)
-                            self.db.insert_command(json_cmd, source='humidifier_cycle')
-                            # Remember this state
-                            self.ai.last_cycle_commands[actuator] = state
+                    # Only send commands when state changes (avoid redundant sends)
+                    for actuator, state in cycle_states.items():
+                        if actuator == 'mist_maker':
+                            arduino_name = 'MIST_MAKER'
+                        elif actuator == 'humidifier_fan':
+                            arduino_name = 'HUMIDIFIER_FAN'
+                        else:
+                            continue
+                        
+                        # Check if state changed since last send
+                        last_state = self.ai.last_cycle_commands.get(actuator)
+                        if last_state != state:
+                            json_cmd = json.dumps({"actuator": arduino_name, "state": state})
+                            if self.arduino.send_command(json_cmd):
+                                logger.info(f"[CYCLE] State changed: {actuator} -> {state}")
+                                # Update UI state
+                                command_for_state = f"{arduino_name}_{state}"
+                                self._update_actuator_state_from_command(command_for_state)
+                                self.db.insert_command(json_cmd, source='humidifier_cycle')
+                                # Remember this state
+                                self.ai.last_cycle_commands[actuator] = state
+            else:
+                # In manual mode, stop any active cycles
+                if self.ai and self.ai.humidifier_cycle.cycle_active:
+                    self.ai.humidifier_cycle.stop_cycle()
+                    self.ai.last_cycle_commands = {}
+                    logger.info("[MANUAL MODE] Stopped automatic humidifier cycle")
             
         except Exception as e:
             logger.error(f"[ERROR] Failed to process sensor data: {e}")

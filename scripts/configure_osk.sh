@@ -1,28 +1,49 @@
 #!/bin/bash
 # Configure On-Screen Keyboard for MASH IoT Kiosk
-# This script installs and configures wvkbd for touchscreen use
+# This script installs and configures squeekboard for touchscreen use
 
-echo "Configuring On-Screen Keyboard (wvkbd)..."
+echo "Configuring On-Screen Keyboard (squeekboard)..."
 
-# Install wvkbd - virtual keyboard for Wayland (works on X11 too)
-echo "Installing wvkbd..."
+# Install dependencies
+echo "Installing dependencies..."
 sudo apt-get update
-sudo apt-get install -y wvkbd
+sudo apt-get install -y build-essential meson ninja-build cargo rustc git \
+    libwayland-dev libxkbcommon-dev libglib2.0-dev libgtk-3-dev \
+    libfeedback-dev libgnome-desktop-3-dev wayland-protocols
 
-# wvkbd automatically shows when text input is focused
-# No additional configuration needed!
+# Clone and build squeekboard
+echo "Building squeekboard from source..."
+cd /tmp
+rm -rf squeekboard
+git clone https://gitlab.gnome.org/World/Phosh/squeekboard.git
+cd squeekboard
+meson build -Dprefix=/usr/local
+ninja -C build
+sudo ninja -C build install
+
+# Create autostart entry for X11 compatibility
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/squeekboard.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Squeekboard
+Exec=squeekboard
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
 
 echo ""
 echo "========================================="
 echo " On-Screen Keyboard Configured!"
 echo "========================================="
 echo ""
-echo "wvkbd (Virtual Keyboard) installed!"
+echo "squeekboard (Virtual Keyboard) installed!"
 echo "Features:"
-echo "  ✓ Auto-shows when text input is focused"
-echo "  ✓ Auto-hides when focus is lost"
-echo "  ✓ Touch-optimized layout"
-echo "  ✓ Positioned at bottom of screen"
+echo "  ✓ Purpose-built for touch interfaces"
+echo "  ✓ Smart auto-show/hide behavior"
+echo "  ✓ Multiple keyboard layouts"
+echo "  ✓ Optimized for mobile/kiosk use"
 echo ""
 echo "The keyboard will automatically appear when"
 echo "you tap on text input fields (WiFi setup, etc.)"

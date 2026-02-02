@@ -441,58 +441,6 @@ def control_actuator():
     if state not in ['ON', 'OFF']:
         return jsonify({"success": False, "message": "Invalid state (must be ON or OFF)"}), 400
 
-    # Special handling for humidifier system (cycle manager)
-    if actuator == 'mist_maker' and room == 'fruiting':
-        # Get serial comm and orchestrator
-        serial_comm = getattr(current_app, 'serial_comm', None)
-        orchestrator = getattr(current_app, 'orchestrator', None)
-        
-        if not serial_comm or not serial_comm.is_connected:
-            return jsonify({"success": False, "message": "Arduino not connected"}), 503
-        
-        if orchestrator and orchestrator.ai:
-            import json
-            
-            if state == 'ON':
-                # Start the humidifier cycle
-                orchestrator.ai.humidifier_cycle.start_cycle()
-                logger.info("[MANUAL] Started humidifier cycle")
-                
-                # Immediately send initial commands (mist ON, fan OFF)
-                cycle_states = orchestrator.ai.humidifier_cycle.get_current_states()
-                for cycle_actuator, cycle_state in cycle_states.items():
-                    if cycle_actuator == 'mist_maker':
-                        arduino_name = 'MIST_MAKER'
-                    elif cycle_actuator == 'humidifier_fan':
-                        arduino_name = 'HUMIDIFIER_FAN'
-                    else:
-                        continue
-                    
-                    json_cmd = json.dumps({"actuator": arduino_name, "state": cycle_state})
-                    serial_comm.send_command(json_cmd)
-                    logger.info(f"[MANUAL] Sent initial command: {json_cmd}")
-            else:
-                # Stop the humidifier cycle
-                orchestrator.ai.humidifier_cycle.stop_cycle()
-                # Clear command tracking
-                orchestrator.ai.last_cycle_commands = {}
-                logger.info("[MANUAL] Stopped humidifier cycle")
-                
-                # Immediately turn off both actuators
-                serial_comm.send_command(json.dumps({"actuator": "MIST_MAKER", "state": "OFF"}))
-                serial_comm.send_command(json.dumps({"actuator": "HUMIDIFIER_FAN", "state": "OFF"}))
-                logger.info("[MANUAL] Sent stop commands: MIST_MAKER_OFF, HUMIDIFIER_FAN_OFF")
-            
-            # Update state tracking
-            actuator_states = current_app.config.get('ACTUATOR_STATES', {'fruiting': {}, 'spawning': {}})
-            if room not in actuator_states:
-                actuator_states[room] = {}
-            actuator_states[room][actuator] = (state == 'ON')
-            actuator_states[room]['humidifier_fan'] = (state == 'ON')  # Also update fan state
-            current_app.config['ACTUATOR_STATES'] = actuator_states
-            
-            return jsonify({"success": True, "message": f"Humidifier cycle {state.lower()}"})
-    
     # Map web UI actuator names to Arduino firmware names
     actuator_map = {
         'mist_maker': 'MIST_MAKER',
