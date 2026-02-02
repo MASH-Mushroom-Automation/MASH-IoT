@@ -3,11 +3,50 @@ import time
 import os
 import json
 from pathlib import Path
+import qrcode
+from io import BytesIO
+import base64
 
 # --- CONFIGURATION ---
 HOTSPOT_SSID = "MASH-Device" 
 HOTSPOT_IP = "10.42.0.1"
 WIFI_CREDENTIALS_FILE = "config/wifi_credentials.json"
+
+def generate_wifi_qr_code(ssid: str, password: str = "", security: str = "nopass") -> str:
+    """
+    Generate WiFi QR code as base64 image
+    
+    QR Format: WIFI:T:<security>;S:<ssid>;P:<password>;;
+    - T: Security type (nopass, WEP, WPA)
+    - S: SSID (network name)
+    - P: Password (empty for open networks)
+    
+    Returns base64-encoded PNG image string
+    """
+    if password:
+        wifi_string = f"WIFI:T:WPA;S:{ssid};P:{password};;"
+    else:
+        wifi_string = f"WIFI:T:{security};S:{ssid};P:;;"
+    
+    # Create QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(wifi_string)
+    qr.make(fit=True)
+    
+    # Generate image
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
+    return f"data:image/png;base64,{img_base64}"
 
 def run_command(command, ignore_fail=False):
     """Executes a shell command and returns True if successful."""
@@ -265,3 +304,35 @@ def _rollback_connection(backup_ssid, backup_password, original_network):
         print("[!] No backup credentials available for rollback")
     
     return False
+
+def is_connected_to_wifi():
+    """Check if device is connected to a WiFi network (not hotspot)"""
+    current = get_current_network()
+    return current is not None and current != HOTSPOT_SSID
+
+def is_hotspot_active():
+    """Check if provisioning hotspot is currently active"""
+    current = get_current_network()
+    return current == HOTSPOT_SSID
+
+def ensure_connectivity():
+    """
+    Ensure device has network connectivity.
+    If not connected to WiFi, start hotspot automatically.
+    """
+    if not is_connected_to_wifi():
+        print("[WIFI] No network connection detected")
+        
+        # Check if hotspot is already active
+        if is_hotspot_active():
+            print("[WIFI] Hotspot already active")
+        else:
+            print("[WIFI] Starting provisioning hotspot...")
+            success = start_hotspot()
+            if success:
+                print("[WIFI] ✅ Hotspot started successfully")
+            else:
+                print("[WIFI] ❌ Failed to start hotspot")
+    else:
+        current_ssid = get_current_network()
+        print(f"[WIFI] ✅ Connected to '{current_ssid}'")

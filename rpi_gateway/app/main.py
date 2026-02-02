@@ -62,6 +62,11 @@ class MASHOrchestrator:
         self.app.config['USER_PREFS'] = self.user_prefs
         self.app.config['MUSHROOM_CONFIG'] = self.config
         
+        # Initialize WiFi manager and ensure connectivity
+        from utils import wifi_manager
+        logger.info("[INIT] Checking network connectivity...")
+        wifi_manager.ensure_connectivity()
+        
         # Components
         self.db = DatabaseManager()
         

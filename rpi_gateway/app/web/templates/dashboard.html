@@ -18,6 +18,38 @@
     </div>
 </div>
 
+<!-- WiFi Provisioning QR Code (shown only in hotspot mode) -->
+<div id="wifi-provisioning-card" class="card" style="display: none; margin: 20px auto; max-width: 500px;">
+    <div class="card-header">
+        <i class="fas fa-qrcode"></i>
+        <h3>Device Provisioning</h3>
+    </div>
+    <div class="card-body">
+        <div style="text-align: center;">
+            <p style="margin-bottom: 20px;">
+                <strong>Connect to this device using your mobile phone</strong>
+            </p>
+            <p style="color: #666; margin-bottom: 20px;">
+                Scan this QR code to connect to the provisioning network
+            </p>
+            <div id="qr-code-container" style="margin: 20px auto;">
+                <img id="qr-code-image" src="" alt="WiFi QR Code" style="max-width: 300px; width: 100%;">
+            </div>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <p style="margin: 5px 0;"><strong>Network:</strong> RPi_IoT_Provisioning</p>
+                <p style="margin: 5px 0;"><strong>IP Address:</strong> 10.42.0.1</p>
+                <p style="margin: 5px 0;"><strong>Security:</strong> Open (No Password)</p>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                <p style="margin: 0; color: #856404;">
+                    <i class="fas fa-info-circle"></i>
+                    Once scanned, use the MASH Grower Mobile app to complete WiFi setup
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="fruiting-view" class="room-view">
     <div class="room-header">
         <h2 class="room-title">Fruiting Room</h2>
@@ -115,4 +147,39 @@
         </div>
     </div>
 </div>
+
+<script>
+// Check WiFi mode and display QR if in provisioning mode
+async function checkProvisioningMode() {
+    try {
+        const response = await fetch('/api/wifi-mode');
+        const data = await response.json();
+        
+        if (data.success && data.mode === 'hotspot') {
+            // Device is in provisioning mode - show QR code
+            document.getElementById('wifi-provisioning-card').style.display = 'block';
+            
+            // Fetch and display QR code
+            const qrResponse = await fetch('/api/wifi-qr');
+            const qrData = await qrResponse.json();
+            
+            if (qrData.success) {
+                document.getElementById('qr-code-image').src = qrData.qr_code;
+            }
+        } else {
+            // Connected to network - hide provisioning card
+            document.getElementById('wifi-provisioning-card').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error checking provisioning mode:', error);
+    }
+}
+
+// Check provisioning mode on page load and every 10 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    checkProvisioningMode();
+    setInterval(checkProvisioningMode, 10000);
+});
+</script>
+
 {% endblock %}

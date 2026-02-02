@@ -389,6 +389,85 @@ def wifi_status():
     })
 
 
+@web_bp.route('/api/wifi-qr')
+def get_wifi_qr():
+    """Get QR code for connecting to provisioning hotspot"""
+    try:
+        from app.utils import wifi_manager
+        
+        # Only provide QR if in hotspot mode
+        if wifi_manager.is_hotspot_active():
+            qr_data = wifi_manager.generate_wifi_qr_code("RPi_IoT_Provisioning")
+            return jsonify({
+                'success': True,
+                'qr_code': qr_data,
+                'ssid': 'RPi_IoT_Provisioning',
+                'ip': '10.42.0.1',
+                'instructions': 'Scan this QR code with your phone to connect to the device'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Device is not in provisioning mode'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"[API] QR generation error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/api/wifi-mode')
+def get_wifi_mode():
+    """Get current WiFi mode (station/hotspot)"""
+    try:
+        from app.utils import wifi_manager
+        
+        if wifi_manager.is_hotspot_active():
+            return jsonify({
+                'success': True,
+                'mode': 'hotspot',
+                'ssid': 'RPi_IoT_Provisioning',
+                'ip': '10.42.0.1'
+            })
+        elif wifi_manager.is_connected_to_wifi():
+            return jsonify({
+                'success': True,
+                'mode': 'station',
+                'ssid': wifi_manager.get_current_network(),
+                'ip': '192.168.x.x'  # TODO: Get actual IP
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'mode': 'disconnected'
+            })
+            
+    except Exception as e:
+        logger.error(f"[API] WiFi mode check error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/api/wifi-scan')
+def scan_wifi_networks():
+    """Scan for available WiFi networks (2.4GHz only for RPi compatibility)"""
+    try:
+        from app.utils import wifi_manager
+        
+        networks = wifi_manager.get_wifi_list()
+        
+        # Convert to list of dicts with basic info
+        network_list = [{'ssid': ssid, 'frequency': 2400} for ssid in networks]
+        
+        return jsonify({
+            'success': True,
+            'networks': network_list
+        })
+        
+    except Exception as e:
+        logger.error(f"[API] WiFi scan error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # =======================================================
 #                    API ENDPOINTS
 # =======================================================
