@@ -179,20 +179,24 @@ class MASHOrchestrator:
             # Always update humidifier cycle (even in manual mode)
             # This ensures the cycle continues running and sends commands
             if self.ai and self.ai.humidifier_cycle.cycle_active:
+                import json
                 cycle_states = self.ai.humidifier_cycle.get_current_states()
                 # Send cycle commands to Arduino
                 for actuator, state in cycle_states.items():
                     if actuator == 'mist_maker':
-                        command = f"MIST_MAKER_{state}"
+                        arduino_name = 'MIST_MAKER'
                     elif actuator == 'humidifier_fan':
-                        command = f"HUMIDIFIER_FAN_{state}"
+                        arduino_name = 'HUMIDIFIER_FAN'
                     else:
                         continue
                     
-                    if self.arduino.send_command(command):
-                        logger.debug(f"[CYCLE] Sent: {command}")
-                        self._update_actuator_state_from_command(command)
-                        self.db.insert_command(command, source='humidifier_cycle')
+                    json_cmd = json.dumps({"actuator": arduino_name, "state": state})
+                    if self.arduino.send_command(json_cmd):
+                        logger.debug(f"[CYCLE] Sent: {json_cmd}")
+                        # Update UI state
+                        command_for_state = f"{arduino_name}_{state}"
+                        self._update_actuator_state_from_command(command_for_state)
+                        self.db.insert_command(json_cmd, source='humidifier_cycle')
             
         except Exception as e:
             logger.error(f"[ERROR] Failed to process sensor data: {e}")
@@ -219,19 +223,33 @@ class MASHOrchestrator:
             commands = self.ai.process_sensor_reading(valid_rooms)
             
             # Send commands to Arduino
+            import json
             for command in commands:
-                success = self.arduino.send_command(command)
+                # Convert command format from "ACTUATOR_NAME_STATE" to JSON
+                # e.g., "MIST_MAKER_ON" -> {"actuator": "MIST_MAKER", "state": "ON"}
+                if '_ON' in command:
+                    actuator_name = command.replace('_ON', '')
+                    state = 'ON'
+                elif '_OFF' in command:
+                    actuator_name = command.replace('_OFF', '')
+                    state = 'OFF'
+                else:
+                    logger.warning(f"[AUTO] Invalid command format: {command}")
+                    continue
+                
+                json_cmd = json.dumps({"actuator": actuator_name, "state": state})
+                success = self.arduino.send_command(json_cmd)
                 
                 if success:
-                    logger.info(f"[AUTO] Sent command: {command}")
+                    logger.info(f"[AUTO] Sent command: {json_cmd}")
                     
                     # Update actuator states in app config for UI
                     self._update_actuator_state_from_command(command)
                     
                     # Log to database
-                    self.db.insert_command(command, source='ml_automation')
+                    self.db.insert_command(json_cmd, source='ml_automation')
                 else:
-                    logger.warning(f"[AUTO] Failed to send command: {command}")
+                    logger.warning(f"[AUTO] Failed to send command: {json_cmd}")
         
         except Exception as e:
             logger.error(f"[AUTO] Automation error: {e}")
