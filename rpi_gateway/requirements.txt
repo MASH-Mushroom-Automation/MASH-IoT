@@ -40,6 +40,9 @@ colorlog==6.8.0
 # QR Code Generation
 qrcode[pil]==7.4.2
 
+# mDNS/Zeroconf for local device discovery
+zeroconf==0.131.0
+
 # Development Tools (optional)
 pytest==7.4.3
 pytest-flask==1.3.0

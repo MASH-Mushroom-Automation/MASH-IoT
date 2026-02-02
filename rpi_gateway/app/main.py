@@ -22,6 +22,7 @@ from database.db_manager import DatabaseManager
 from cloud.backend_api import BackendAPIClient
 from web.routes import web_bp
 from utils.user_preferences import UserPreferencesManager
+from utils.mdns_advertiser import start_mdns_service, stop_mdns_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -381,6 +382,16 @@ class MASHOrchestrator:
                 }
             }
             self.app.config['DB'] = self.db
+            
+            # Start mDNS service advertisement for local discovery
+            device_id = device_config.get('serial_number', 'mash-iot-gateway')
+            device_name = device_config.get('name', 'MASH IoT Chamber')
+            logger.info(f"[mDNS] Starting service advertisement...")
+            mdns_started = start_mdns_service(device_id=device_id, device_name=device_name, port=port)
+            if not mdns_started:
+                logger.warning("[mDNS] Failed to start mDNS - device won't be discoverable via mDNS")
+                logger.warning("[mDNS] Install avahi-daemon: sudo apt-get install avahi-daemon")
+            
             logger.info(f"[WEB] Starting Flask server on {host}:{port}")
             logger.info(f"[WEB] Access dashboard at: http://{host}:{port}/dashboard")
             # Start Flask (blocks here)
@@ -395,6 +406,13 @@ class MASHOrchestrator:
         """Graceful shutdown."""
         logger.info("[MAIN] Shutting down M.A.S.H. system...")
         self.is_running = False
+        
+        # Stop mDNS service
+        try:
+            stop_mdns_service()
+        except Exception as e:
+            logger.warning(f"[mDNS] Error stopping mDNS: {e}")
+        
         # Disconnect Arduino
         if self.arduino:
             self.arduino.disconnect()
