@@ -414,11 +414,11 @@ def get_wifi_qr():
         
         # Only provide QR if in hotspot mode
         if wifi_manager.is_hotspot_active():
-            qr_data = wifi_manager.generate_wifi_qr_code("RPi_IoT_Provisioning")
+            qr_data = wifi_manager.generate_wifi_qr_code("MASH-Device")
             return jsonify({
                 'success': True,
                 'qr_code': qr_data,
-                'ssid': 'RPi_IoT_Provisioning',
+                'ssid': 'MASH-Device',
                 'ip': '10.42.0.1',
                 'instructions': 'Scan this QR code with your phone to connect to the device'
             })
@@ -443,7 +443,7 @@ def get_wifi_mode():
             return jsonify({
                 'success': True,
                 'mode': 'hotspot',
-                'ssid': 'RPi_IoT_Provisioning',
+                'ssid': 'MASH-Device',
                 'ip': '10.42.0.1'
             })
         elif wifi_manager.is_connected_to_wifi():
