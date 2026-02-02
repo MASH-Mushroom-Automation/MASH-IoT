@@ -1,46 +1,42 @@
-// Main JavaScript file for MASH IoT Dashboard
-// Handles view toggling and future dynamic data updates.
+// M.A.S.H. IoT - Main Dashboard Logic
+// Handles view toggling, live data polling, and manual controls.
 
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- 1. View Toggling (Fruiting vs Spawning) ---
     const fruitingBtn = document.getElementById('show-fruiting');
     const spawningBtn = document.getElementById('show-spawning');
     const fruitingView = document.getElementById('fruiting-view');
     const spawningView = document.getElementById('spawning-view');
 
-    // Function to switch views
     function switchView(viewToShow) {
-        // Hide all views first
+        // Safety check if elements exist
+        if (!fruitingView || !spawningView) return;
+
         fruitingView.style.display = 'none';
         spawningView.style.display = 'none';
 
-        // Deactivate all buttons
-        fruitingBtn.classList.remove('active');
-        spawningBtn.classList.remove('active');
+        if (fruitingBtn) fruitingBtn.classList.remove('active');
+        if (spawningBtn) spawningBtn.classList.remove('active');
 
-        // Show the selected view and activate its button
         if (viewToShow === 'fruiting') {
             fruitingView.style.display = 'block';
-            fruitingBtn.classList.add('active');
+            if (fruitingBtn) fruitingBtn.classList.add('active');
         } else if (viewToShow === 'spawning') {
             spawningView.style.display = 'block';
-            spawningBtn.classList.add('active');
+            if (spawningBtn) spawningBtn.classList.add('active');
         }
     }
 
-    // Add click event listeners
-    if (fruitingBtn) {
-        fruitingBtn.addEventListener('click', () => switchView('fruiting'));
-    }
-    
-    if (spawningBtn) {
-        spawningBtn.addEventListener('click', () => switchView('spawning'));
-    }
+    if (fruitingBtn) fruitingBtn.addEventListener('click', () => switchView('fruiting'));
+    if (spawningBtn) spawningBtn.addEventListener('click', () => switchView('spawning'));
 
-    // Set the initial view
+    // Set initial view
     switchView('fruiting');
-    
-    // Start auto-refresh if on dashboard page
-    if (fruitingView && spawningView) {
+
+    // --- 2. Live Data Polling ---
+    // Start auto-refresh only if we are on the dashboard
+    if (document.querySelector('.system-status')) {
         updateDashboardData();
         setInterval(updateDashboardData, 3000); // Update every 3 seconds
     }
@@ -50,138 +46,105 @@ document.addEventListener('DOMContentLoaded', function() {
 async function updateDashboardData() {
     try {
         const response = await fetch('/api/latest_data');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         
-        // Update Arduino connection status
-        const arduinoStatus = document.querySelector('.system-status span:first-child span:last-child');
+        // --- UPDATE SYSTEM STATUS (Using IDs for reliability) ---
+        
+        // Arduino Status
+        const arduinoStatus = document.getElementById('arduino-status');
         if (arduinoStatus) {
-            if (data.arduino_connected) {
-                arduinoStatus.textContent = 'Connected';
-                arduinoStatus.className = 'status-ok';
-            } else {
-                arduinoStatus.textContent = 'Offline';
-                arduinoStatus.className = 'status-error';
-            }
+            arduinoStatus.textContent = data.arduino_connected ? 'Connected' : 'Offline';
+            arduinoStatus.className = data.arduino_connected ? 'status-ok' : 'status-error';
         }
         
-        // Update Backend connection status
-        const cloudStatus = document.querySelector('.system-status span:nth-child(3) span:last-child');
+        // Cloud Status (The FIX: Uses the ID we added to dashboard.html)
+        const cloudStatus = document.getElementById('cloud-status');
         if (cloudStatus) {
-            if (data.backend_connected) {
-                cloudStatus.textContent = 'Online';
-                cloudStatus.className = 'status-ok';
-            } else {
-                cloudStatus.textContent = 'Offline';
-                cloudStatus.className = 'status-warning';
-            }
+            cloudStatus.textContent = data.backend_connected ? 'Online' : 'Offline';
+            cloudStatus.className = data.backend_connected ? 'status-ok' : 'status-warning';
         }
         
-        // Update WiFi status
-        updateWiFiStatus();
+        // WiFi Status
+        const wifiStatus = document.getElementById('wifi-status');
+        // We let the separate WiFi checker handle the text, or update basic status here
+        // (The separate updateWiFiStatus function below handles the specific network name)
         
-        // Update Uptime
+        // Uptime
         const uptimeEl = document.getElementById('uptime');
         if (uptimeEl && data.uptime) {
             uptimeEl.textContent = data.uptime;
         }
         
-        // Update Fruiting Room condition
-        if (data.fruiting_condition) {
-            const fruitingConditionEl = document.querySelector('#fruiting-view .room-condition span');
-            if (fruitingConditionEl) {
-                fruitingConditionEl.textContent = data.fruiting_condition;
-                // Update class based on condition
-                fruitingConditionEl.className = 'status-' + data.fruiting_condition_class;
-            }
-        }
+        // --- UPDATE ROOM CONDITIONS ---
+        updateRoomCondition('#fruiting-view', data.fruiting_condition, data.fruiting_condition_class);
+        updateRoomCondition('#spawning-view', data.spawning_condition, data.spawning_condition_class);
         
-        // Update Spawning Room condition
-        if (data.spawning_condition) {
-            const spawningConditionEl = document.querySelector('#spawning-view .room-condition span');
-            if (spawningConditionEl) {
-                spawningConditionEl.textContent = data.spawning_condition;
-                // Update class based on condition
-                spawningConditionEl.className = 'status-' + data.spawning_condition_class;
-            }
-        }
+        // --- UPDATE SENSOR VALUES ---
+        updateSensorValues('#fruiting-view', data.fruiting_data);
+        updateSensorValues('#spawning-view', data.spawning_data);
         
-        // Update Fruiting Room sensor values
-        if (data.fruiting_data) {
-            const fruitingCO2 = document.querySelector('#fruiting-view .sensor-card.co2 .sensor-value');
-            const fruitingTemp = document.querySelector('#fruiting-view .sensor-card.temp .sensor-value');
-            const fruitingHumidity = document.querySelector('#fruiting-view .sensor-card.humidity .sensor-value');
-            
-            if (fruitingCO2) fruitingCO2.textContent = data.fruiting_data.co2 !== null ? data.fruiting_data.co2.toFixed(1) : '--';
-            if (fruitingTemp) fruitingTemp.textContent = data.fruiting_data.temp !== null ? data.fruiting_data.temp.toFixed(1) : '--';
-            if (fruitingHumidity) fruitingHumidity.textContent = data.fruiting_data.humidity !== null ? data.fruiting_data.humidity.toFixed(1) : '--';
-        } else {
-            // Set all to '--' if no data
-            const fruitingValues = document.querySelectorAll('#fruiting-view .sensor-value');
-            fruitingValues.forEach(val => val.textContent = '--');
-        }
-        
-        // Update Spawning Room sensor values
-        if (data.spawning_data) {
-            const spawningCO2 = document.querySelector('#spawning-view .sensor-card.co2 .sensor-value');
-            const spawningTemp = document.querySelector('#spawning-view .sensor-card.temp .sensor-value');
-            const spawningHumidity = document.querySelector('#spawning-view .sensor-card.humidity .sensor-value');
-            
-            if (spawningCO2) spawningCO2.textContent = data.spawning_data.co2 !== null ? data.spawning_data.co2.toFixed(1) : '--';
-            if (spawningTemp) spawningTemp.textContent = data.spawning_data.temp !== null ? data.spawning_data.temp.toFixed(1) : '--';
-            if (spawningHumidity) spawningHumidity.textContent = data.spawning_data.humidity !== null ? data.spawning_data.humidity.toFixed(1) : '--';
-        } else {
-            // Set all to '--' if no data
-            const spawningValues = document.querySelectorAll('#spawning-view .sensor-value');
-            spawningValues.forEach(val => val.textContent = '--');
-        }
-        
-        // Update actuator icons
+        // --- UPDATE ACTUATOR ICONS ---
         updateActuatorIcons('#fruiting-view', data.fruiting_actuators);
         updateActuatorIcons('#spawning-view', data.spawning_actuators);
 
+        // Update WiFi Details
+        updateWiFiStatus();
+
     } catch (error) {
-        console.error("Could not fetch dashboard data:", error);
-        // Mark Arduino as offline on error
-        const arduinoStatus = document.querySelector('.system-status span:first-child span:last-child');
-        if (arduinoStatus) {
-            arduinoStatus.textContent = 'Offline';
-            arduinoStatus.className = 'status-error';
-        }
+        console.error("Dashboard update failed:", error);
     }
 }
 
+// Helper: Update Room Condition Text/Color
+function updateRoomCondition(viewSelector, text, colorClass) {
+    if (!text) return;
+    const el = document.querySelector(`${viewSelector} .room-condition span`);
+    if (el) {
+        el.textContent = text;
+        el.className = 'status-' + colorClass;
+    }
+}
+
+// Helper: Update Sensor Cards
+function updateSensorValues(viewSelector, sensorData) {
+    const view = document.querySelector(viewSelector);
+    if (!view) return;
+
+    const setVal = (type, val) => {
+        const el = view.querySelector(`.sensor-card.${type} .sensor-value`);
+        if (el) el.textContent = (sensorData && val !== null && val !== undefined) ? Number(val).toFixed(1) : '--';
+    };
+
+    if (sensorData) {
+        setVal('co2', sensorData.co2);
+        setVal('temp', sensorData.temp);
+        setVal('humidity', sensorData.humidity);
+    } else {
+        setVal('co2', null);
+        setVal('temp', null);
+        setVal('humidity', null);
+    }
+}
+
+// Helper: Update Actuator Icons (Active/Inactive state)
 function updateActuatorIcons(viewSelector, actuators) {
     const view = document.querySelector(viewSelector);
     if (!view || !actuators) return;
     
-    // Updated to match new actuator structure
-    const mistIcon = view.querySelector('.icon-mist');
-    const humidifierFanIcon = view.querySelector('.icon-humidifier-fan');
-    const exhaustIcon = view.querySelector('.icon-exhaust');
-    const intakeIcon = view.querySelector('.icon-intake');
-    const lightIcon = view.querySelector('.icon-light');
-    
-    if (mistIcon) {
-        actuators.mist_maker ? mistIcon.classList.add('active') : mistIcon.classList.remove('active');
-    }
-    if (humidifierFanIcon) {
-        actuators.humidifier_fan ? humidifierFanIcon.classList.add('active') : humidifierFanIcon.classList.remove('active');
-    }
-    if (exhaustIcon) {
-        actuators.exhaust_fan ? exhaustIcon.classList.add('active') : exhaustIcon.classList.remove('active');
-    }
-    if (intakeIcon) {
-        actuators.intake_fan ? intakeIcon.classList.add('active') : intakeIcon.classList.remove('active');
-    }
-    if (lightIcon) {
-        actuators.led ? lightIcon.classList.add('active') : lightIcon.classList.remove('active');
-    }
+    const updateIcon = (cls, isActive) => {
+        const icon = view.querySelector(cls);
+        if (icon) isActive ? icon.classList.add('active') : icon.classList.remove('active');
+    };
+
+    updateIcon('.icon-mist', actuators.mist_maker);
+    updateIcon('.icon-humidifier-fan', actuators.humidifier_fan);
+    updateIcon('.icon-exhaust', actuators.exhaust_fan);
+    updateIcon('.icon-intake', actuators.intake_fan);
+    updateIcon('.icon-light', actuators.led);
 }
 
-// Function to check WiFi status
+// --- WiFi Status Checker ---
 async function updateWiFiStatus() {
     try {
         const response = await fetch('/api/wifi_status');
@@ -192,58 +155,49 @@ async function updateWiFiStatus() {
             if (data.connected && data.current_network) {
                 wifiStatusEl.textContent = data.current_network;
                 wifiStatusEl.className = 'status-ok';
-            } else if (data.last_known_network) {
+            } else {
                 wifiStatusEl.textContent = 'Disconnected';
                 wifiStatusEl.className = 'status-warning';
-            } else {
-                wifiStatusEl.textContent = 'Not Configured';
-                wifiStatusEl.className = 'status-error';
             }
         }
     } catch (error) {
-        console.error('WiFi status check failed:', error);
-        const wifiStatusEl = document.getElementById('wifi-status');
-        if (wifiStatusEl) {
-            wifiStatusEl.textContent = 'Unknown';
-            wifiStatusEl.className = 'status-warning';
-        }
+        // console.error('WiFi check failed'); 
+        // Suppress error to avoid log spam
     }
 }
 
-// --- Manual Controls Page Logic ---
+// --- 3. Manual Controls Page Logic ---
+// Only runs if we are on the controls page
 const controlSwitches = document.querySelectorAll('.controls-container input[type="checkbox"]');
 
-controlSwitches.forEach(sw => {
-    sw.addEventListener('change', function() {
-        const room = this.dataset.room;
-        const actuator = this.dataset.actuator;
-        const state = this.checked ? 'ON' : 'OFF';
+if (controlSwitches.length > 0) {
+    controlSwitches.forEach(sw => {
+        sw.addEventListener('change', function() {
+            const room = this.dataset.room;
+            const actuator = this.dataset.actuator;
+            const state = this.checked ? 'ON' : 'OFF';
 
-        // Send the command to the backend
-        sendCommand(room, actuator, state);
+            // Send the command to the backend
+            sendCommand(room, actuator, state);
+        });
     });
-});
+}
 
 async function sendCommand(room, actuator, state) {
     try {
         const response = await fetch('/api/control_actuator', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ room, actuator, state }),
         });
 
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        
         const result = await response.json();
-        console.log('Command sent successfully:', result);
-        // Optionally, provide user feedback here
+        console.log('Command sent:', result);
             
     } catch (error) {
-        console.error('Failed to send command:', error);
-        // Optionally, revert the switch state and show an error to the user
+        console.error('Command failed:', error);
+        alert("Failed to toggle actuator. Check connection.");
     }
 }

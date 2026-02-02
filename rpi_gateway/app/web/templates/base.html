@@ -6,6 +6,37 @@
     <title>{% block title %}MASH IoT{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('web.static', filename='css/styles.css') }}">
+    <style>
+        /* Floating Keyboard Button */
+        .fab-keyboard {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9999;
+            transition: transform 0.2s, background-color 0.2s;
+            border: none;
+        }
+        .fab-keyboard:active {
+            transform: scale(0.95);
+            background-color: #45a049;
+        }
+        /* Make sure nav doesn't overflow on small screens */
+        .top-nav {
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -20,33 +51,38 @@
                 <li><a href="{{ url_for('web.ai_insights') }}"><i class="fas fa-brain"></i> AI Insights</a></li>
                 <li><a href="{{ url_for('web.wifi_setup') }}"><i class="fas fa-wifi"></i> WiFi</a></li>
                 <li><a href="{{ url_for('web.settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
-                <li style="margin-top: auto; border-top: 1px solid #444;">
-                    <a href="#" onclick="toggleKeyboard(event)"><i class="fas fa-keyboard"></i> Keyboard</a>
-                </li>
             </ul>
         </nav>
         <main class="main-content">
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <button class="fab-keyboard" onclick="toggleKeyboard(event)" title="Toggle Keyboard">
+        <i class="fas fa-keyboard"></i>
+    </button>
+
     <script>
         // Keyboard Toggle Function
         function toggleKeyboard(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             fetch('/api/toggle-keyboard', { method: 'POST' })
                 .then(res => res.json())
-                .then(data => console.log(data.message))
                 .catch(err => console.error('Keyboard toggle failed', err));
         }
 
-        // Auto-focus management
+        // Auto-show keyboard when clicking inputs
         document.addEventListener('DOMContentLoaded', function() {
-            const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], textarea');
-            textInputs.forEach(input => {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="password"], textarea, input[type="number"]');
+            
+            inputs.forEach(input => {
                 input.addEventListener('focus', function() {
+                    // 1. Scroll into view
                     this.scrollIntoView({behavior: 'smooth', block: 'center'});
-                    // Optional: Auto-trigger keyboard on focus
-                    // toggleKeyboard(new Event('focus')); 
+                    
+                    // 2. Trigger Keyboard
+                    console.log("Input focused, requesting keyboard...");
+                    toggleKeyboard(); 
                 });
             });
         });
