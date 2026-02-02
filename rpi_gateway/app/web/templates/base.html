@@ -20,6 +20,9 @@
                 <li><a href="{{ url_for('web.ai_insights') }}"><i class="fas fa-brain"></i> AI Insights</a></li>
                 <li><a href="{{ url_for('web.wifi_setup') }}"><i class="fas fa-wifi"></i> WiFi</a></li>
                 <li><a href="{{ url_for('web.settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li style="margin-top: auto; border-top: 1px solid #444;">
+                    <a href="#" onclick="toggleKeyboard(event)"><i class="fas fa-keyboard"></i> Keyboard</a>
+                </li>
             </ul>
         </nav>
         <main class="main-content">
@@ -27,13 +30,23 @@
         </main>
     </div>
     <script>
-        // Auto-focus management for text inputs (helps trigger OSK)
+        // Keyboard Toggle Function
+        function toggleKeyboard(e) {
+            e.preventDefault();
+            fetch('/api/toggle-keyboard', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => console.log(data.message))
+                .catch(err => console.error('Keyboard toggle failed', err));
+        }
+
+        // Auto-focus management
         document.addEventListener('DOMContentLoaded', function() {
             const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], textarea');
             textInputs.forEach(input => {
                 input.addEventListener('focus', function() {
-                    // Scroll input into view for better UX with OSK
                     this.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    // Optional: Auto-trigger keyboard on focus
+                    // toggleKeyboard(new Event('focus')); 
                 });
             });
         });

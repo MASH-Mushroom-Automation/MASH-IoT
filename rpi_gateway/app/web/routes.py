@@ -151,6 +151,10 @@ def get_live_data():
         'spawning', spawning_data, spawning_targets
     )
     
+    # [FIX] Get LIVE backend status from the client object, not the static app variable
+    backend_client = getattr(current_app, 'backend_client', None)
+    backend_connected = backend_client.is_connected if backend_client else False
+
     return {
         "fruiting_data": fruiting_data,
         "spawning_data": spawning_data,
@@ -164,7 +168,7 @@ def get_live_data():
         "fruiting_condition_class": fruiting_condition_class,
         "spawning_condition": spawning_condition,
         "spawning_condition_class": spawning_condition_class,
-        "backend_connected": getattr(current_app, 'backend_connected', False),
+        "backend_connected": backend_connected,  # Uses the live check
         "arduino_connected": serial_comm.is_connected if serial_comm else False
     }
 
@@ -289,7 +293,9 @@ def settings():
     if serial_comm:
         context['arduino_connected'] = serial_comm.is_connected
     
-    context['backend_connected'] = getattr(current_app, 'backend_connected', False)
+    # [FIX] Get LIVE backend status
+    backend_client = getattr(current_app, 'backend_client', None)
+    context['backend_connected'] = backend_client.is_connected if backend_client else False
     
     return render_template('settings.html', **context)
 
@@ -570,27 +576,36 @@ def actuator_states():
 @web_bp.route('/api/toggle-keyboard', methods=['POST'])
 def toggle_keyboard():
     """
-    API endpoint to toggle on-screen keyboard (matchbox-keyboard).
-    Uses xdotool to send toggle command to keyboard process.
+    API endpoint to toggle on-screen keyboard.
+    Supports Onboard (via DBus) and Matchbox (legacy).
     """
     try:
         import subprocess
-        # Try to toggle matchbox-keyboard window
+        
+        # 1. Try Onboard (The new keyboard we installed)
+        # Onboard uses DBus to toggle visibility cleanly
+        try:
+            subprocess.run([
+                'dbus-send', '--type=method_call', '--dest=org.onboard.Onboard',
+                '/org/onboard/Onboard/Keyboard', 'org.onboard.Onboard.Keyboard.ToggleVisible'
+            ], check=True, timeout=1)
+            return jsonify({"success": True, "message": "Onboard toggled"})
+        except Exception:
+            # If Onboard DBus fails, maybe it's not running or we are on Matchbox
+            pass
+
+        # 2. Legacy Fallback: Matchbox-keyboard
         result = subprocess.run(['pkill', '-USR1', 'matchbox-keyboard'], 
                               capture_output=True, timeout=2)
         
         if result.returncode == 0:
-            return jsonify({"success": True, "message": "Keyboard toggled"})
+            return jsonify({"success": True, "message": "Matchbox keyboard toggled"})
         else:
-            # Fallback: try to show/hide window
+            # 3. Last Resort: xdotool to activate window
             subprocess.run(['xdotool', 'search', '--name', 'Keyboard', 'windowactivate'],
                          capture_output=True, timeout=2)
             return jsonify({"success": True, "message": "Keyboard window activated"})
             
-    except subprocess.TimeoutExpired:
-        return jsonify({"success": False, "message": "Keyboard toggle timeout"}), 500
-    except FileNotFoundError:
-        return jsonify({"success": False, "message": "xdotool or keyboard not found"}), 500
     except Exception as e:
         logger.error(f"Keyboard toggle error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
