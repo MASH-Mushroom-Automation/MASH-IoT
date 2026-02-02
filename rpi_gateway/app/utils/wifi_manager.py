@@ -154,7 +154,7 @@ def disconnect_wifi():
             print("[INFO] No active WiFi connection to disconnect")
             return True
         
-        # Try to disconnect
+        # Try to disconnect (first attempt)
         result = subprocess.run(
             f"nmcli connection down '{current}'",
             shell=True,
@@ -168,10 +168,31 @@ def disconnect_wifi():
         new_current = get_current_network()
         
         if new_current == current:
-            print(f"[FAIL] Still connected to {current} - disconnect failed")
-            print(f"[DEBUG] nmcli output: {result.stdout}")
-            print(f"[DEBUG] nmcli error: {result.stderr}")
-            return False
+            # First attempt failed, try with pkexec (GUI auth prompt)
+            print(f"[WARN] First disconnect attempt failed, trying pkexec...")
+            print(f"[DEBUG] nmcli stdout: {result.stdout}")
+            print(f"[DEBUG] nmcli stderr: {result.stderr}")
+            
+            # Try pkexec method
+            result2 = subprocess.run(
+                f"pkexec nmcli connection down '{current}'",
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            
+            time.sleep(2)
+            new_current = get_current_network()
+            
+            if new_current == current:
+                print(f"[FAIL] Still connected to {current} - both disconnect methods failed")
+                print(f"[DEBUG] pkexec stdout: {result2.stdout}")
+                print(f"[DEBUG] pkexec stderr: {result2.stderr}")
+                return False
+            else:
+                print(f"[SUCCESS] Disconnected from {current} using pkexec")
+                return True
         else:
             print(f"[SUCCESS] Disconnected from {current}")
             return True

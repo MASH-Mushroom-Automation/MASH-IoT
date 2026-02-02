@@ -199,7 +199,7 @@ async function loadWiFiStatus() {
         if (data.mode === 'station') {
             // Connected to WiFi
             container.innerHTML = `
-                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
                     <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #4CAF50;">Connected</span></p>
                     <p style="margin: 5px 0;"><strong>Network:</strong> ${data.ssid}</p>
                     <p style="margin: 5px 0;"><strong>IP Address:</strong> ${data.ip}</p>
@@ -210,7 +210,7 @@ async function loadWiFiStatus() {
         } else if (data.mode === 'hotspot') {
             // In provisioning mode
             container.innerHTML = `
-                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
+                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
                     <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #ff9800;">Provisioning Mode</span></p>
                     <p style="margin: 5px 0;"><strong>Hotspot SSID:</strong> ${data.ssid}</p>
                     <p style="margin: 5px 0;"><strong>IP Address:</strong> ${data.ip}</p>
@@ -225,7 +225,7 @@ async function loadWiFiStatus() {
         } else {
             // Disconnected
             container.innerHTML = `
-                <div style="background: #ffebee; padding: 15px; border-radius: 8px; border-left: 4px solid #f44336;">
+                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #f44336;">
                     <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #f44336;">Disconnected</span></p>
                     <p style="margin: 5px 0;">No network connection</p>
                 </div>
