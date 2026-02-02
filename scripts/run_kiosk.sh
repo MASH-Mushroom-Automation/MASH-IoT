@@ -11,9 +11,6 @@ if [ -z "$CHROMIUM_CMD" ]; then
     exit 1
 fi
 
-# Start on-screen keyboard (hidden by default, press keyboard icon to show)
-matchbox-keyboard -s 50 extended &
-
 # Launch Chromium in kiosk mode using the found path
 $CHROMIUM_CMD \
     --disable-gpu \

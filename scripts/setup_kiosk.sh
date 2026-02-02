@@ -1,13 +1,13 @@
 #!/bin/bash
-# M.A.S.H. IoT - CLI Kiosk Setup (Better Keyboard)
-# 1. FIXES: Replaces clunky matchbox-keyboard with 'onboard' (Smartphone style).
-# 2. CONFIG: Auto-docks to bottom, distinct keys, high contrast.
-# 3. KEEPS: Splash Screen, Auto-start, Resolution Fix.
+# M.A.S.H. IoT - CLI Kiosk Setup
+# 1. Configures Chromium kiosk mode for touchscreen
+# 2. Sets up Flask backend service
+# 3. Includes splash screen and auto-start
 
 set -e
 
 echo "========================================="
-echo " M.A.S.H. IoT - Kiosk Setup (Onboard)"
+echo " M.A.S.H. IoT - Kiosk Setup"
 echo "========================================="
 
 # Check if running as normal user
@@ -25,9 +25,10 @@ chmod +x "$PROJECT_DIR/scripts/"*.sh 2>/dev/null || true
 # ---------------------------------------------------------
 # 1. CLEANUP (Remove old settings)
 # ---------------------------------------------------------
-echo "[1/5] Removing broken config files..."
+echo "[1/5] Removing old config files..."
 rm "$HOME/.config/autostart/mash-kiosk.desktop" 2>/dev/null || true
 rm "$HOME/.xinitrc" 2>/dev/null || true
+rm -rf "$HOME/.config/onboard" 2>/dev/null || true
 
 # ---------------------------------------------------------
 # 2. SETUP BACKEND
@@ -56,36 +57,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}.service
 
 # ---------------------------------------------------------
-# 3. INSTALL DEPENDENCIES (Switched to Onboard)
+# 3. INSTALL DEPENDENCIES
 # ---------------------------------------------------------
-echo "[3/5] Installing Dependencies & Onboard..."
+echo "[3/5] Installing Dependencies..."
 sudo apt-get update
-# ADDED: onboard (Better UI than matchbox)
-sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit onboard dconf-cli
+sudo apt-get install -y chromium x11-xserver-utils unclutter matchbox-window-manager xinit
 
 # ---------------------------------------------------------
-# 4. CONFIGURE ONBOARD (Make it look good)
+# 4. CREATE LAUNCH SCRIPTS
 # ---------------------------------------------------------
-echo "[4/5] Configuring Keyboard Theme..."
-
-# Configure Onboard settings (Requires dconf)
-# We set it to dock to bottom, force show, and use the "Nightshade" (Dark) theme
-mkdir -p $HOME/.config/onboard
-cat > $HOME/.config/onboard/onboard-defaults.conf <<EOF
-[main]
-layout=Phone
-theme=Nightshade
-x-docking-enabled=True
-dock-gravity=south
-dock-width=100
-dock-height=25
-force-to-top=True
-EOF
-
-# ---------------------------------------------------------
-# 5. CREATE LAUNCH SCRIPTS
-# ---------------------------------------------------------
-echo "[5/5] Writing Launch Scripts..."
+echo "[4/4] Writing Launch Scripts..."
 
 # A. Splash Screen HTML
 IMAGE_PATH="$PROJECT_DIR/assets/splash.png"
@@ -124,12 +105,7 @@ xset s noblank
 # Start Window Manager (Fixes resolution)
 matchbox-window-manager -use_titlebar no &
 
-# Start Onboard Keyboard
-# We force it to start in the background
-onboard &
-
-# Hide Mouse Cursor (Optional - remove if you need mouse to click keys)
-# We use 'idle 5' so if you touch the screen, cursor shows briefly then hides
+# Hide Mouse Cursor
 unclutter -idle 5 &
 
 CHROMIUM_CMD=\$(which chromium || which chromium-browser)
@@ -164,9 +140,11 @@ echo ""
 echo "========================================="
 echo " Setup Complete!"
 echo "========================================="
-echo "1. INSTALLED: 'onboard' keyboard (Phone layout, Dark theme)."
-echo "2. CONFIGURED: Auto-dock to bottom of screen."
-echo "3. NOTE: If keyboard covers inputs, you can drag it by the corner."
+echo "1. Chromium kiosk mode configured"
+echo "2. Flask backend service enabled"
+echo "3. Auto-start on boot configured"
+echo ""
+echo "Web UI uses browser's native input (no OSK needed)"
 echo ""
 echo "** PLEASE REBOOT NOW: **"
 echo "   sudo reboot"
