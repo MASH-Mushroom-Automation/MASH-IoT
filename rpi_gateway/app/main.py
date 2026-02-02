@@ -408,7 +408,7 @@ class MASHOrchestrator:
             # Start mDNS service advertisement for local discovery (optional)
             if MDNS_AVAILABLE:
                 device_config = self.config.get('device', {})
-                device_id = device_config.get('serial_number', 'mash-iot-gateway')
+                device_id = device_config.get('serial_number', 'MASH-Device')
                 device_name = device_config.get('name', 'MASH IoT Chamber')
                 logger.info(f"[mDNS] Starting service advertisement...")
                 mdns_started = start_mdns_service(device_id=device_id, device_name=device_name, port=port)

@@ -676,7 +676,7 @@ def provisioning_info():
                 'ip_address': wifi_manager.get_local_ip() or '10.42.0.1',
                 'password_protected': False,  # Provisioning hotspot is open
                 'channel': 6,  # Default channel for 2.4GHz
-                'device_id': device_config.get('serial_number', 'mash-iot-gateway'),
+                'device_id': device_config.get('serial_number', 'MASH-Device'),
                 'network_connected': network_connected,
                 'current_connection': {
                     'ssid': current_network,

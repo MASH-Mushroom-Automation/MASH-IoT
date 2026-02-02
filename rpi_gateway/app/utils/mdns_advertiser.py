@@ -56,7 +56,7 @@ class MDNSAdvertiser:
     Advertises MASH IoT Gateway on local network via mDNS/Zeroconf
     """
     
-    def __init__(self, device_id: str = "mash-iot-gateway", device_name: str = "MASH IoT Chamber", port: int = 5000):
+    def __init__(self, device_id: str = "MASH-Device", device_name: str = "MASH IoT Chamber", port: int = 5000):
         """
         Initialize mDNS advertiser
         
@@ -181,7 +181,7 @@ class MDNSAdvertiser:
 # Global instance
 _mdns_advertiser: Optional[MDNSAdvertiser] = None
 
-def start_mdns_service(device_id: str = "mash-iot-gateway", device_name: str = "MASH IoT Chamber", port: int = 5000) -> bool:
+def start_mdns_service(device_id: str = "MASH-Device", device_name: str = "MASH IoT Chamber", port: int = 5000) -> bool:
     """
     Start mDNS service advertisement (module-level function)
     
