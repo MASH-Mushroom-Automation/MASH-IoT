@@ -354,23 +354,40 @@ def wifi_connect():
 
 @web_bp.route('/wifi-disconnect', methods=['POST'])
 def wifi_disconnect():
-    """Disconnect from current WiFi network."""
+    """Disconnect from current WiFi network and start hotspot."""
     from app.utils import wifi_manager
+    import threading
+    import time
     
     current = wifi_manager.get_current_network()
     
+    # Attempt disconnect
     if wifi_manager.disconnect_wifi():
         logger.info(f"Successfully disconnected from {current}")
+        
+        # Start hotspot in background thread
+        def start_hotspot_delayed():
+            time.sleep(3)  # Give disconnect time to complete
+            logger.info("[WIFI] Starting provisioning hotspot...")
+            success = wifi_manager.start_hotspot()
+            if success:
+                logger.info("[WIFI] ✅ Hotspot started successfully")
+            else:
+                logger.error("[WIFI] ❌ Failed to start hotspot")
+        
+        thread = threading.Thread(target=start_hotspot_delayed)
+        thread.daemon = True
+        thread.start()
+        
         return jsonify({
             'success': True,
-            'message': f'Disconnected from {current}' if current else 'Disconnected',
-            'previous_network': current
+            'message': f'Disconnected from {current}. Starting provisioning hotspot...' if current else 'Disconnected. Starting provisioning hotspot...'
         })
     else:
-        logger.error("Failed to disconnect from WiFi")
+        logger.error(f"Failed to disconnect from WiFi: {current}")
         return jsonify({
             'success': False,
-            'message': 'Failed to disconnect from WiFi'
+            'error': 'Failed to disconnect from WiFi. You may need to run the app with sudo privileges or configure PolicyKit permissions.'
         }), 500
 
 

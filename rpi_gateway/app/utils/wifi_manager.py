@@ -144,18 +144,41 @@ def load_wifi_credentials():
 def disconnect_wifi():
     """
     Disconnect from current WiFi network.
+    Returns True only if disconnect actually succeeded.
     """
     print("[*] Disconnecting from WiFi...")
     try:
         # Get current connection
         current = get_current_network()
-        if current:
-            run_command(f"nmcli connection down '{current}'", ignore_fail=True)
-            print(f"[SUCCESS] Disconnected from {current}")
-            return True
-        else:
+        if not current:
             print("[INFO] No active WiFi connection to disconnect")
             return True
+        
+        # Try to disconnect
+        result = subprocess.run(
+            f"nmcli connection down '{current}'",
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # Check if actually disconnected
+        time.sleep(2)  # Wait for disconnect to take effect
+        new_current = get_current_network()
+        
+        if new_current == current:
+            print(f"[FAIL] Still connected to {current} - disconnect failed")
+            print(f"[DEBUG] nmcli output: {result.stdout}")
+            print(f"[DEBUG] nmcli error: {result.stderr}")
+            return False
+        else:
+            print(f"[SUCCESS] Disconnected from {current}")
+            return True
+            
+    except subprocess.TimeoutExpired:
+        print("[!] Disconnect timeout")
+        return False
     except Exception as e:
         print(f"[!] Error disconnecting: {e}")
         return False
