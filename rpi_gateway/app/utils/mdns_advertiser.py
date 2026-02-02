@@ -10,9 +10,46 @@ Requirements:
 """
 
 import socket
+import re
 from zeroconf import ServiceInfo, Zeroconf
 from typing import Optional
 import time
+
+def sanitize_device_id(device_id: str) -> str:
+    """
+    Sanitize device ID for mDNS service name (RFC 6763 compliant)
+    
+    Rules:
+    - Only alphanumeric, hyphens, and underscores
+    - Must start with letter or digit
+    - Max 63 characters
+    - Convert to lowercase
+    
+    Args:
+        device_id: Raw device identifier
+        
+    Returns:
+        Sanitized device ID safe for mDNS
+    """
+    # Convert to lowercase
+    sanitized = device_id.lower()
+    
+    # Replace invalid characters with hyphens
+    sanitized = re.sub(r'[^a-z0-9\-_]', '-', sanitized)
+    
+    # Ensure starts with alphanumeric
+    sanitized = re.sub(r'^[^a-z0-9]+', '', sanitized)
+    
+    # Remove consecutive hyphens
+    sanitized = re.sub(r'-+', '-', sanitized)
+    
+    # Trim to 63 characters
+    sanitized = sanitized[:63]
+    
+    # Remove trailing hyphen
+    sanitized = sanitized.rstrip('-')
+    
+    return sanitized or 'mash-device'  # Fallback if empty
 
 class MDNSAdvertiser:
     """
@@ -24,15 +61,17 @@ class MDNSAdvertiser:
         Initialize mDNS advertiser
         
         Args:
-            device_id: Unique identifier for this device
+            device_id: Unique identifier for this device (will be sanitized)
             device_name: Human-readable name
             port: Flask web server port
         """
-        self.device_id = device_id
+        self.device_id = sanitize_device_id(device_id)
         self.device_name = device_name
         self.port = port
         self.zeroconf: Optional[Zeroconf] = None
         self.service_info: Optional[ServiceInfo] = None
+        
+        print(f"[mDNS] Initialized with ID: {self.device_id} (from: {device_id})")
         
     def get_local_ip(self) -> str:
         """
@@ -78,6 +117,8 @@ class MDNSAdvertiser:
                 'api_version': 'v1',
                 'device_id': self.device_id,
                 'manufacturer': 'MASH',
+                'port': str(self.port),
+                'protocol': 'http',
             }
             
             self.service_info = ServiceInfo(
@@ -92,10 +133,13 @@ class MDNSAdvertiser:
             # Register service
             self.zeroconf.register_service(self.service_info)
             
-            print(f"[mDNS] ✓ Service advertised: {service_name}")
-            print(f"[mDNS]   IP: {local_ip}")
+            print(f"[mDNS] ✓ Service advertised successfully")
+            print(f"[mDNS]   Service Name: {service_name}")
+            print(f"[mDNS]   Device ID: {self.device_id}")
+            print(f"[mDNS]   Display Name: {self.device_name}")
+            print(f"[mDNS]   IP Address: {local_ip}")
             print(f"[mDNS]   Port: {self.port}")
-            print(f"[mDNS]   Name: {self.device_name}")
+            print(f"[mDNS]   Browse for: avahi-browse -r _mash-iot._tcp")
             
             return True
             
