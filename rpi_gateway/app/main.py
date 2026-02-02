@@ -22,7 +22,19 @@ from database.db_manager import DatabaseManager
 from cloud.backend_api import BackendAPIClient
 from web.routes import web_bp
 from utils.user_preferences import UserPreferencesManager
-from utils.mdns_advertiser import start_mdns_service, stop_mdns_service
+
+# Optional mDNS support - app will work without it
+try:
+    from utils.mdns_advertiser import start_mdns_service, stop_mdns_service
+    MDNS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"[mDNS] Module not available: {e}")
+    logger.warning("[mDNS] Device discovery via mDNS will be disabled")
+    MDNS_AVAILABLE = False
+    def start_mdns_service(*args, **kwargs):
+        return False
+    def stop_mdns_service():
+        pass
 
 logging.basicConfig(
     level=logging.INFO,
@@ -383,14 +395,18 @@ class MASHOrchestrator:
             }
             self.app.config['DB'] = self.db
             
-            # Start mDNS service advertisement for local discovery
-            device_id = device_config.get('serial_number', 'mash-iot-gateway')
-            device_name = device_config.get('name', 'MASH IoT Chamber')
-            logger.info(f"[mDNS] Starting service advertisement...")
-            mdns_started = start_mdns_service(device_id=device_id, device_name=device_name, port=port)
-            if not mdns_started:
-                logger.warning("[mDNS] Failed to start mDNS - device won't be discoverable via mDNS")
-                logger.warning("[mDNS] Install avahi-daemon: sudo apt-get install avahi-daemon")
+            # Start mDNS service advertisement for local discovery (optional)
+            if MDNS_AVAILABLE:
+                device_config = self.config.get('device', {})
+                device_id = device_config.get('serial_number', 'mash-iot-gateway')
+                device_name = device_config.get('name', 'MASH IoT Chamber')
+                logger.info(f"[mDNS] Starting service advertisement...")
+                mdns_started = start_mdns_service(device_id=device_id, device_name=device_name, port=port)
+                if not mdns_started:
+                    logger.warning("[mDNS] Failed to start mDNS - device won't be discoverable via mDNS")
+                    logger.warning("[mDNS] Install: pip install zeroconf && sudo apt-get install avahi-daemon")
+            else:
+                logger.info("[mDNS] Module not installed - device discovery disabled")
             
             logger.info(f"[WEB] Starting Flask server on {host}:{port}")
             logger.info(f"[WEB] Access dashboard at: http://{host}:{port}/dashboard")
