@@ -147,6 +147,9 @@ class MushroomAI:
         # Humidifier cycle manager
         self.humidifier_cycle = HumidifierCycleManager()
         
+        # Track last sent commands to avoid duplicates
+        self.last_cycle_commands = {}
+        
         # Humidity control state tracking
         self.last_humidity_readings = []  # Track last 3 readings for trend analysis
         self.humidity_rising_rate = 0  # Rate of humidity increase (% per second)

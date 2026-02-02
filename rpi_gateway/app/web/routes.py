@@ -474,6 +474,8 @@ def control_actuator():
             else:
                 # Stop the humidifier cycle
                 orchestrator.ai.humidifier_cycle.stop_cycle()
+                # Clear command tracking
+                orchestrator.ai.last_cycle_commands = {}
                 logger.info("[MANUAL] Stopped humidifier cycle")
                 
                 # Immediately turn off both actuators
