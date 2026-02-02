@@ -117,29 +117,35 @@
     }
     
     async function disconnectWiFi() {
-        if (!confirm('Are you sure you want to disconnect from WiFi?')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch('/wifi-disconnect', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        showConfirm(
+            'Are you sure you want to disconnect from WiFi? Device will enter provisioning mode.',
+            async function() {
+                try {
+                    const response = await fetch('/wifi-disconnect', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showSuccess('Disconnected successfully!');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showError('Failed to disconnect: ' + result.message);
+                    }
+                } catch (error) {
+                    showError('Error disconnecting: ' + error.message);
                 }
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                alert('Disconnected successfully!');
-                location.reload();
-            } else {
-                alert('Failed to disconnect: ' + result.message);
+            },
+            {
+                title: 'Disconnect WiFi',
+                icon: 'fa-unlink',
+                danger: true
             }
-        } catch (error) {
-            alert('Error disconnecting: ' + error.message);
-        }
+        );
     }
 </script>
 {% endblock %}

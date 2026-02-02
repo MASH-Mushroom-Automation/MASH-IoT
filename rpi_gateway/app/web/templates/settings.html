@@ -5,111 +5,124 @@
 <h1 class="page-title">System Settings</h1>
 
 <div class="content-area">
+    <!-- WiFi Status Card (Full Width) -->
+    <div class="card" style="margin-bottom: 25px;">
+        <div class="card-header">
+            <i class="fas fa-wifi"></i>
+            <h3>WiFi Connection</h3>
+        </div>
+        <div class="card-body">
+            <div id="wifi-status-container" style="margin-bottom: 15px;">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading WiFi status...
+                </div>
+            </div>
+            
+            <div id="wifi-controls" style="display: none;">
+                <button id="disconnect-btn" class="setting-button" style="background: linear-gradient(135deg, #f44336, #d32f2f);">
+                    <i class="fas fa-unlink"></i> Disconnect and Enable Provisioning
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        <!-- WiFi Status and Control -->
-        <div class="setting-card">
-            <div class="setting-icon">
-                <i class="fas fa-wifi"></i>
-            </div>
-            <div class="setting-content">
-                <h3>WiFi Connection</h3>
-                <p>View current network status and manage connection</p>
-                
-                <div id="wifi-status-container" style="margin-top: 20px;">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Loading WiFi status...
-                    </div>
-                </div>
-                
-                <div id="wifi-controls" style="margin-top: 20px; display: none;">
-                    <!-- Disconnect button (shown when connected) -->
-                    <button id="disconnect-btn" class="setting-button" style="background: #f44336;">
-                        <i class="fas fa-unlink"></i> Disconnect and Enable Provisioning
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="setting-card">
-            <div class="setting-icon">
+        <div class="card">
+            <div class="card-header">
                 <i class="fas fa-info-circle"></i>
+                <h3>System Information</h3>
             </div>
-            <h3>System Information</h3>
-            <p class="setting-description">
-                View device details, firmware version, and system diagnostics.
-            </p>
-            <button class="setting-button" onclick="alert('System info coming soon!')">
-                <i class="fas fa-desktop"></i> View Info
-            </button>
+            <div class="card-body">
+                <p style="color: #bbb; margin-bottom: 20px;">
+                    View device details, firmware version, and system diagnostics.
+                </p>
+                <button class="setting-button" onclick="showAlert('System information feature coming soon!')">
+                    <i class="fas fa-desktop"></i> View Info
+                </button>
+            </div>
         </div>
         
-        <div class="setting-card">
-            <div class="setting-icon">
+        <div class="card">
+            <div class="card-header">
                 <i class="fas fa-database"></i>
+                <h3>Data Management</h3>
             </div>
-            <h3>Data Management</h3>
-            <p class="setting-description">
-                Manage sensor data, export logs, and configure data retention policies.
-            </p>
-            <button class="setting-button" onclick="alert('Data management coming soon!')">
-                <i class="fas fa-download"></i> Manage Data
-            </button>
+            <div class="card-body">
+                <p style="color: #bbb; margin-bottom: 20px;">
+                    Manage sensor data, export logs, and configure data retention policies.
+                </p>
+                <button class="setting-button" onclick="showAlert('Data management feature coming soon!')">
+                    <i class="fas fa-download"></i> Manage Data
+                </button>
+            </div>
         </div>
         
-        <div class="setting-card">
-            <div class="setting-icon">
+        <div class="card">
+            <div class="card-header">
                 <i class="fas fa-cloud"></i>
+                <h3>Cloud Sync</h3>
             </div>
-            <h3>Cloud Sync</h3>
-            <p class="setting-description">
-                Configure backend API connection and data synchronization settings.
-            </p>
-            <button class="setting-button" onclick="alert('Cloud settings coming soon!')">
-                <i class="fas fa-sync"></i> Configure Sync
-            </button>
+            <div class="card-body">
+                <p style="color: #bbb; margin-bottom: 20px;">
+                    Configure backend API connection and data synchronization settings.
+                </p>
+                <button class="setting-button" onclick="showAlert('Cloud sync configuration coming soon!')">
+                    <i class="fas fa-sync"></i> Configure Sync
+                </button>
+            </div>
         </div>
         
-        <div class="setting-card">
-            <div class="setting-icon">
+        <div class="card">
+            <div class="card-header">
                 <i class="fas fa-robot"></i>
+                <h3>Automation Rules</h3>
             </div>
-            <h3>Automation Rules</h3>
-            <p class="setting-description">
-                Configure automatic control rules, thresholds, and schedules for optimal growing conditions.
-            </p>
-            <a href="{{ url_for('web.controls') }}" class="setting-button">
-                <i class="fas fa-sliders-h"></i> Configure Rules
-            </a>
+            <div class="card-body">
+                <p style="color: #bbb; margin-bottom: 20px;">
+                    Configure automatic control rules, thresholds, and schedules for optimal growing conditions.
+                </p>
+                <a href="{{ url_for('web.controls') }}" class="setting-button">
+                    <i class="fas fa-sliders-h"></i> Configure Rules
+                </a>
+            </div>
         </div>
         
-        <div class="setting-card">
-            <div class="setting-icon">
+        <div class="card">
+            <div class="card-header">
                 <i class="fas fa-bell"></i>
+                <h3>Notifications</h3>
             </div>
-            <h3>Notifications</h3>
-            <p class="setting-description">
-                Configure alert notifications, email settings, and notification preferences.
-            </p>
-            <button class="setting-button" onclick="alert('Notifications coming soon!')">
-                <i class="fas fa-envelope"></i> Configure Alerts
-            </button>
+            <div class="card-body">
+                <p style="color: #bbb; margin-bottom: 20px;">
+                    Configure alert notifications, email settings, and notification preferences.
+                </p>
+                <button class="setting-button" onclick="showAlert('Notification settings coming soon!')">
+                    <i class="fas fa-envelope"></i> Configure Alerts
+                </button>
+            </div>
         </div>
     </div>
     
-    <div class="info-card warning" style="margin-top: 30px;">
-        <div class="info-header">
-            <i class="fas fa-exclamation-triangle"></i>
+    <!-- System Actions -->
+    <div class="card" style="margin-top: 25px; border-color: #ff9800;">
+        <div class="card-header" style="background: rgba(255, 152, 0, 0.1);">
+            <i class="fas fa-exclamation-triangle" style="color: #ff9800;"></i>
             <h3>System Actions</h3>
         </div>
-        <div class="info-body">
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
-                <button class="action-button danger" onclick="if(confirm('Restart the system?')) alert('Restart initiated')">
+        <div class="card-body">
+            <p style="color: #ff9800; margin-bottom: 20px;">
+                <i class="fas fa-info-circle"></i>
+                Perform system-level actions. Use with caution.
+            </p>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <button class="action-button danger" onclick="handleRestart()">
                     <i class="fas fa-redo"></i> Restart System
                 </button>
-                <button class="action-button danger" onclick="if(confirm('Clear all data?')) alert('Data cleared')">
+                <button class="action-button danger" onclick="handleClearData()">
                     <i class="fas fa-trash"></i> Clear Data
                 </button>
-                <button class="action-button" onclick="alert('Factory reset coming soon!')">
+                <button class="action-button" onclick="showAlert('Factory reset feature coming soon!', {icon: 'fa-undo'})">
                     <i class="fas fa-undo"></i> Factory Reset
                 </button>
             </div>
@@ -118,44 +131,6 @@
 </div>
 
 <style>
-.setting-card {
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 25px;
-    border: 1px solid #444;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.setting-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.2);
-}
-
-.setting-icon {
-    font-size: 3em;
-    color: #4CAF50;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.setting-card h3 {
-    color: #e0e0e0;
-    margin-bottom: 12px;
-    font-size: 1.3em;
-    text-align: center;
-}
-
-.setting-description {
-    color: #bbb;
-    font-size: 0.95em;
-    line-height: 1.6;
-    text-align: center;
-    flex-grow: 1;
-    margin-bottom: 20px;
-}
-
 .setting-button {
     display: flex;
     align-items: center;
@@ -170,6 +145,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+    width: 100%;
 }
 
 .setting-button:hover {
@@ -178,7 +154,7 @@
 }
 
 .action-button {
-    padding: 10px 20px;
+    padding: 12px 20px;
     background: #666;
     color: white;
     border: none;
@@ -193,14 +169,15 @@
 
 .action-button:hover {
     background: #777;
+    transform: scale(1.02);
 }
 
 .action-button.danger {
-    background: #f44336;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
 }
 
 .action-button.danger:hover {
-    background: #d32f2f;
+    background: linear-gradient(135deg, #d32f2f, #c62828);
 }
 </style>
 
@@ -263,7 +240,66 @@ async function loadWiFiStatus() {
     }
 }
 
-// Disconnect from WiFi
+// Disconnect from WiFi with custom modal
+function handleDisconnect() {
+    showConfirm(
+        'Disconnect from current network? Device will enter provisioning mode and start the hotspot.',
+        async function() {
+            try {
+                const response = await fetch('/wifi-disconnect', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Disconnected successfully! Device is now in provisioning mode.');
+                    setTimeout(loadWiFiStatus, 2000);
+                } else {
+                    showError('Failed to disconnect: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error disconnecting: ' + error.message);
+            }
+        },
+        {
+            title: 'Disconnect WiFi',
+            icon: 'fa-unlink',
+            danger: true,
+            confirmText: 'Disconnect'
+        }
+    );
+}
+
+// System action handlers
+function handleRestart() {
+    showConfirm(
+        'Are you sure you want to restart the system? This will temporarily interrupt monitoring.',
+        function() {
+            showAlert('System restart feature coming soon!', {icon: 'fa-redo'});
+        },
+        {
+            title: 'Restart System',
+            icon: 'fa-exclamation-triangle',
+            danger: true,
+            confirmText: 'Restart'
+        }
+    );
+}
+
+function handleClearData() {
+    showConfirm(
+        'Are you sure you want to clear all sensor data? This action cannot be undone.',
+        function() {
+            showAlert('Clear data feature coming soon!', {icon: 'fa-trash'});
+        },
+        {
+            title: 'Clear All Data',
+            icon: 'fa-exclamation-triangle',
+            danger: true,
+            confirmText: 'Clear Data'
+        }
+    );
+}
+
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadWiFiStatus();
     
@@ -271,25 +307,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(loadWiFiStatus, 10000);
     
     // Disconnect button handler
-    document.getElementById('disconnect-btn').addEventListener('click', async function() {
-        if (!confirm('Disconnect from current network? Device will enter provisioning mode.')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch('/wifi-disconnect', { method: 'POST' });
-            const data = await response.json();
-            
-            if (data.success) {
-                alert('Disconnected successfully. Device is now in provisioning mode.');
-                setTimeout(loadWiFiStatus, 2000);
-            } else {
-                alert('Failed to disconnect: ' + data.error);
-            }
-        } catch (error) {
-            alert('Error disconnecting: ' + error.message);
-        }
-    });
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', handleDisconnect);
+    }
 });
 </script>
 
