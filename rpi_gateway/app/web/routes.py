@@ -467,7 +467,7 @@ def get_wifi_mode():
                 'success': True,
                 'mode': 'station',
                 'ssid': wifi_manager.get_current_network(),
-                'ip': '192.168.x.x'  # TODO: Get actual IP
+                'ip': wifi_manager.get_local_ip() or '0.0.0.0'
             })
         else:
             return jsonify({
@@ -498,6 +498,47 @@ def scan_wifi_networks():
         
     except Exception as e:
         logger.error(f"[API] WiFi scan error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/api/wifi-connect', methods=['POST'])
+def api_wifi_connect():
+    """API endpoint to connect to WiFi (used by mobile app)."""
+    from app.utils import wifi_manager
+    import threading
+    
+    try:
+        payload = request.get_json(silent=True) or {}
+        ssid = payload.get('ssid') or request.form.get('ssid') or request.form.get('ssid_select')
+        password = payload.get('password') or request.form.get('password') or ''
+
+        if not ssid:
+            return jsonify({'success': False, 'error': 'SSID is required'}), 400
+
+        logger.info(f"[API] WiFi connect requested for: {ssid}")
+
+        def delayed_switch(target_ssid: str, target_password: str):
+            import time
+            time.sleep(2)
+            success = wifi_manager.connect_to_wifi(target_ssid, target_password)
+            if success:
+                logger.info(f"[API] Connected to {target_ssid}")
+            else:
+                logger.warning(f"[API] Failed to connect to {target_ssid}, restarting hotspot")
+                wifi_manager.start_hotspot()
+
+        thread = threading.Thread(target=delayed_switch, args=(ssid, password))
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'message': f'Connecting to {ssid}',
+            'ssid': ssid,
+            'ip_address': wifi_manager.get_local_ip() or wifi_manager.HOTSPOT_IP
+        })
+    except Exception as e:
+        logger.error(f"[API] WiFi connect error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
