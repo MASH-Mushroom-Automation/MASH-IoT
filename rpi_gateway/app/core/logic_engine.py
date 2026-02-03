@@ -153,6 +153,12 @@ class MushroomAI:
         # Humidity control state tracking
         self.last_humidity_readings = []  # Track last 3 readings for trend analysis
         self.humidity_rising_rate = 0  # Rate of humidity increase (% per second)
+
+        # Track last valid readings for filtering (per room)
+        self.last_valid_readings = {
+            "fruiting": None,
+            "spawning": None
+        }
         
         if self.ml_enabled:
             self._load_models()
@@ -248,27 +254,98 @@ class MushroomAI:
         Returns:
             Dict with keys {fan, mist, light} and values "on" or "off"
         """
-        # First check for anomalies
-        is_anomaly, _ = self.detect_anomaly(sensor_data)
-        if is_anomaly:
-            logger.warning(f"Skipping actuation for anomalous {room} data")
-            # Return a safe state for all possible actuators
-            return {
-                "exhaust_fan": "OFF", "intake_fan": "OFF", 
-                "humidity_system": "OFF", "light": "OFF"
-            }
-        
         # Route to the correct logic based on the room
         if room == "fruiting":
-            return self._rule_based_fruiting_actuation(sensor_data)
+            filtered = self._filter_fruiting_sensor_data(sensor_data)
+            if filtered is None:
+                logger.warning("Skipping actuation for FRUITING (no valid filtered data)")
+                return {
+                    "exhaust_fan": "OFF",
+                    "intake_fan": "OFF",
+                    "mist_maker": "OFF",
+                    "humidifier_fan": "OFF",
+                    "led": "OFF"
+                }
+            return self._ml_fruiting_actuation(filtered)
         elif room == "spawning":
+            # Basic anomaly screening for spawning (rule-based fallback)
+            is_anomaly, _ = self._rule_based_anomaly_check(sensor_data)
+            if is_anomaly:
+                logger.warning("Skipping actuation for anomalous spawning data")
+                return {"exhaust_fan": "OFF"}
             return self._rule_based_spawning_actuation(sensor_data)
         else:
             logger.warning(f"Unknown room '{room}', returning safe state.")
             return {
-                "exhaust_fan": "OFF", "intake_fan": "OFF", 
-                "humidity_system": "OFF", "light": "OFF"
+                "exhaust_fan": "OFF",
+                "intake_fan": "OFF",
+                "mist_maker": "OFF",
+                "humidifier_fan": "OFF",
+                "led": "OFF"
             }
+
+    def _filter_fruiting_sensor_data(self, sensor_data: Dict) -> Dict:
+        """
+        Stage 1: Isolation Forest filtering for FRUITING sensor data.
+        If anomalous, fall back to last known valid reading.
+        """
+        is_anomaly, score = self.detect_anomaly(sensor_data)
+        if is_anomaly:
+            last_valid = self.last_valid_readings.get("fruiting")
+            if last_valid:
+                logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); using last valid FRUITING reading")
+                return dict(last_valid)
+            logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); no last valid FRUITING reading")
+            return None
+
+        # Store as last valid and return current
+        self.last_valid_readings["fruiting"] = dict(sensor_data)
+        return sensor_data
+
+    def _ml_fruiting_actuation(self, sensor_data: Dict) -> Dict[str, str]:
+        """
+        Stage 2: Decision Tree actuation for FRUITING data.
+        Falls back to rule-based logic if ML model is unavailable.
+        """
+        if not self.ml_enabled or self.actuator_model is None:
+            logger.info("[ML] Decision Tree unavailable - using rule-based FRUITING logic")
+            return self._rule_based_fruiting_actuation(sensor_data)
+
+        try:
+            current_hour = datetime.now().hour
+            features = np.array([[
+                sensor_data.get('temp', 0),
+                sensor_data.get('humidity', 0),
+                sensor_data.get('co2', 0),
+                current_hour
+            ]])
+
+            prediction = self.actuator_model.predict(features)[0]
+
+            # Model outputs: [fan_state, mist_state, light_state]
+            fan_state = "ON" if int(prediction[0]) == 1 else "OFF"
+            mist_state = "ON" if int(prediction[1]) == 1 else "OFF"
+            light_state = "ON" if int(prediction[2]) == 1 else "OFF"
+
+            # Use decision tree to start/stop the humidifier cycle
+            if mist_state == "ON":
+                self.humidifier_cycle.start_cycle()
+            else:
+                self.humidifier_cycle.stop_cycle()
+
+            humidifier_states = self.humidifier_cycle.get_current_states()
+
+            return {
+                "exhaust_fan": fan_state,
+                "intake_fan": "OFF",
+                "mist_maker": humidifier_states.get("mist_maker", "OFF"),
+                "humidifier_fan": humidifier_states.get("humidifier_fan", "OFF"),
+                "led": light_state
+            }
+
+        except Exception as e:
+            logger.error(f"[ML] Decision Tree actuation failed: {e}")
+            return self._rule_based_fruiting_actuation(sensor_data)
 
     def _calculate_humidity_trend(self, current_humidity: float) -> float:
         """
