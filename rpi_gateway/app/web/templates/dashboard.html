@@ -22,47 +22,64 @@
 <!-- Provisioning Status Banner (Visible only in Hotspot Mode) -->
 <div id="provisioning-banner" style="display: none; background: #ff9800; color: #000; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 8px;">
     <strong><i class="fas fa-exclamation-triangle"></i> Device is in Provisioning Mode (Hotspot Active)</strong>
-    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Connect to WiFi 'RPi_IoT_Provisioning' to configure.</p>
+    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Connect to WiFi 'MASH-Device' to configure.</p>
     <button onclick="openWifiModal()" class="btn-dark" style="margin-top: 8px; padding: 5px 15px; border: none; border-radius: 4px; cursor: pointer; background: #000; color: #fff;">
         <i class="fas fa-cog"></i> Setup WiFi
     </button>
 </div>
 
+
 <!-- WiFi Setup Modal -->
 <div id="wifiSetupModal" class="custom-modal" style="display: none;">
-    <div class="custom-modal-content" style="max-width: 600px;">
+    <div class="custom-modal-content" style="max-width: 500px;">
         <div class="custom-modal-header">
             <i class="fas fa-wifi"></i>
             <h3>WiFi Setup Guide</h3>
             <span class="close-modal" onclick="closeWifiModal()" style="margin-left: auto; cursor: pointer; font-size: 1.5rem;">&times;</span>
         </div>
-        <div class="custom-modal-body" style="text-align: center;">
-            <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="color: #4CAF50; margin-top: 0;">Step 1: Connect to Hotspot</h4>
-                <p>On your mobile or laptop, connect to the WiFi network:</p>
-                <div style="background: #000; padding: 10px; border-radius: 4px; display: inline-block; margin: 10px 0;">
-                    <code style="color: #4CAF50; font-size: 1.2em;">RPi_IoT_Provisioning</code>
+        <div class="custom-modal-body" style="text-align: center; position: relative; min-height: 300px; overflow: hidden;">
+            
+            <!-- Step 1 -->
+            <div id="modal-step-1" class="modal-step" style="transition: transform 0.3s ease-in-out;">
+                <h4 style="color: #4CAF50; margin-top: 10px; margin-bottom: 20px;">Step 1: Connect to Hotspot</h4>
+                <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <p>On your mobile or laptop, connect to the WiFi network:</p>
+                    <div style="background: #000; padding: 15px; border-radius: 6px; display: inline-block; margin: 15px 0; border: 1px solid #333;">
+                        <code style="color: #4CAF50; font-size: 1.3em; font-weight: bold;">MASH-Device</code>
+                    </div>
+                    <p style="font-size: 0.9em; color: #888;">(No password required)</p>
                 </div>
+                <button onclick="nextStep()" class="btn-primary" style="width: 100%; padding: 12px; font-weight: bold;">
+                    Next <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+                </button>
             </div>
 
-            <div style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
-                <h4 style="color: #4CAF50; margin-top: 0;">Step 2: Configure Settings</h4>
-                <p>Scan the QR code below or open the setup page directly:</p>
-                
-                <div id="qr-code-container" style="margin: 15px auto; background: white; padding: 10px; display: inline-block; border-radius: 8px;">
-                    <img id="qr-code-image" src="" alt="Loading QR..." style="max-width: 250px; display: block;">
+            <!-- Step 2 -->
+            <div id="modal-step-2" class="modal-step" style="display: none; transition: transform 0.3s ease-in-out;">
+                <h4 style="color: #4CAF50; margin-top: 10px; margin-bottom: 20px;">Step 2: Configure Settings</h4>
+                <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <p style="margin-bottom: 15px;">Scan this code to open the setup page:</p>
+                    
+                    <div id="qr-code-container" style="margin: 10px auto; background: white; padding: 10px; display: inline-block; border-radius: 8px;">
+                        <img id="qr-code-image" src="" alt="Loading QR..." style="max-width: 200px; display: block;">
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <a href="/wifi-setup" target="_blank" class="btn-primary" style="text-decoration: none; padding: 10px 20px; background: #4CAF50; color: white; border-radius: 5px; display: inline-block; font-size: 0.9em;">
+                            <i class="fas fa-external-link-alt"></i> Open Link Directly
+                        </a>
+                        <p style="font-size: 0.8em; color: #888; margin-top: 10px;">http://10.42.0.1:5000/wifi-setup</p>
+                    </div>
                 </div>
-                
-                <p style="margin-top: 15px;">
-                    <a href="/wifi-setup" target="_blank" class="btn-primary" style="text-decoration: none; padding: 10px 20px; background: #4CAF50; color: white; border-radius: 5px; display: inline-block;">
-                        <i class="fas fa-external-link-alt"></i> Open Setup Page
-                    </a>
-                </p>
-                <p style="font-size: 0.8em; color: #888; margin-top: 10px;">URL: http://10.42.0.1:5000/wifi-setup</p>
+                <button onclick="prevStep()" class="btn-primary" style="background: #333; width: 100%; padding: 12px; font-weight: bold;">
+                    <i class="fas fa-arrow-left" style="margin-right: 5px;"></i> Back
+                </button>
             </div>
+
         </div>
     </div>
 </div>
+
 
 <div id="fruiting-view" class="room-view">
     <div class="room-header">
@@ -166,6 +183,19 @@
 // Modal Functions
 function openWifiModal() {
     document.getElementById('wifiSetupModal').style.display = 'flex';
+    // Reset to step 1
+    document.getElementById('modal-step-1').style.display = 'block';
+    document.getElementById('modal-step-2').style.display = 'none';
+}
+
+function nextStep() {
+    document.getElementById('modal-step-1').style.display = 'none';
+    document.getElementById('modal-step-2').style.display = 'block';
+}
+
+function prevStep() {
+    document.getElementById('modal-step-2').style.display = 'none';
+    document.getElementById('modal-step-1').style.display = 'block';
 }
 
 function closeWifiModal() {

@@ -252,7 +252,7 @@
     </div>
 
     <!-- Current Network Status -->
-    {% if current_network %}
+    {% if current_network and current_network != 'MASH-Device' %}
     <div class="status-card success">
         <div class="status-icon"><i class="fas fa-check-circle"></i></div>
         <div class="status-text">
@@ -269,6 +269,16 @@
     </div>
 
     {% else %}
+    
+    {% if current_network == 'MASH-Device' %}
+    <div class="status-card warning" style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.05)); border-color: rgba(33, 150, 243, 0.4); color: #64b5f6;">
+        <div class="status-icon" style="background: rgba(0,0,0,0.2);"><i class="fas fa-cog"></i></div>
+        <div class="status-text">
+            <h3>Provisioning Mode</h3>
+            <p>Connected to device hotspot. Ready to configure WiFi.</p>
+        </div>
+    </div>
+    {% else %}
     <div class="status-card warning">
         <div class="status-icon"><i class="fas fa-exclamation-triangle"></i></div>
         <div class="status-text">
@@ -276,6 +286,7 @@
             <p>Connect to a network to enable cloud sync.</p>
         </div>
     </div>
+    {% endif %}
 
     <!-- Connection Form -->
     <form action="{{ url_for('web.wifi_connect') }}" method="post" id="wifiForm">
@@ -322,7 +333,7 @@
         <div class="section-title">Setup Instructions</div>
         <div class="step-item">
             <div class="step-number">1</div>
-            <div class="step-text"><strong>Connect to Device:</strong> Ensure your phone is connected to the <em>RPi_IoT_Provisioning</em> hotspot if setting up for the first time.</div>
+            <div class="step-text"><strong>Connect to Device:</strong> Ensure your phone is connected to the <em>MASH-Device</em> hotspot if setting up for the first time.</div>
         </div>
         <div class="step-item">
             <div class="step-number">2</div>
@@ -388,7 +399,7 @@
             const result = await response.json();
             
             if (result.success) {
-                alert('Disconnected. Please switch your WiFi to "RPi_IoT_Provisioning" and refresh this page.');
+                alert('Disconnected. Please switch your WiFi to "MASH-Device" and refresh this page.');
                 setTimeout(() => location.reload(), 2000);
             } else {
                 alert('Failed to disconnect: ' + result.message);
