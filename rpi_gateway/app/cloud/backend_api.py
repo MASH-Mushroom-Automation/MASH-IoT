@@ -273,12 +273,54 @@ class BackendAPIClient:
     # They don't need changes, just ensuring the class structure is maintained.
     
     def send_sensor_data(self, sensor_data: Dict[str, Any]) -> bool:
-        # ... (Original implementation) ...
-        if not self.ensure_authenticated(): return False
+        """
+        Send sensor data to backend via device status update.
+        
+        The backend's sensor ingestion requires individual sensor IDs (POST /sensors/:id/data),
+        which adds complexity. Instead, we use the device update endpoint to attach
+        latest sensor readings as metadata, and rely on Firebase as the primary
+        real-time data channel for the mobile app.
+        
+        Args:
+            sensor_data: Dict with 'fruiting' and/or 'spawning' room data
+                         e.g. {'fruiting': {'temp': 23.5, 'humidity': 85, 'co2': 800}, ...}
+        
+        Returns:
+            True if successful
+        """
+        if not self.ensure_authenticated():
+            return False
+        
         try:
-            # ... (Rest of logic) ...
-            return True # Placeholder, use original logic
-        except Exception: return False
+            # Update device with latest sensor readings via PATCH endpoint
+            payload = {
+                "status": "ONLINE",
+                "lastSeen": datetime.now().isoformat(),
+                "metadata": {
+                    "latestReadings": {
+                        "fruiting": sensor_data.get('fruiting', {}),
+                        "spawning": sensor_data.get('spawning', {}),
+                        "timestamp": sensor_data.get('timestamp', datetime.now().isoformat())
+                    }
+                }
+            }
+            
+            response = self.session.patch(
+                f"{self.base_url}/iot/devices/serial/{self.serial_number}",
+                json=payload,
+                timeout=10
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.debug(f"[BACKEND] Sensor data sent successfully")
+                return True
+            else:
+                logger.warning(f"[BACKEND] Sensor data send failed: {response.status_code}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"[BACKEND] Sensor data send error: {e}")
+            return False
 
     def close(self):
         self.session.close()

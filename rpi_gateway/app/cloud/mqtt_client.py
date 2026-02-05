@@ -112,7 +112,8 @@ class MQTTClient:
         if rc == 0:
             logger.info("[MQTT] Disconnected cleanly")
         else:
-            logger.warning(f"[MQTT] Unexpected disconnect (rc={rc}), will attempt reconnect")
+            logger.warning(f"[MQTT] Unexpected disconnect (rc={rc}), paho will auto-reconnect via loop_start()")
+            # paho-mqtt's loop_start() handles auto-reconnect with exponential backoff
     
     def _on_message(self, client, userdata, msg):
         """Callback when message received."""

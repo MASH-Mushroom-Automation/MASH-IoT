@@ -40,7 +40,7 @@
 #define RELAY_OFF HIGH
 
 // ==================== WATCHDOG CONFIGURATION ====================
-#define WATCHDOG_TIMEOUT 300000  // 5 minutes (300 seconds) without serial = shutdown
+#define WATCHDOG_TIMEOUT 600000  // 10 minutes (600 seconds) without serial = shutdown
 #define WATCHDOG_CHECK_INTERVAL 1000  // Check every 1 second
 
 // ==================== ANOMALY FILTERING ====================
