@@ -71,6 +71,10 @@ class ArduinoSerialComm:
             'spawning': None,
             'timestamp': None
         }
+        
+        # Heartbeat tracking
+        self.last_write_time = time.time()
+        self.heartbeat_interval = 15.0  # Send keepalive every 15s (well below 60s watchdog)
     
     @staticmethod
     def find_arduino_port() -> Optional[str]:
@@ -180,7 +184,9 @@ class ArduinoSerialComm:
             cmd_with_newline = f"{command}\n".encode('utf-8')
             
             self.serial_conn.write(cmd_with_newline)
-            self.serial_conn.flush()  # Wait until all data is written
+            # self.serial_conn.flush()  # Removed to prevent blocking on slow serial
+            
+            self.last_write_time = time.time()  # Update heartbeat timer
             logger.info(f"[SERIAL] Sent command: {command}")
             return True
         except Exception as e:
@@ -323,6 +329,24 @@ class ArduinoSerialComm:
                         logger.error("[SERIAL] Connection lost and auto-reconnect disabled")
                         break
                 
+                # HEARTBEAT LOGIC: Keep Arduino watchdog happy (prevent auto-shutdown)
+                if time.time() - self.last_write_time > self.heartbeat_interval:
+                    try:
+                        if self.serial_conn and self.serial_conn.is_open:
+                            self.serial_conn.write(b'\n')
+                            self.last_write_time = time.time()
+                            logger.debug("[SERIAL] Sent heartbeat to keep Watchdog alive")
+                    except Exception as hb_err:
+                        logger.warning(f"[SERIAL] Heartbeat failed: {hb_err}")
+
+                # BUFFER MANAGEMENT: extensive buffer indicates lag
+                try:
+                    if self.serial_conn.in_waiting > 1024:
+                        logger.warning(f"[SERIAL] Buffer overflow ({self.serial_conn.in_waiting} bytes). Flushing to prevent lag.")
+                        self.serial_conn.reset_input_buffer()
+                except:
+                    pass
+
                 # Read data from Arduino
                 line = self.read_line()
                 

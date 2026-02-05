@@ -1,118 +1,166 @@
-{% extends "base.html" %}
-{% block title %}Connecting to WiFi{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASH IoT - Connecting...</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('web.static', filename='css/styles.css') }}">
+    <style>
+        /* Standalone Layout - Dark Theme */
+        body {
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-image: radial-gradient(circle at center, #1a2a1a 0%, #121212 100%);
+            color: #eee;
+        }
 
-{% block content %}
-<style>
-    .connecting-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 60vh;
-        text-align: center;
-        padding: 40px 20px;
-    }
-    .spinner {
-        border: 8px solid #f3f3f3;
-        border-top: 8px solid #667eea;
-        border-radius: 50%;
-        width: 80px;
-        height: 80px;
-        animation: spin 1s linear infinite;
-        margin-bottom: 30px;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    .connecting-title {
-        font-size: 2em;
-        color: #333;
-        margin-bottom: 20px;
-    }
-    .connecting-info {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 25px 35px;
-        border-radius: 12px;
-        max-width: 600px;
-        margin: 20px auto;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .connecting-ssid {
-        font-size: 1.3em;
-        font-weight: bold;
-        margin: 15px 0;
-    }
-    .connecting-instructions {
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 20px;
-        line-height: 1.6;
-    }
-    .warning-text {
-        color: #ffc107;
-        font-weight: bold;
-        margin: 15px 0;
-        font-size: 1.1em;
-    }
-    .back-button {
-        margin-top: 30px;
-        padding: 12px 30px;
-        background: #27ae60;
-        color: white;
-        text-decoration: none;
-        border-radius: 8px;
-        display: inline-block;
-        transition: all 0.3s ease;
-    }
-    .back-button:hover {
-        background: #2ecc71;
-        transform: translateY(-2px);
-    }
-</style>
+        .main-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #1e1e1e;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            border: 1px solid #333;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
 
-<div class="connecting-container">
-    <div class="spinner"></div>
-    
-    <h1 class="connecting-title">
-        <i class="fas fa-wifi"></i> Connecting to WiFi
-    </h1>
-    
-    <div class="connecting-info">
-        <p>Attempting to connect to:</p>
-        <div class="connecting-ssid">{{ ssid }}</div>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Spinner Animation */
+        .spinner {
+            border: 5px solid rgba(76, 175, 80, 0.1);
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-title {
+            color: #4CAF50;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .network-pill {
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            margin: 10px 0 20px 0;
+            font-size: 1.1rem;
+        }
+
+        .info-box {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: left;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+
+        .info-box ul {
+            padding-left: 20px;
+            margin: 10px 0;
+            color: #aaa;
+        }
+
+        .info-box li {
+            margin-bottom: 8px;
+        }
+
+        .warning-text {
+            color: #ff9800;
+            font-size: 0.9em;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: transparent;
+            color: #888;
+            border: 1px solid #444;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .back-btn:hover {
+            color: #fff;
+            border-color: #666;
+            background-color: rgba(255,255,255,0.05);
+        }
         
-        <div class="connecting-instructions">
-            <p><strong>What happens next:</strong></p>
-            <ul style="text-align: left; padding-left: 20px;">
-                <li>The device will disconnect from the provisioning hotspot</li>
-                <li>It will attempt to connect to your selected network</li>
-                <li>If successful, you can access the device on your WiFi network</li>
-                <li>If it fails, the <strong>{{ hotspot_ssid }}</strong> hotspot will restart automatically</li>
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <div class="spinner"></div>
+        
+        <h1 class="status-title">Applying Settings...</h1>
+        
+        <p style="color: #bbb; margin-top: 0;">Connecting device to</p>
+        <div class="network-pill">
+            <i class="fas fa-wifi"></i> {{ ssid }}
+        </div>
+
+        <div class="info-box">
+            <strong style="color: #fff;">What happens next:</strong>
+            <ul>
+                <li>Device will disconnect from Hotspot</li>
+                <li>It will attempt to join "<strong>{{ ssid }}</strong>"</li>
+                <li>Wait 30-60 seconds for the LED to stabilize</li>
             </ul>
+            
+            <div class="warning-text">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>If connection fails, the "<strong>{{ hotspot_ssid }}</strong>" hotspot will restart automatically.</span>
+            </div>
         </div>
-        
-        <div class="warning-text">
-            <i class="fas fa-exclamation-triangle"></i> Please wait 30 seconds
-        </div>
-        
-        <p style="font-size: 0.9em; margin-top: 15px;">
-            <em>This page may become unreachable during the connection process.</em>
-        </p>
-    </div>
-    
-    <a href="{{ url_for('web.wifi_setup') }}" class="back-button">
-        <i class="fas fa-arrow-left"></i> Back to WiFi Setup
-    </a>
-</div>
 
-<script>
-    // Optional: Auto-redirect to dashboard after 35 seconds
-    setTimeout(function() {
-        // Try to redirect to dashboard (will only work if connection succeeded)
-        window.location.href = "{{ url_for('web.dashboard') }}";
-    }, 35000);
-</script>
-{% endblock %}
+        <p style="font-size: 0.85em; color: #666; margin-bottom: 25px;">
+            <i class="fas fa-plug"></i> You need to reconnect your phone/laptop to the same WiFi network manually to access the Dashboard again.
+        </p>
+
+        <a href="{{ url_for('web.wifi_setup') }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Cancel & Go Back
+        </a>
+
+    </div>
+
+    <!-- No auto-redirect because the device IP will change or become unreachable -->
+    <!-- The user is expected to manually reconnect their device to the new network -->
+
+</body>
+</html>
