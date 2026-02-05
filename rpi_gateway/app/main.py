@@ -99,6 +99,24 @@ class MASHOrchestrator:
         self.backend = BackendAPIClient(device_config=device_config)
         logger.info(f"[BACKEND] API client initialized for device: {device_config.get('serial_number', 'unknown')}")
 
+        # Initialize Firebase Sync (Optional - will work without it)
+        from cloud.firebase import FirebaseSync
+        firebase_url = os.getenv('FIREBASE_DATABASE_URL', 'https://mash-ddf8d-default-rtdb.asia-southeast1.firebasedatabase.app')
+        firebase_config = os.getenv('FIREBASE_CONFIG_PATH', 'config/firebase_config.json')
+        self.firebase = FirebaseSync(config_path=firebase_config, db_url=firebase_url)
+        
+        if self.firebase.is_initialized:
+            logger.info(f"[FIREBASE] ✅ Connected to Realtime Database")
+            # Update device status on startup
+            device_id = device_config.get('serial_number', 'rpi_gateway_001')
+            self.firebase.sync_device_status(device_id, 'ONLINE', {
+                'last_boot': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'ml_enabled': self.config.get('system', {}).get('ml_enabled', True),
+            })
+        else:
+            logger.warning("[FIREBASE] Not initialized - running in offline mode only")
+            self.firebase = None
+
         # Initialize MQTT Client
         self.mqtt = create_mqtt_client(device_id=device_config.get('serial_number', 'rpi_gateway_001'))
         
@@ -196,6 +214,47 @@ class MASHOrchestrator:
             self.db.insert_sensor_data_batch(data)
             
             logger.info(f"[DATA] Received sensor data at {data.get('timestamp', 'unknown')}")
+            
+            # Upload to Firebase (Real-time sync for mobile app)
+            if self.firebase:
+                try:
+                    # Prepare readings for Firebase
+                    readings = []
+                    device_id = self.config.get('device', {}).get('serial_number', 'rpi_gateway_001')
+                    
+                    if 'fruiting' in data:
+                        readings.append({
+                            'id': 0,
+                            'room': 'fruiting',
+                            'temp': data['fruiting'].get('temp'),
+                            'humidity': data['fruiting'].get('humidity'),
+                            'co2': data['fruiting'].get('co2'),
+                            'timestamp': data.get('timestamp')
+                        })
+                    
+                    if 'spawning' in data:
+                        readings.append({
+                            'id': 0,
+                            'room': 'spawning',
+                            'temp': data['spawning'].get('temp'),
+                            'humidity': data['spawning'].get('humidity'),
+                            'co2': data['spawning'].get('co2'),
+                            'timestamp': data.get('timestamp')
+                        })
+                    
+                    if readings:
+                        self.firebase.sync_sensor_readings(readings)
+                        
+                        # Also update latest_reading path for quick access
+                        from firebase_admin import db as firebase_db
+                        latest_ref = firebase_db.reference(f'devices/{device_id}/latest_reading')
+                        latest_ref.set({
+                            'fruiting': data.get('fruiting'),
+                            'spawning': data.get('spawning'),
+                            'timestamp': data.get('timestamp')
+                        })
+                except Exception as e:
+                    logger.warning(f"[FIREBASE] Sync failed: {e}")
             
             # Upload to backend (non-blocking)
             if self.backend:
