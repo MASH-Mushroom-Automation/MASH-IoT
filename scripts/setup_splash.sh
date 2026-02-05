@@ -8,7 +8,7 @@ set -e
 
 # Get script directory for relative paths
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 LOGO_SOURCE="$PROJECT_ROOT/assets/splash.png"
 INSTALL_DIR="/opt/mash/assets"
 SERVICE_FILE="/etc/systemd/system/mash-splash.service"
