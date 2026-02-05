@@ -26,104 +26,36 @@
         </div>
     </div>
 
-    <!-- Settings Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-info-circle"></i>
-                <h3>System Information</h3>
-            </div>
-            <div class="card-body">
-                <p style="color: #bbb; margin-bottom: 20px;">
-                    View device details, firmware version, and system diagnostics.
-                </p>
-                <button class="setting-button" onclick="showAlert('System information feature coming soon!')">
-                    <i class="fas fa-desktop"></i> View Info
-                </button>
-            </div>
+    <!-- About Section -->
+    <div class="card" style="margin-bottom: 25px;">
+        <div class="card-header">
+            <i class="fas fa-info-circle"></i>
+            <h3>About</h3>
         </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-database"></i>
-                <h3>Data Management</h3>
-            </div>
-            <div class="card-body">
-                <p style="color: #bbb; margin-bottom: 20px;">
-                    Manage sensor data, export logs, and configure data retention policies.
-                </p>
-                <button class="setting-button" onclick="showAlert('Data management feature coming soon!')">
-                    <i class="fas fa-download"></i> Manage Data
-                </button>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-cloud"></i>
-                <h3>Cloud Sync</h3>
-            </div>
-            <div class="card-body">
-                <p style="color: #bbb; margin-bottom: 20px;">
-                    Configure backend API connection and data synchronization settings.
-                </p>
-                <button class="setting-button" onclick="showAlert('Cloud sync configuration coming soon!')">
-                    <i class="fas fa-sync"></i> Configure Sync
-                </button>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-robot"></i>
-                <h3>Automation Rules</h3>
-            </div>
-            <div class="card-body">
-                <p style="color: #bbb; margin-bottom: 20px;">
-                    Configure automatic control rules, thresholds, and schedules for optimal growing conditions.
-                </p>
-                <a href="{{ url_for('web.controls') }}" class="setting-button">
-                    <i class="fas fa-sliders-h"></i> Configure Rules
-                </a>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-bell"></i>
-                <h3>Notifications</h3>
-            </div>
-            <div class="card-body">
-                <p style="color: #bbb; margin-bottom: 20px;">
-                    Configure alert notifications, email settings, and notification preferences.
-                </p>
-                <button class="setting-button" onclick="showAlert('Notification settings coming soon!')">
-                    <i class="fas fa-envelope"></i> Configure Alerts
-                </button>
+        <div class="card-body">
+            <div style="background: #2c2c2c; padding: 15px; border-radius: 8px;">
+                <p style="margin: 5px 0; color: #4CAF50; font-weight: bold; font-size: 1.1em;">MASH IoT Gateway</p>
+                <p style="margin: 5px 0;"><strong>Version:</strong> 1.0.0</p>
+                <p style="margin: 5px 0;"><strong>System:</strong> Raspberry Pi</p>
+                <p style="margin: 5px 0; opacity: 0.7; font-size: 0.9em;">Mushroom Automation & Smart Horticulture</p>
             </div>
         </div>
     </div>
     
-    <!-- System Actions -->
+    <!-- System Actions (Restart Only) -->
     <div class="card" style="margin-top: 25px; border-color: #ff9800;">
         <div class="card-header" style="background: rgba(255, 152, 0, 0.1);">
-            <i class="fas fa-exclamation-triangle" style="color: #ff9800;"></i>
-            <h3>System Actions</h3>
+            <i class="fas fa-power-off" style="color: #ff9800;"></i>
+            <h3>Power Controls</h3>
         </div>
         <div class="card-body">
             <p style="color: #ff9800; margin-bottom: 20px;">
-                <i class="fas fa-info-circle"></i>
-                Perform system-level actions. Use with caution.
+                <i class="fas fa-exclamation-triangle"></i>
+                System reboot will interrupt monitoring for approximately 60 seconds.
             </p>
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                 <button class="action-button danger" onclick="handleRestart()">
                     <i class="fas fa-redo"></i> Restart System
-                </button>
-                <button class="action-button danger" onclick="handleClearData()">
-                    <i class="fas fa-trash"></i> Clear Data
-                </button>
-                <button class="action-button" onclick="showAlert('Factory reset feature coming soon!', {icon: 'fa-undo'})">
-                    <i class="fas fa-undo"></i> Factory Reset
                 </button>
             </div>
         </div>
@@ -216,7 +148,7 @@ async function loadWiFiStatus() {
                     <p style="margin: 5px 0;"><strong>IP Address:</strong> ${data.ip}</p>
                     <p style="margin: 10px 0 0 0; color: #856404;">
                         <i class="fas fa-info-circle"></i>
-                        Device is waiting for WiFi configuration. Use the MASH Grower Mobile app to connect.
+                        Device is waiting for WiFi configuration.
                     </p>
                 </div>
             `;
@@ -273,28 +205,14 @@ function handleRestart() {
     showConfirm(
         'Are you sure you want to restart the system? This will temporarily interrupt monitoring.',
         function() {
-            showAlert('System restart feature coming soon!', {icon: 'fa-redo'});
+             // For now, just show feedback as we don't have a backend restart hook yet
+             showAlert('System restart feature coming soon!', {icon: 'fa-redo'});
         },
         {
             title: 'Restart System',
-            icon: 'fa-exclamation-triangle',
+            icon: 'fa-power-off',
             danger: true,
             confirmText: 'Restart'
-        }
-    );
-}
-
-function handleClearData() {
-    showConfirm(
-        'Are you sure you want to clear all sensor data? This action cannot be undone.',
-        function() {
-            showAlert('Clear data feature coming soon!', {icon: 'fa-trash'});
-        },
-        {
-            title: 'Clear All Data',
-            icon: 'fa-exclamation-triangle',
-            danger: true,
-            confirmText: 'Clear Data'
         }
     );
 }
