@@ -142,25 +142,31 @@ void handleSerialCommands() {
                     Serial.print(F("[ERROR] deserializeJson() failed: "));
                     Serial.println(error.c_str());
                 } else {
-                    const char* actuatorStr = jsonCommandDoc["actuator"];
-                    const char* stateStr = jsonCommandDoc["state"];
-
-                    if (actuatorStr && stateStr) {
-                        ActuatorType type = stringToActuatorType(actuatorStr);
-                        ActuatorState state = stringToActuatorState(stateStr);
-
-                        if (type != (ActuatorType)-1) {
-                            actuators.set(type, state);
-                            Serial.print(F("[CMD] Set "));
-                            Serial.print(actuatorStr);
-                            Serial.print(F(" to "));
-                            Serial.println(stateStr);
-                        } else {
-                            Serial.print(F("[ERROR] Unknown actuator: "));
-                            Serial.println(actuatorStr);
-                        }
+                    // Check for keepalive/heartbeat messages (no actuator field)
+                    if (jsonCommandDoc.containsKey("keepalive")) {
+                        // Silently acknowledge keepalive (watchdog already updated by heartbeat())
+                        // Serial.println(F("[KEEPALIVE] ACK")); // Uncomment for debugging
                     } else {
-                        Serial.println(F("[ERROR] Invalid JSON command format. Missing 'actuator' or 'state'."));
+                        const char* actuatorStr = jsonCommandDoc["actuator"];
+                        const char* stateStr = jsonCommandDoc["state"];
+
+                        if (actuatorStr && stateStr) {
+                            ActuatorType type = stringToActuatorType(actuatorStr);
+                            ActuatorState state = stringToActuatorState(stateStr);
+
+                            if (type != (ActuatorType)-1) {
+                                actuators.set(type, state);
+                                Serial.print(F("[CMD] Set "));
+                                Serial.print(actuatorStr);
+                                Serial.print(F(" to "));
+                                Serial.println(stateStr);
+                            } else {
+                                Serial.print(F("[ERROR] Unknown actuator: "));
+                                Serial.println(actuatorStr);
+                            }
+                        } else {
+                            Serial.println(F("[ERROR] Invalid JSON command format. Missing 'actuator' or 'state'."));
+                        }
                     }
                 }
                 

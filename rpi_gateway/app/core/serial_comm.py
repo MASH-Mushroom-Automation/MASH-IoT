@@ -72,6 +72,9 @@ class ArduinoSerialComm:
             'timestamp': None
         }
         
+        # Relay state tracking for recovery after disconnects
+        self.last_relay_states: Dict[str, str] = {}  # {"MIST_MAKER": "ON", "FRUITING_EXHAUST_FAN": "OFF", ...}
+        
         # Heartbeat tracking
         self.last_write_time = time.time()
         self.heartbeat_interval = 15.0  # Send keepalive every 15s (well below 60s watchdog)
@@ -180,6 +183,18 @@ class ArduinoSerialComm:
             return False
         
         try:
+            # Parse command to track relay state for recovery
+            import json
+            try:
+                cmd_data = json.loads(command)
+                if 'actuator' in cmd_data and 'state' in cmd_data:
+                    actuator = cmd_data['actuator']
+                    state = cmd_data['state']
+                    self.last_relay_states[actuator] = state
+                    logger.debug(f"[STATE] Tracked: {actuator} = {state}")
+            except json.JSONDecodeError:
+                pass  # Not a relay command, skip tracking
+            
             # Add newline and encode
             cmd_with_newline = f"{command}\n".encode('utf-8')
             
@@ -187,11 +202,38 @@ class ArduinoSerialComm:
             # self.serial_conn.flush()  # Removed to prevent blocking on slow serial
             
             self.last_write_time = time.time()  # Update heartbeat timer
-            logger.info(f"[SERIAL] Sent command: {command}")
+            logger.info(f"[SERIAL] ✅ Sent command: {command}")
             return True
         except Exception as e:
-            logger.error(f"[SERIAL] Failed to send command '{command}': {e}")
+            logger.error(f"[SERIAL] ❌ Failed to send command '{command}': {e}")
             return False
+    
+    def restore_relay_states(self) -> bool:
+        """
+        Restore all relay states after Arduino reset or reconnection.
+        Sends all previously tracked relay commands to restore system state.
+        
+        Returns:
+            True if all commands sent successfully, False otherwise.
+        """
+        if not self.last_relay_states:
+            logger.info("[RECOVERY] No relay states to restore")
+            return True
+        
+        logger.info(f"[RECOVERY] 🔄 Restoring {len(self.last_relay_states)} relay states...")
+        success_count = 0
+        
+        for actuator, state in self.last_relay_states.items():
+            import json
+            cmd = json.dumps({"actuator": actuator, "state": state})
+            if self.send_command(cmd):
+                success_count += 1
+                time.sleep(0.1)  # Small delay between commands to prevent Arduino buffer overflow
+            else:
+                logger.warning(f"[RECOVERY] Failed to restore {actuator} = {state}")
+        
+        logger.info(f"[RECOVERY] ✅ Restored {success_count}/{len(self.last_relay_states)} relay states")
+        return success_count == len(self.last_relay_states)
     
     def read_line(self) -> Optional[str]:
         """Read a single line from Arduino."""
@@ -320,6 +362,10 @@ class ArduinoSerialComm:
                         if self.connect(auto_detect=True):
                             logger.info("[SERIAL] 🟢 Reconnected successfully!")
                             consecutive_failures = 0
+                            
+                            # Restore relay states after reconnection
+                            time.sleep(2)  # Wait for Arduino to stabilize after reset
+                            self.restore_relay_states()
                         else:
                             consecutive_failures += 1
                             logger.error(f"[SERIAL] Reconnect failed ({consecutive_failures}/{max_consecutive_failures}). Retrying in {self.reconnect_interval}s...")
@@ -330,14 +376,18 @@ class ArduinoSerialComm:
                         break
                 
                 # HEARTBEAT LOGIC: Keep Arduino watchdog happy (prevent auto-shutdown)
+                # Send a valid JSON keepalive command instead of just newline to ensure Arduino processes it
                 if time.time() - self.last_write_time > self.heartbeat_interval:
                     try:
                         if self.serial_conn and self.serial_conn.is_open:
-                            self.serial_conn.write(b'\n')
+                            # Send a no-op keepalive command that Arduino will process (updates watchdog)
+                            keepalive_cmd = '{"keepalive":true}\n'.encode('utf-8')
+                            self.serial_conn.write(keepalive_cmd)
                             self.last_write_time = time.time()
-                            logger.debug("[SERIAL] Sent heartbeat to keep Watchdog alive")
+                            logger.debug("[SERIAL] ❤️  Sent keepalive to prevent watchdog timeout (60s)")
                     except Exception as hb_err:
-                        logger.warning(f"[SERIAL] Heartbeat failed: {hb_err}")
+                        logger.warning(f"[SERIAL] ⚠️  Heartbeat failed: {hb_err}")
+                        self.is_connected = False  # Mark as disconnected to trigger reconnect
 
                 # BUFFER MANAGEMENT: extensive buffer indicates lag
                 try:

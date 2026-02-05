@@ -478,7 +478,8 @@ class MushroomAI:
             exhaust_fan_state = "ON"  # Emergency cooling
         
         # Intake fan works opposite to exhaust for air circulation
-        intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "OFF"
+        # When exhaust is ON, intake is OFF. When exhaust is OFF, intake is ON for passive airflow
+        intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "ON"
 
         # Generate alerts for critical conditions and save to database
         alerts = self._check_and_alert("fruiting", sensor_data, config)

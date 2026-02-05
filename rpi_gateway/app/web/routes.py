@@ -657,6 +657,15 @@ def control_actuator():
         actuator_states[room][actuator] = (state == 'ON')
         current_app.config['ACTUATOR_STATES'] = actuator_states
         
+        # Track manual override to prevent auto-mode from changing this actuator
+        # Manual overrides are stored with timestamp and cleared after 5 minutes or when auto-mode is toggled
+        manual_overrides = current_app.config.get('MANUAL_OVERRIDES', {})
+        if room not in manual_overrides:
+            manual_overrides[room] = {}
+        manual_overrides[room][actuator] = {'state': state, 'timestamp': time.time()}
+        current_app.config['MANUAL_OVERRIDES'] = manual_overrides
+        logger.info(f"[MANUAL] Override set: {room}/{actuator} = {state}")
+        
         # Also send to backend if available
         backend_client = getattr(current_app, 'backend_client', None)
         if backend_client:
@@ -695,7 +704,12 @@ def set_auto_mode():
         config['system'] = {}
     config['system']['auto_mode'] = enabled
     
-    logger.info(f"Auto mode {'enabled' if enabled else 'disabled'}")
+    # Clear manual overrides when switching to auto mode
+    if enabled:
+        current_app.config['MANUAL_OVERRIDES'] = {}
+        logger.info("Auto mode enabled - cleared manual overrides")
+    else:
+        logger.info("Auto mode disabled - manual control active")
     
     return jsonify({"success": True, "auto_mode": enabled})
 

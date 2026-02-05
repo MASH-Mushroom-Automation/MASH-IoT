@@ -317,6 +317,17 @@ class MASHOrchestrator:
     def _run_automation(self, data):
         """Run ML-powered automation on sensor data."""
         try:
+            # Get manual overrides and clean up old ones (>5 minutes)
+            manual_overrides = self.config.get('MANUAL_OVERRIDES', {})
+            current_time = time.time()
+            for room in list(manual_overrides.keys()):
+                for actuator in list(manual_overrides[room].keys()):
+                    if current_time - manual_overrides[room][actuator].get('timestamp', 0) > 300:  # 5 minutes
+                        del manual_overrides[room][actuator]
+                        logger.info(f"[AUTO] Manual override expired: {room}/{actuator}")
+                if not manual_overrides[room]:  # Remove empty room dict
+                    del manual_overrides[room]
+            
             # Filter out invalid readings (sensor errors)
             valid_rooms = {}
             for room in ['fruiting', 'spawning']:
@@ -335,9 +346,36 @@ class MASHOrchestrator:
             # Get recommended commands from AI (pass all rooms at once)
             commands = self.ai.process_sensor_reading(valid_rooms)
             
-            # Send commands to Arduino
-            import json
+            # Filter out commands for manually overridden actuators
+            manual_overrides = self.config.get('MANUAL_OVERRIDES', {})
+            filtered_commands = []
             for command in commands:
+                # Parse command to extract room and actuator
+                # Commands are like: "FRUITING_EXHAUST_FAN_ON" or "MIST_MAKER_OFF"
+                skip_command = False
+                for room in manual_overrides:
+                    for actuator in manual_overrides[room]:
+                        # Map UI actuator names to Arduino command names
+                        actuator_mappings = {
+                            'exhaust_fan': ['EXHAUST_FAN', 'FRUITING_EXHAUST_FAN', 'SPAWNING_EXHAUST_FAN'],
+                            'intake_fan': ['INTAKE_FAN', 'FRUITING_INTAKE_FAN'],
+                            'mist_maker': ['MIST_MAKER'],
+                            'humidifier_fan': ['HUMIDIFIER_FAN'],
+                            'led': ['LED', 'FRUITING_LED']
+                        }
+                        arduino_names = actuator_mappings.get(actuator, [])
+                        if any(name in command for name in arduino_names):
+                            logger.debug(f"[AUTO] Skipping command '{command}' - {room}/{actuator} has manual override")
+                            skip_command = True
+                            break
+                    if skip_command:
+                        break
+                if not skip_command:
+                    filtered_commands.append(command)
+            
+            # Send filtered commands to Arduino
+            import json
+            for command in filtered_commands:
                 # Convert command format from "ACTUATOR_NAME_STATE" to JSON
                 # e.g., "MIST_MAKER_ON" -> {"actuator": "MIST_MAKER", "state": "ON"}
                 if '_ON' in command:
