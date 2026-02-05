@@ -81,11 +81,42 @@ class MDNSAdvertiser:
             IP address as string (e.g., "192.168.1.100" or "10.42.0.1")
         """
         try:
-            # Create a dummy socket to determine local IP
+            # Method 1: Try connecting to a public DNS server
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            local_ip = s.getsockname()[0]
-            s.close()
+            s.settimeout(0.5)
+            try:
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                s.close()
+                return local_ip
+            except Exception:
+                pass
+                
+            # Method 2: Try identifying based on common local subnets
+            # This is useful when in AP mode without internet access
+            try:
+                # Try 10.42.0.1 (common for RPi hotspot)
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("10.42.0.255", 1))
+                local_ip = s.getsockname()[0]
+                s.close()
+                if local_ip.startswith("10.42"):
+                    return local_ip
+            except Exception:
+                pass
+                
+            # Method 3: Get host by name (might return 127.0.1.1)
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            
+            if local_ip.startswith("127."):
+                # Try finding a real interface
+                import subprocess
+                cmd = "hostname -I | cut -d' ' -f1"
+                ip = subprocess.check_output(cmd, shell=True).decode('utf-8').strip()
+                if ip:
+                    return ip
+            
             return local_ip
         except Exception as e:
             print(f"[mDNS] Error getting local IP, using localhost: {e}")

@@ -21,6 +21,7 @@ from core.serial_comm import ArduinoSerialComm
 from core.logic_engine import MushroomAI
 from database.db_manager import DatabaseManager
 from cloud.backend_api import BackendAPIClient
+from cloud.mqtt_client import create_mqtt_client
 from web.routes import web_bp
 from utils.user_preferences import UserPreferencesManager
 
@@ -97,6 +98,9 @@ class MASHOrchestrator:
         device_config = self.config.get('device', {})
         self.backend = BackendAPIClient(device_config=device_config)
         logger.info(f"[BACKEND] API client initialized for device: {device_config.get('serial_number', 'unknown')}")
+
+        # Initialize MQTT Client
+        self.mqtt = create_mqtt_client(device_id=device_config.get('serial_number', 'rpi_gateway_001'))
         
         # Arduino port (Windows: COM3, Linux: /dev/ttyACM0)
         arduino_port = 'COM3' if sys.platform == 'win32' else '/dev/ttyACM0'
@@ -199,6 +203,13 @@ class MASHOrchestrator:
                     self.backend.send_sensor_data(data)
                 except Exception as e:
                     logger.warning(f"[BACKEND] Upload failed: {e}")
+
+            # Publish to MQTT (Real-time updates)
+            if self.mqtt and self.mqtt.is_alive():
+                try:
+                    self.mqtt.publish_sensor_data(data)
+                except Exception as e:
+                    logger.warning(f"[MQQT] Publish failed: {e}")
             
             # Check if auto mode is enabled before running automation
             auto_mode = self.config.get('system', {}).get('auto_mode', True)
@@ -372,6 +383,11 @@ class MASHOrchestrator:
                     self.backend.register_device()
                 except Exception as e:
                     logger.warning(f"[BACKEND] Device registration failed: {e}")
+            
+            # Connect MQTT
+            if self.mqtt:
+                self.mqtt.connect()
+
             # Connect to database
             self.db.connect()
             # Start serial communication
@@ -442,6 +458,11 @@ class MASHOrchestrator:
         # Disconnect Arduino
         if self.arduino:
             self.arduino.disconnect()
+        
+        # Disconnect MQTT
+        if self.mqtt:
+            self.mqtt.disconnect()
+
         # Close backend connection
         if self.backend:
             self.backend.close()
