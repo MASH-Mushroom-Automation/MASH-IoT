@@ -430,13 +430,23 @@ def get_wifi_qr():
         
         # Only provide QR if in hotspot mode
         if wifi_manager.is_hotspot_active():
-            qr_data = wifi_manager.generate_wifi_qr_code("MASH-Device")
+            # NEW PROVISIONING FLOW: QR links to the Setup Page, not just WiFi Credentials
+            # The user is expected to connect to 10.42.0.1 manually, OR we can provide the enrollment purely as a fallback.
+            # But per request: "QR Code... opens a link where we can Modify the WiFi"
+            # Since the user is likely ALREADY connected to the hotspot if they see this on the dashboard (at 10.42.0.1), 
+            # or if they are on mobile scanning the screen of the RPi:
+            # If they scan this, they need to be on the WiFi network 10.42.0.1.
+            
+            # Use the Web Setup Page URL
+            setup_url = "http://10.42.0.1:5000/wifi-setup"
+            qr_data = wifi_manager.generate_url_qr_code(setup_url)
+            
             return jsonify({
                 'success': True,
                 'qr_code': qr_data,
                 'ssid': 'MASH-Device',
                 'ip': '10.42.0.1',
-                'instructions': 'Scan this QR code with your phone to connect to the device'
+                'instructions': 'Scan to open WiFi Setup'
             })
         else:
             return jsonify({

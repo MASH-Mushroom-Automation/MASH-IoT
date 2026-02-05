@@ -18,33 +18,47 @@
     </div>
 </div>
 
-<!-- WiFi Provisioning QR Code (shown only in hotspot mode) -->
-<div id="wifi-provisioning-card" class="card" style="display: none; margin: 20px auto; max-width: 500px;">
-    <div class="card-header">
-        <i class="fas fa-qrcode"></i>
-        <h3>Device Provisioning</h3>
-    </div>
-    <div class="card-body">
-        <div style="text-align: center;">
-            <p style="margin-bottom: 20px;">
-                <strong>Connect to this device using your mobile phone</strong>
-            </p>
-            <p style="color: #666; margin-bottom: 20px;">
-                Scan this QR code to connect to the provisioning network
-            </p>
-            <div id="qr-code-container" style="margin: 20px auto;">
-                <img id="qr-code-image" src="" alt="WiFi QR Code" style="max-width: 300px; width: 100%;">
+
+<!-- Provisioning Status Banner (Visible only in Hotspot Mode) -->
+<div id="provisioning-banner" style="display: none; background: #ff9800; color: #000; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 8px;">
+    <strong><i class="fas fa-exclamation-triangle"></i> Device is in Provisioning Mode (Hotspot Active)</strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Connect to WiFi 'RPi_IoT_Provisioning' to configure.</p>
+    <button onclick="openWifiModal()" class="btn-dark" style="margin-top: 8px; padding: 5px 15px; border: none; border-radius: 4px; cursor: pointer; background: #000; color: #fff;">
+        <i class="fas fa-cog"></i> Setup WiFi
+    </button>
+</div>
+
+<!-- WiFi Setup Modal -->
+<div id="wifiSetupModal" class="custom-modal" style="display: none;">
+    <div class="custom-modal-content" style="max-width: 600px;">
+        <div class="custom-modal-header">
+            <i class="fas fa-wifi"></i>
+            <h3>WiFi Setup Guide</h3>
+            <span class="close-modal" onclick="closeWifiModal()" style="margin-left: auto; cursor: pointer; font-size: 1.5rem;">&times;</span>
+        </div>
+        <div class="custom-modal-body" style="text-align: center;">
+            <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="color: #4CAF50; margin-top: 0;">Step 1: Connect to Hotspot</h4>
+                <p>On your mobile or laptop, connect to the WiFi network:</p>
+                <div style="background: #000; padding: 10px; border-radius: 4px; display: inline-block; margin: 10px 0;">
+                    <code style="color: #4CAF50; font-size: 1.2em;">RPi_IoT_Provisioning</code>
+                </div>
             </div>
-            <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <p style="margin: 5px 0;"><strong>Network:</strong> MASH-Device</p>
-                <p style="margin: 5px 0;"><strong>IP Address:</strong> 10.42.0.1</p>
-                <p style="margin: 5px 0;"><strong>Security:</strong> Open (No Password)</p>
-            </div>
-            <div style="margin-top: 20px; padding: 15px; background: #2c2c2c; border-radius: 8px;">
-                <p style="margin: 0; color: #856404;">
-                    <i class="fas fa-info-circle"></i>
-                    Once scanned, use the MASH Grower Mobile app to complete WiFi setup
+
+            <div style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                <h4 style="color: #4CAF50; margin-top: 0;">Step 2: Configure Settings</h4>
+                <p>Scan the QR code below or open the setup page directly:</p>
+                
+                <div id="qr-code-container" style="margin: 15px auto; background: white; padding: 10px; display: inline-block; border-radius: 8px;">
+                    <img id="qr-code-image" src="" alt="Loading QR..." style="max-width: 250px; display: block;">
+                </div>
+                
+                <p style="margin-top: 15px;">
+                    <a href="/wifi-setup" target="_blank" class="btn-primary" style="text-decoration: none; padding: 10px 20px; background: #4CAF50; color: white; border-radius: 5px; display: inline-block;">
+                        <i class="fas fa-external-link-alt"></i> Open Setup Page
+                    </a>
                 </p>
+                <p style="font-size: 0.8em; color: #888; margin-top: 10px;">URL: http://10.42.0.1:5000/wifi-setup</p>
             </div>
         </div>
     </div>
@@ -149,17 +163,34 @@
 </div>
 
 <script>
-// Check WiFi mode and display QR if in provisioning mode
+// Modal Functions
+function openWifiModal() {
+    document.getElementById('wifiSetupModal').style.display = 'flex';
+}
+
+function closeWifiModal() {
+    document.getElementById('wifiSetupModal').style.display = 'none';
+}
+
+// Close modal if clicked outside
+window.onclick = function(event) {
+    const modal = document.getElementById('wifiSetupModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+// Check WiFi mode and display Provisioning Banner if in hotspot mode
 async function checkProvisioningMode() {
     try {
         const response = await fetch('/api/wifi-mode');
         const data = await response.json();
         
         if (data.success && data.mode === 'hotspot') {
-            // Device is in provisioning mode - show QR code
-            document.getElementById('wifi-provisioning-card').style.display = 'block';
+            // Device is in provisioning mode - show Banner and Load QR
+            document.getElementById('provisioning-banner').style.display = 'block';
             
-            // Fetch and display QR code
+            // Fetch and display QR code (target URL for web setup)
             const qrResponse = await fetch('/api/wifi-qr');
             const qrData = await qrResponse.json();
             
@@ -167,8 +198,8 @@ async function checkProvisioningMode() {
                 document.getElementById('qr-code-image').src = qrData.qr_code;
             }
         } else {
-            // Connected to network - hide provisioning card
-            document.getElementById('wifi-provisioning-card').style.display = 'none';
+            // Connected to network - hide banner
+            document.getElementById('provisioning-banner').style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking provisioning mode:', error);

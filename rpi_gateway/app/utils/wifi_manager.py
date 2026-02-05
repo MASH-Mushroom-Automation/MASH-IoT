@@ -87,6 +87,28 @@ def generate_wifi_qr_code(ssid: str, password: str = "", security: str = "nopass
     
     return f"data:image/png;base64,{img_base64}"
 
+def generate_url_qr_code(url: str) -> str:
+    """
+    Generate a QR code pointing to a specific URL (e.g. WiFi setup page).
+    Returns base64-encoded PNG image string.
+    """
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
+    return f"data:image/png;base64,{img_base64}"
+
 def run_command(command, ignore_fail=False):
     """Executes a shell command and returns True if successful."""
     try:

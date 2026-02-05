@@ -26,7 +26,7 @@ if [ ! -f "$LOGO_SOURCE" ]; then
 fi
 
 # 2. Install fbi (framebuffer image viewer)
-echo "[1/4] Installing fbi (framebuffer image viewer)..."
+echo "[1/5] Installing fbi (framebuffer image viewer)..."
 if ! command -v fbi &> /dev/null; then
     sudo apt-get update
     sudo apt-get install -y fbi
@@ -35,7 +35,7 @@ else
 fi
 
 # 3. Copy image to system location
-echo "[2/4] Installing splash image..."
+echo "[2/5] Installing splash image..."
 sudo mkdir -p "$INSTALL_DIR"
 sudo cp "$LOGO_SOURCE" "$INSTALL_DIR/splash.png"
 # Set permissions
@@ -43,7 +43,7 @@ sudo chmod 644 "$INSTALL_DIR/splash.png"
 echo "      Copied to $INSTALL_DIR/splash.png"
 
 # 4. Create systemd service
-echo "[3/4] Creating systemd service..."
+echo "[3/5] Creating systemd service..."
 sudo tee "$SERVICE_FILE" > /dev/null << 'EOF'
 [Unit]
 Description=MASH Boot Splash Screen
@@ -61,8 +61,25 @@ StandardOutput=tty
 WantedBy=sysinit.target
 EOF
 
-# 5. Enable service
-echo "[4/4] Enabling splash service..."
+# 5. Replace Plymouth Theme (Fixes "Welcome to Raspberry Pi Desktop")
+PLYMOUTH_DIR="/usr/share/plymouth/themes/pix"
+if [ -d "$PLYMOUTH_DIR" ]; then
+    echo "[4/5] Found Plymouth 'pix' theme. Replacing background..."
+    
+    # Backup original if not already backed up
+    if [ ! -f "$PLYMOUTH_DIR/splash.png.bak" ]; then
+        sudo cp "$PLYMOUTH_DIR/splash.png" "$PLYMOUTH_DIR/splash.png.bak"
+    fi
+    
+    # Replace with our logo
+    sudo cp "$LOGO_SOURCE" "$PLYMOUTH_DIR/splash.png"
+    echo "      Updated $PLYMOUTH_DIR/splash.png"
+else
+    echo "      Plymouth 'pix' theme not found. Skipping theme replacement."
+fi
+
+# 6. Enable service
+echo "[5/5] Enabling splash service..."
 sudo systemctl daemon-reload
 sudo systemctl enable mash-splash.service
 
