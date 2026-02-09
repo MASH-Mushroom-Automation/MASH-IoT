@@ -556,6 +556,31 @@ def api_wifi_connect():
 #                    API ENDPOINTS
 # =======================================================
 
+
+# ---------------- Version API Endpoint ----------------
+@web_bp.route('/api/version')
+def api_version():
+    """
+    API endpoint to provide gateway version info for frontend.
+    """
+    try:
+        from app.core import version as version_module
+        info = version_module.get_version_info()
+        return jsonify({
+            'success': True,
+            'version': info.get('version'),
+            'major': info.get('major'),
+            'minor': info.get('minor'),
+            'patch': info.get('patch'),
+            'release_date': info.get('release_date'),
+            'release_name': info.get('release_name')
+        })
+    except Exception as e:
+        logger.error(f"[API] Version info error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# Existing endpoint below
 @web_bp.route('/api/latest_data')
 def api_latest_data():
     """

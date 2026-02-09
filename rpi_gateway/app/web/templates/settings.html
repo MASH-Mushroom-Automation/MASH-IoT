@@ -35,9 +35,9 @@
         <div class="card-body">
             <div style="background: #2c2c2c; padding: 15px; border-radius: 8px;">
                 <p style="margin: 5px 0; color: #4CAF50; font-weight: bold; font-size: 1.1em;">MASH IoT Gateway</p>
-                <p style="margin: 5px 0;"><strong>Version:</strong> 1.0.0</p>
+                <p style="margin: 5px 0;"><strong>Version:</strong> <span id="version"></span></p>
                 <p style="margin: 5px 0;"><strong>System:</strong> Raspberry Pi</p>
-                <p style="margin: 5px 0; opacity: 0.7; font-size: 0.9em;">Mushroom Automation & Smart Horticulture</p>
+                <p style="margin: 5px 0; opacity: 0.7; font-size: 0.9em;">Mushroom Automation with Smart Hydro-Environment</p>
             </div>
         </div>
     </div>
@@ -172,6 +172,23 @@ async function loadWiFiStatus() {
     }
 }
 
+// Load version info
+async function loadVersionInfo() {
+    try {
+        const response = await fetch('/api/version');
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('version').textContent = data.version;
+        } else {
+            document.getElementById('version').textContent = 'Unknown';
+        }
+    } catch (error) {
+        console.error('Error loading version info:', error);
+        document.getElementById('version').textContent = 'Error';
+    }
+}
+
 // Disconnect from WiFi with custom modal
 function handleDisconnect() {
     showConfirm(
@@ -229,6 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (disconnectBtn) {
         disconnectBtn.addEventListener('click', handleDisconnect);
     }
+
+    loadVersionInfo();
 });
 </script>
 
