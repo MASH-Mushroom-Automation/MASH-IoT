@@ -35,47 +35,47 @@
 
 <!-- WiFi Setup Modal -->
 <div id="wifiSetupModal" class="custom-modal" style="display: none;">
-    <div class="custom-modal-content" style="max-width: 500px;">
+    <div class="custom-modal-content" style="max-width: 480px;">
         <div class="custom-modal-header">
             <i class="fas fa-wifi"></i>
             <h3>WiFi Setup Guide</h3>
             <span class="close-modal" onclick="closeWifiModal()" style="margin-left: auto; cursor: pointer; font-size: 1.5rem;">&times;</span>
         </div>
-        <div class="custom-modal-body" style="text-align: center; padding: 20px;">
+        <div class="custom-modal-body" style="text-align: center; padding: 15px;">
             
             <!-- Step 1 -->
             <div id="modal-step-1">
-                <h4 style="color: #4CAF50; margin-top: 0; margin-bottom: 20px;">Step 1: Connect to Hotspot</h4>
-                <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-                    <p>On your mobile or laptop, connect to the WiFi network:</p>
-                    <div style="background: #000; padding: 15px; border-radius: 6px; display: inline-block; margin: 15px 0; border: 1px solid #333;">
-                        <code style="color: #4CAF50; font-size: 1.3em; font-weight: bold;">MASH-Device</code>
+                <h4 style="color: #4CAF50; margin-top: 0; margin-bottom: 12px; font-size: 1.1em;">Step 1: Connect to Hotspot</h4>
+                <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="margin: 0 0 10px 0; font-size: 0.95em;">On your mobile or laptop, connect to the WiFi network:</p>
+                    <div style="background: #000; padding: 12px; border-radius: 6px; display: inline-block; margin: 10px 0; border: 1px solid #333;">
+                        <code style="color: #4CAF50; font-size: 1.2em; font-weight: bold;">MASH-Device</code>
                     </div>
-                    <p style="font-size: 0.9em; color: #888;">(No password required)</p>
+                    <p style="font-size: 0.85em; color: #888; margin: 0;">(No password required)</p>
                 </div>
-                <button onclick="nextStep()" class="btn-primary" style="width: 100%; padding: 12px; font-weight: bold;">
+                <button onclick="nextStep()" class="btn-primary" style="width: 100%; padding: 10px; font-weight: bold; font-size: 0.95em;">
                     Next <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
                 </button>
             </div>
 
             <!-- Step 2 -->
             <div id="modal-step-2" style="display: none;">
-                <h4 style="color: #4CAF50; margin-top: 10px; margin-bottom: 20px;">Step 2: Configure Settings</h4>
-                <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-                    <p style="margin-bottom: 15px;">Scan this code to open the setup page:</p>
+                <h4 style="color: #4CAF50; margin-top: 0; margin-bottom: 12px; font-size: 1.1em;">Step 2: Configure Settings</h4>
+                <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="margin: 0 0 10px 0; font-size: 0.95em;">Scan this code to open the setup page:</p>
                     
-                    <div id="qr-code-container" style="margin: 10px auto; background: white; padding: 10px; display: inline-block; border-radius: 8px;">
-                        <img id="qr-code-image" src="" alt="Loading QR..." style="max-width: 200px; display: block;">
+                    <div id="qr-code-container" style="margin: 8px auto; background: white; padding: 8px; display: inline-block; border-radius: 8px;">
+                        <img id="qr-code-image" src="" alt="Loading QR..." style="max-width: 150px; width: 100%; display: block;">
                     </div>
                     
-                    <div style="margin-top: 20px;">
-                        <a href="/wifi-setup" target="_blank" class="btn-primary" style="text-decoration: none; padding: 10px 20px; background: #4CAF50; color: white; border-radius: 5px; display: inline-block; font-size: 0.9em;">
+                    <div style="margin-top: 12px;">
+                        <a href="/wifi-setup" target="_blank" class="btn-primary" style="text-decoration: none; padding: 8px 16px; background: #4CAF50; color: white; border-radius: 5px; display: inline-block; font-size: 0.85em;">
                             <i class="fas fa-external-link-alt"></i> Open Link Directly
                         </a>
-                        <p style="font-size: 0.8em; color: #888; margin-top: 10px;">http://10.42.0.1:5000/wifi-setup</p>
+                        <p style="font-size: 0.75em; color: #888; margin: 8px 0 0 0;">http://10.42.0.1:5000/wifi-setup</p>
                     </div>
                 </div>
-                <button onclick="prevStep()" class="btn-primary" style="background: #333; width: 100%; padding: 12px; font-weight: bold;">
+                <button onclick="prevStep()" class="btn-primary" style="background: #333; width: 100%; padding: 10px; font-weight: bold; font-size: 0.95em;">
                     <i class="fas fa-arrow-left" style="margin-right: 5px;"></i> Back
                 </button>
             </div>
