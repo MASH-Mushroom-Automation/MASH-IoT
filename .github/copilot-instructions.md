@@ -205,6 +205,108 @@ spawning_room:
 - Target: `http://localhost:5000` (Flask web UI)
 - Configuration script: `scripts/setup_kiosk.sh` (in progress)
 
+## Version Management (MANDATORY)
+
+**CRITICAL: ALL code changes MUST update version numbers**
+
+### When to Bump Version (Semantic Versioning)
+Follow the versioning file: `rpi_gateway/app/core/version.py`
+
+**PATCH (x.y.Z)** - Bug fixes and minor improvements:
+- Bug fixes that don't change API behavior
+- Documentation updates
+- Performance optimizations
+- Code refactoring without feature changes
+- Example: 2.0.0 → 2.0.1
+
+**MINOR (x.Y.0)** - New features (backward compatible):
+- New API endpoints
+- New actuator/sensor support
+- New configuration options
+- UI feature additions
+- Enhanced error handling
+- Example: 2.0.1 → 2.1.0
+
+**MAJOR (X.0.0)** - Breaking changes:
+- API contract changes (endpoint removal/modification)
+- Serial protocol changes (Arduino ↔ RPi)
+- Database schema migrations
+- Configuration file format changes
+- Example: 2.1.0 → 3.0.0
+
+### Version Update Workflow (MANDATORY)
+1. **Before writing code**: Determine if change is MAJOR/MINOR/PATCH
+2. **Update version.py**: Increment MAJOR, MINOR, or PATCH
+3. **Update RELEASE_DATE**: Set to current date
+4. **Update RELEASE_NAME**: Descriptive name for the release
+5. **Update FEATURES dict**: Add/modify feature flags as needed
+6. **Add to CHANGELOG**: 
+   - **NEVER modify previous changelog entries** (integrity)
+   - Add new section at the TOP of changelog
+   - Use format: `vX.Y.Z (YYYY-MM-DD) - Release Name`
+   - List changes under categories: New Features, Improved, Fixed, Breaking Changes, Known Limitations
+7. **Verify**: Run `python rpi_gateway/app/core/version.py` to confirm
+
+### Changelog Format (Strict Template)
+```
+vX.Y.Z (YYYY-MM-DD) - Release Name
+
+Brief summary of the release milestone
+
+New Features:
+ - Feature 1 description
+ - Feature 2 description
+
+Improved:
+ - Improvement 1
+ - Improvement 2
+
+Fixed:
+ - Bug fix 1
+ - Bug fix 2
+
+Breaking Changes:
+ - Breaking change 1 (MAJOR version only)
+
+Known Limitations:
+Limitation 1
+
+---
+
+[Previous version entries below - DO NOT MODIFY]
+```
+
+### Examples of Version Bumps
+
+**PATCH Example (2.0.0 → 2.0.1):**
+- Fix WiFi reconnection bug
+- Improve logging clarity
+- Update documentation typos
+
+**MINOR Example (2.0.1 → 2.1.0):**
+- Add `/api/version` endpoint
+- Implement on-screen keyboard support
+- Add mDNS service discovery
+- New feature flags in config
+
+**MAJOR Example (2.1.0 → 3.0.0):**
+- Change serial protocol from JSON to Protocol Buffers
+- Rename API endpoints (breaking mobile app compatibility)
+- Require new config.yaml structure
+
+### Enforcement Rules
+1. **NO PR/commit without version bump** (except docs-only changes)
+2. **NEVER edit old changelog entries** - append new sections only
+3. **ALWAYS update RELEASE_DATE** to match current date
+4. **Test version endpoint**: Verify `/api/version` returns correct info
+5. **Run version.py**: Confirm output shows updated version
+
+### Version Coordination
+Components with direct communication require coordinated updates:
+- **RPi ↔ Arduino**: MAJOR version changes in serial protocol require both to update
+- **Mobile ↔ RPi**: MINOR version changes in local API require mobile app update
+- **Mobile ↔ Backend**: API changes require backend + mobile coordination
+
 ## Key Decision Rationale
 - **Why separate Arduino/RPi?** Isolation: hardware failures don't crash business logic
 - **Why SQLite + Firebase?** Offline-first: data survives network outages

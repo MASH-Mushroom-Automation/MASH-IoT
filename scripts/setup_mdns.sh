@@ -13,7 +13,7 @@ echo ""
 
 # Check if running on Raspberry Pi
 if [ ! -f /etc/rpi-issue ]; then
-    echo "⚠️  Warning: This doesn't appear to be a Raspberry Pi"
+    echo "Warning: This doesn't appear to be a Raspberry Pi"
     echo "   Script may still work on other Linux systems"
     echo ""
 fi

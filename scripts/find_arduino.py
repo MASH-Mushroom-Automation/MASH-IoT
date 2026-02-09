@@ -49,7 +49,7 @@ def find_arduino_ports():
     
     if arduino_ports:
         print("=" * 60)
-        print(f"✅ Found {len(arduino_ports)} Arduino device(s):")
+        print(f"Found {len(arduino_ports)} Arduino device(s):")
         for port in arduino_ports:
             print(f"   {port}")
         print()

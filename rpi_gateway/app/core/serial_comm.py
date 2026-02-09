@@ -386,7 +386,7 @@ class ArduinoSerialComm:
                             self.last_write_time = time.time()
                             logger.debug("[SERIAL] ❤️  Sent keepalive to prevent watchdog timeout (60s)")
                     except Exception as hb_err:
-                        logger.warning(f"[SERIAL] ⚠️  Heartbeat failed: {hb_err}")
+                        logger.warning(f"[SERIAL] Heartbeat failed: {hb_err}")
                         self.is_connected = False  # Mark as disconnected to trigger reconnect
 
                 # BUFFER MANAGEMENT: extensive buffer indicates lag

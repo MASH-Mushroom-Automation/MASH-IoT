@@ -34,7 +34,7 @@ def test_connection():
         print("  3. Verify USB cable supports data")
         return False
     
-    print("✅ Connection successful!")
+    print("Connection successful!")
     print(f"   Port: {arduino.port}")
     print(f"   Baud: {arduino.baudrate}")
     print()
@@ -126,7 +126,7 @@ def test_connection():
                 status_text = "CONNECTED" if current_status else "DISCONNECTED"
                 print(f"[Status Check] {status_icon} {status_text} | Packets received: {data_count}")
         
-        print(f"\n✅ Test completed! Received {data_count} data packets")
+        print(f"\nTest completed! Received {data_count} data packets")
         
     except KeyboardInterrupt:
         print("\n\n⚠️  Test interrupted by user")
@@ -134,7 +134,7 @@ def test_connection():
     
     finally:
         arduino.disconnect()
-        print("\n✅ Disconnected cleanly")
+        print("\nDisconnected cleanly")
     
     return True
 

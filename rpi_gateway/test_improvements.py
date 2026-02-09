@@ -104,13 +104,13 @@ def test_ml_system():
         if os.path.exists(iso_path):
             print(f"✅ Anomaly detection model found: {iso_path}")
         else:
-            print(f"⚠️  Anomaly detection model NOT found: {iso_path}")
+            print(f"Anomaly detection model NOT found: {iso_path}")
             print("   Run: python -m app.core.logic_engine to train models")
         
         if os.path.exists(dt_path):
             print(f"✅ Actuation control model found: {dt_path}")
         else:
-            print(f"⚠️  Actuation control model NOT found: {dt_path}")
+            print(f"Actuation control model NOT found: {dt_path}")
             print("   Run: python -m app.core.logic_engine to train models")
         
     except ImportError as e:
@@ -147,7 +147,7 @@ def test_database():
                 if alerts:
                     print(f"✅ Alert retrieval successful ({len(alerts)} alerts)")
                 else:
-                    print("⚠️  No alerts retrieved (this is OK if database is empty)")
+                    print("No alerts retrieved (this is OK if database is empty)")
             else:
                 print("❌ Alert insertion failed")
             

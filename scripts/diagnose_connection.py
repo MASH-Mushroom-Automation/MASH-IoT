@@ -19,7 +19,7 @@ running = True
 
 def signal_handler(sig, frame):
     global running
-    print('\n\n⚠️  Shutting down...')
+    print('\n\nShutting down...')
     running = False
 
 signal.signal(signal.SIGINT, signal_handler)

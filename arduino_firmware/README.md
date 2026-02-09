@@ -1,4 +1,7 @@
 # M.A.S.H. IoT: Raspberry Pi Integration Guide
+# Arduino Mega Pinout
+
+See [PINOUT.md](PINOUT.md) for a complete list of pin assignments for sensors and actuators on the Arduino Mega used in this project.
 
 This guide provides instructions for setting up a Raspberry Pi to communicate with and control the M.A.S.H. IoT Arduino firmware.
 

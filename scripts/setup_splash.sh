@@ -84,5 +84,5 @@ sudo systemctl daemon-reload
 sudo systemctl enable mash-splash.service
 
 echo ""
-echo "✅ Splash screen setup complete!"
+echo "Splash screen setup complete!"
 echo "   Reboot to see it in action: sudo reboot"

@@ -6,11 +6,11 @@ Semantic Versioning: MAJOR.MINOR.PATCH
 - MINOR: New features (backward compatible)
 - PATCH: Bug fixes, small improvements
 
-Last updated: 2026-02-03
+Last updated: 2026-02-09
 """
 
 # Version Components
-MAJOR = 1
+MAJOR = 2
 MINOR = 0
 PATCH = 0
 
@@ -19,8 +19,8 @@ VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-03"
-RELEASE_NAME = "Initial Release"
+RELEASE_DATE = "2026-02-09"
+RELEASE_NAME = "New features and UI improvements"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -29,13 +29,23 @@ ARDUINO_SERIAL_PROTOCOL_VERSION = "1.0"
 
 # Feature Flags
 FEATURES = {
-    'ml_automation': True,
-    'wifi_provisioning': True,
-    'firebase_sync': True,
-    'backend_api_sync': True,
-    'mqtt_fallback': False,  # Not implemented yet
-    'systemd_service': False,  # Manual setup required
-    'chromium_kiosk': False,  # Not implemented yet
+    'ml_automation': True,           # - Isolation Forest + Decision Tree
+    'wifi_provisioning': True,       # - NetworkManager-based provisioning
+    'firebase_sync': False,           # - Realtime DB + Admin SDK
+    'backend_api_sync': True,        # - REST API client with JWT
+    'mdns_discovery': False,          # - Local network discovery
+    'offline_first_db': True,        # - SQLite with sync queue
+    'web_dashboard': True,           # - Flask Blueprint web UI
+    'version_api': True,             # - Version endpoint for frontend
+    'manual_controls': True,         # - Override automation
+    'sensor_warmup': True,           # - Initial calibration period
+    'smart_humidifier': False,        # - Predictive cycle manager
+    'screen_management': True,       # - HDMI power control
+    'mqtt_fallback': False,          # - Partial (client exists, not integrated)
+    'systemd_service': True,         # - Scripts available, manual setup
+    'chromium_kiosk': True,          # - Scripts available, manual setup
+    'ota_updates': False,            # - Not implemented
+    'advanced_recovery': False,      # - Basic error handling only
 }
 
 # Hardware Requirements
@@ -102,26 +112,116 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
-v1.0.0 (2026-02-03) - Initial Release
+v2.0.0 (2026-02-09) - New features and UI improvements
 
-Features:
-✅ Flask web server with Blueprint architecture
-✅ USB Serial communication with Arduino (JSON protocol)
-✅ WiFi provisioning via NetworkManager (nmcli)
-✅ SQLite offline-first database
-✅ Firebase Admin SDK integration
-✅ Backend API client
-✅ ML automation engine (Isolation Forest + Decision Tree)
-✅ Smart humidifier cycle manager
-✅ HDMI screen power management
+Major Milestone: Complete IoT Gateway Implementation
+
+New Features:
+- Version API endpoint (/api/version) for frontend display
+- Enhanced settings page with version info
+- Device identity management system
+- User preferences persistence
+- Comprehensive error handling across all modules
+- Production-ready Flask Blueprint architecture
+- Multi-room actuator state management
+- Real-time connection status indicators
+- WiFi mode detection and QR code generation
+- Sensor warmup period with countdown
+
+Improved:
+- Refactored web routes with proper separation
+- Enhanced logging with contextual tags
+- Better NetworkManager permission handling
+- Improved serial protocol reliability
+- Optimized database query performance
+- Consolidated configuration management
+
+Setup Scripts Available:
+- zen.sh - Update and Setup orchestrator
+- setup_os.sh - Complete OS configuration
+- setup_kiosk.sh - Chromium kiosk mode setup
+- setup_mdns.sh - mDNS service configuration
+- install_dependencies.sh - Python packages
+- fix_networkmanager_permissions.sh - WiFi permissions
+- diagnose_connection.py - Connection troubleshooting
+- test_arduino.py - Hardware validation
+
+Documentation:
+- FIREBASE_INTEGRATION_GUIDE.md
+- FIREBASE_QUICK_START.md
+- QUICK_REFERENCE.md
+
+Breaking Changes:
+- Updated API response format for consistency
+- Changed configuration structure in config.yaml
+- Renamed environment variables (see .env.example)
+
+Known Limitations:
+- MQTT client not fully integrated (fallback mode)
+- OTA firmware updates not implemented
+- Advanced failure recovery mechanisms minimal
 
 In Progress:
-🔨 systemd auto-start service
+- mDNS service advertising for device discovery
+- Firebase Realtime Database sync enhancements
 
-Missing:
-⚠️ MQTT integration
-⚠️ Chromium kiosk mode
-⚠️ Advanced error recovery
+---
+
+v1.1.0 (2026-02-05) - Feature Enhancements
+
+Added:
+- mDNS advertiser module
+- Device activation workflow
+- Identity management utilities
+- Passive fan controller
+- Enhanced web UI components
+
+Fixed:
+- WiFi disconnect edge cases
+- Serial reconnection logic
+- Firebase authentication flow
+
+---
+
+v1.0.0 (2026-02-03) - Initial Release
+
+First stable release of MASH IoT Gateway
+
+Core Features:
+- Flask web server with Blueprint architecture
+- USB Serial communication with Arduino (JSON protocol at 9600 baud)
+- WiFi provisioning via NetworkManager (nmcli)
+- SQLite offline-first database with sync queue
+- Firebase Realtime Database integration
+- Firebase Admin SDK for authentication
+- Backend REST API client with JWT auth
+- ML automation engine (Isolation Forest + Decision Tree)
+- Smart humidifier cycle manager (prevents overshoot)
+- HDMI screen power management
+- Manual actuator control with override tracking
+- Dual-sensor support (SCD41 via hardware + software I2C)
+- Safety watchdog (60s timeout)
+- Real-time dashboard with condition indicators
+
+Hardware Support:
+- Raspberry Pi 3/4 (Linux armv7l/aarch64)
+- Arduino Uno R3 (USB serial)
+- SCD41 CO2 sensors (dual chamber)
+- 8-channel relay module (active-low)
+
+API Endpoints:
+• GET /api/latest_data - Sensor readings and states
+• POST /api/control_actuator - Manual actuator control
+• POST /api/set_auto_mode - Toggle automation
+• GET /api/wifi-scan - Available networks
+• POST /api/wifi-connect - Connect to WiFi
+• GET /api/wifi-mode - Current WiFi status
+• GET /provisioning/info - Device provisioning state
+
+Tested Platforms:
+- Raspberry Pi OS (Bookworm)
+- Ubuntu 22.04 (development)
+- Windows 10/11 (limited testing)
 """
 
 

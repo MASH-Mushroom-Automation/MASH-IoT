@@ -42,6 +42,12 @@ This installs:
 
 **Time required:** ~10-15 minutes
 
+### 3a. Setup Boot Splash Screen (Optional)
+Display the MASH logo during boot:
+```bash
+bash scripts/setup_splash.sh
+```
+
 ---
 
 ## Arduino Connection Setup
@@ -347,7 +353,7 @@ http://RASPBERRY_PI_IP:5000
 nmcli device wifi list
 
 # Connect to WiFi
-sudo nmcli device wifi connect "SSID" password "PASSWORD"
+sudo nmcli --ask device wifi connect "SSID" password "PASSWORD"
 
 # Check connection
 nmcli connection show

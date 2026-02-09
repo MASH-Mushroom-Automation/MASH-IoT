@@ -8,3 +8,4 @@ rpi_gateway/config/.env
 /rpi_gateway/app/utils/__pycache__
 /rpi_gateway/app/web/__pycache__
 /rpi_gateway/app/cloud/__pycache__
+rpi_gateway/config/firebase_config.json
