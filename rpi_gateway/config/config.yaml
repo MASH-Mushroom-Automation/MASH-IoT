@@ -2,13 +2,16 @@
 # Temperature thresholds, automation rules, actuator mappings
 
 # Device Identification (from Backend Registration)
+# Note: firmware_version is auto-injected from app.core.version at runtime
+# id: Neon DB UUID (used for backend API authentication)
+# serial_number: Human-readable ID (used for Firebase paths and UI)
 device:
   id: "cmkg7pxhn0000bu9kqdlmb4f1"
   name: "Mika's Device"
   serial_number: "MASH-B2-CAL26-CE637C"
   type: "MUSHROOM_CHAMBER"
   location: "Mushroom Cultivation Facility"
-  firmware_version: "2.1.2"
+  # firmware_version: Auto-injected from version.py (do not set manually)
 
 # System Configuration
 system:

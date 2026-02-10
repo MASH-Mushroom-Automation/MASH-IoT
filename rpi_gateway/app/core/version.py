@@ -12,7 +12,7 @@ Last updated: 2026-02-09
 # Version Components
 MAJOR = 2
 MINOR = 1
-PATCH = 3
+PATCH = 4
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Changelog Modal and Documentation"
+RELEASE_NAME = "Configuration Management Improvements"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,29 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.4 (2026-02-10) - Configuration Management Improvements
+
+Improved configuration management with dynamic versioning and environment variable precedence.
+
+Added:
+ - Dynamic firmware_version injection from version.py (no manual updates needed)
+ - Environment variable precedence (.env overrides config.yaml)
+ - _override_config_from_env() method in MASHOrchestrator
+ - DEVICE_ID_UUID in .env for Neon DB UUID
+ - Clear comments distinguishing device ID vs serial number usage
+
+Improved:
+ - Configuration loading now respects environment variables
+ - Firmware version always in sync with version.py
+ - Clearer separation: UUID for backend API, serial for Firebase/UI
+
+Documentation:
+ - Explained Firebase data isolation per device
+ - Documented ID vs serial number usage patterns
+ - Clarified config.yaml precedence rules
+
+---
+
 v2.1.3 (2026-02-10) - Changelog Modal and Documentation
 
 Added changelog viewer and updated documentation for Firebase architecture.

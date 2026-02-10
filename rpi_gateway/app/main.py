@@ -62,6 +62,16 @@ class MASHOrchestrator:
         # Load configuration (with user preferences merged)
         self.config = self.user_prefs.get_merged_config()
         
+        # Override config with environment variables (if present)
+        self._override_config_from_env()
+        
+        # Inject dynamic firmware version from version.py
+        from core import version
+        if 'device' not in self.config:
+            self.config['device'] = {}
+        self.config['device']['firmware_version'] = version.VERSION
+        logger.info(f"[CONFIG] Firmware version: {version.VERSION}")
+        
         # Flask app
         self.app = Flask(__name__, 
                          template_folder='web/templates',
@@ -184,6 +194,36 @@ class MASHOrchestrator:
                 'sensor_read_interval': 5
             }
         }
+    
+    def _override_config_from_env(self):
+        """Override config.yaml values with environment variables (if present)."""
+        try:
+            # Device configuration overrides
+            if 'device' not in self.config:
+                self.config['device'] = {}
+            
+            # DEVICE_ID_UUID: Neon DB primary key (for backend API)
+            device_id_uuid = os.getenv('DEVICE_ID_UUID')
+            if device_id_uuid:
+                self.config['device']['id'] = device_id_uuid
+                logger.info(f"[CONFIG] Device ID (UUID) overridden from .env: {device_id_uuid}")
+            
+            # DEVICE_ID: Serial number (for Firebase and UI)
+            device_id_serial = os.getenv('DEVICE_ID')
+            if device_id_serial:
+                self.config['device']['serial_number'] = device_id_serial
+                logger.info(f"[CONFIG] Device serial number overridden from .env: {device_id_serial}")
+            
+            # DEVICE_NAME: Display name
+            device_name = os.getenv('DEVICE_NAME')
+            if device_name:
+                # Remove quotes if present
+                device_name = device_name.strip('"\'')
+                self.config['device']['name'] = device_name
+                logger.info(f"[CONFIG] Device name overridden from .env: {device_name}")
+            
+        except Exception as e:
+            logger.warning(f"[CONFIG] Error applying env overrides: {e}")
     
     def on_sensor_data(self, data):
         """Callback when sensor data is received from Arduino."""
