@@ -325,12 +325,9 @@ class MASHOrchestrator:
                 logger.debug("[FIREBASE] Sync disabled by user preference")
             
             
-            # Upload to backend (non-blocking)
-            if self.backend:
-                try:
-                    self.backend.send_sensor_data(data)
-                except Exception as e:
-                    logger.warning(f"[BACKEND] Upload failed: {e}")
+            # Backend heartbeat is handled by check_connection() at 5-min intervals.
+            # Firebase RTDB is the real-time sensor data channel for the mobile app.
+            # No need to send_sensor_data() on every reading (was causing PATCH spam).
 
             # Publish to MQTT (Real-time updates)
             if self.mqtt and self.mqtt.is_alive():

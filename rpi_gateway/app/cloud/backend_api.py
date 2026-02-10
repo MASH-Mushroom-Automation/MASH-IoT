@@ -293,9 +293,9 @@ class BackendAPIClient:
             )
             
             success = response.status_code in [200, 201]
-            self.last_connection_check = current_time
             
             if success:
+                self.last_connection_check = current_time
                 logger.info(f"[BACKEND] Device heartbeat sent successfully")
                 self._reset_retry_state()
                 self.is_connected = True

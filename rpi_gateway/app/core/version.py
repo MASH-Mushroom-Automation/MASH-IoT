@@ -6,13 +6,13 @@ Semantic Versioning: MAJOR.MINOR.PATCH
 - MINOR: New features (backward compatible)
 - PATCH: Bug fixes, small improvements
 
-Last updated: 2026-02-09
+Last updated: 2026-02-11
 """
 
 # Version Components
 MAJOR = 2
 MINOR = 2
-PATCH = 0
+PATCH = 1
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-11"
-RELEASE_NAME = "Smart Retry Logic"
+RELEASE_NAME = "Heartbeat Stability"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,26 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.2.1 (2026-02-11) - Heartbeat Stability
+
+Fixed backend API PATCH spam and Arduino watchdog recovery for continuous operation.
+
+Fixed:
+ - Removed redundant send_sensor_data() from on_sensor_data callback (#IOT-102)
+   Firebase RTDB handles real-time data; backend only needs periodic heartbeat.
+ - Fixed check_connection() timing bug where last_connection_check was set before
+   response validation, preventing backoff from engaging on failures.
+ - Arduino watchdog now auto-recovers when serial communication resumes (#IOT-100)
+   Previously required USB replug to restore actuator control after timeout.
+ - Reduced WATCHDOG_TIMEOUT from 600s to 60s (RPi keepalive sends every 15s).
+
+New:
+ - Arduino emits {"watchdog":"recovered"} JSON on recovery from timeout
+ - RPi serial_comm detects recovery signal and auto-restores relay states
+ - SafetyWatchdog tracks recovery count and downtime duration
+
+---
+
 v2.2.0 (2026-02-11) - Smart Retry Logic
 
 Implemented exponential backoff for backend API requests to reduce server load and prevent request spam on connection failures.

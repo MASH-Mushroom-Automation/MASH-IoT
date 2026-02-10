@@ -130,7 +130,14 @@ void handleSerialCommands() {
         char incomingChar = Serial.read();
         
         // Update watchdog heartbeat on ANY serial data received
-        watchdog.heartbeat();
+        // heartbeat() returns true if this is a recovery from watchdog timeout
+        bool recovered = watchdog.heartbeat();
+        if (recovered) {
+            // Watchdog was triggered, now RPi has resumed communication
+            // The recovery JSON signal was already sent by safety.cpp
+            // RPi serial_comm will detect it and call restore_relay_states()
+            Serial.println(F("[WATCHDOG] Relay states will be restored by RPi"));
+        }
 
         if (incomingChar == '\n' || incomingChar == '\r') {
             if (bufferPos > 0) {

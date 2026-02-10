@@ -409,6 +409,18 @@ class ArduinoSerialComm:
                     # Reset failure counter on successful read
                     consecutive_failures = 0
                     
+                    # Check for watchdog recovery signal from Arduino
+                    # Arduino sends {"watchdog":"recovered"} after resuming from timeout
+                    try:
+                        parsed = json.loads(line)
+                        if isinstance(parsed, dict) and parsed.get('watchdog') == 'recovered':
+                            logger.info("[SERIAL] Arduino watchdog recovered from timeout - restoring relay states")
+                            time.sleep(0.5)  # Brief delay for Arduino to stabilize
+                            self.restore_relay_states()
+                            continue
+                    except (json.JSONDecodeError, ValueError):
+                        pass  # Not JSON or not a watchdog signal, proceed normally
+                    
                     # Try to parse as JSON sensor data
                     data = self.parse_sensor_data(line)
                     
