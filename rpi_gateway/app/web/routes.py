@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify, redirect, url_for, curren
 import time
 import logging
 import os
+import subprocess
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -857,3 +858,32 @@ def toggle_keyboard():
     except Exception as e:
         logger.error(f"Keyboard toggle error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+# System Control Endpoints
+@web_bp.route('/api/system/reboot', methods=['POST'])
+def system_reboot():
+    """Reboot the Raspberry Pi system"""
+    try:
+        logger.info("System reboot requested from web interface")
+        # Use subprocess to execute reboot command with sudo
+        # Note: User must be in sudoers with NOPASSWD for reboot
+        subprocess.Popen(['sudo', 'reboot'])
+        return jsonify({"success": True, "message": "System is rebooting..."})
+    except Exception as e:
+        logger.error(f"Reboot failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/system/shutdown', methods=['POST'])
+def system_shutdown():
+    """Shutdown the Raspberry Pi system"""
+    try:
+        logger.info("System shutdown requested from web interface")
+        # Use subprocess to execute shutdown command with sudo
+        # Note: User must be in sudoers with NOPASSWD for shutdown
+        subprocess.Popen(['sudo', 'shutdown', '-h', 'now'])
+        return jsonify({"success": True, "message": "System is shutting down..."})
+    except Exception as e:
+        logger.error(f"Shutdown failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500

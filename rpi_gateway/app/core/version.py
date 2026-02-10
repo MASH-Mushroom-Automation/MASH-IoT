@@ -12,7 +12,7 @@ Last updated: 2026-02-09
 # Version Components
 MAJOR = 2
 MINOR = 1
-PATCH = 1
+PATCH = 2
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Firebase Config Fix and Sync Status"
+RELEASE_NAME = "Firebase Fixes and System Controls"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,31 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.2 (2026-02-10) - Firebase Fixes and System Controls
+
+Critical bug fix and new system management features.
+
+Fixed:
+ - Firebase SDK loading race condition (wrapped in DOMContentLoaded)
+ - "Sync: Failed" error now resolved
+
+Added:
+ - Reboot Device button in Settings with confirmation dialog
+ - Shutdown Device button in Settings with confirmation dialog
+ - Firebase Realtime Sync toggle in Settings (enable/disable via localStorage)
+ - System control API endpoints: /api/system/reboot and /api/system/shutdown
+
+Improved:
+ - Settings page organization with Sync Settings section
+ - User can now disable Firebase sync without code changes
+ - System control buttons use proper confirmation modals
+
+Technical:
+ - Added subprocess import in routes.py for system commands
+ - Requires sudoers NOPASSWD for reboot/shutdown commands
+
+---
+
 v2.1.1 (2026-02-10) - Firebase Config Fix and Sync Status
 
 Bug fix release with improved Firebase configuration and status indicator clarity.
