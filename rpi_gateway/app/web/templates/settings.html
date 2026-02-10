@@ -477,12 +477,28 @@
     }
 
     // Firebase sync toggle handler
-    function handleFirebaseSyncToggle(enabled) {
-        localStorage.setItem('firebaseSyncEnabled', enabled ? 'true' : 'false');
-        if (enabled) {
-            showSuccess('Firebase sync enabled. Refresh the dashboard to start syncing.');
-        } else {
-            showSuccess('Firebase sync disabled. Dashboard will show "Sync: Disabled".');
+    async function handleFirebaseSyncToggle(enabled) {
+        try {
+            const response = await fetch('/api/firebase-sync/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (enabled) {
+                    showSuccess('Firebase sync enabled. All dashboards will sync in real-time.');
+                } else {
+                    showSuccess('Firebase sync disabled. Dashboards will show "Sync: Disabled".');
+                }
+            } else {
+                showError('Failed to update sync preference.');
+            }
+        } catch (error) {
+            console.error('Error toggling Firebase sync:', error);
+            showError('Failed to update sync preference.');
         }
     }
 
@@ -535,12 +551,19 @@
 
         loadVersionInfo();
 
+
         // Firebase sync toggle handler
         const syncToggle = document.getElementById('firebase-sync-toggle');
         if (syncToggle) {
-            // Load saved state
-            const syncEnabled = localStorage.getItem('firebaseSyncEnabled') !== 'false';
-            syncToggle.checked = syncEnabled;
+            // Load state from server
+            fetch('/api/firebase-sync/status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        syncToggle.checked = data.enabled;
+                    }
+                })
+                .catch(err => console.error('Failed to load sync status:', err));
 
             // Handle toggle changes
             syncToggle.addEventListener('change', function () {

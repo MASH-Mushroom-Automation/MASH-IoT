@@ -256,11 +256,16 @@ class MASHOrchestrator:
             logger.info(f"[DATA] Received sensor data at {data.get('timestamp', 'unknown')}")
             
             # Upload to Firebase (Real-time sync for mobile app)
-            if self.firebase:
+            # Check if Firebase sync is enabled in user preferences
+            firebase_sync_enabled = self.user_prefs.get_preference('firebase_sync_enabled', default=True)
+            
+            if self.firebase and firebase_sync_enabled:
                 try:
                     # Prepare readings for Firebase
                     readings = []
                     device_id = self.config.get('device', {}).get('serial_number', 'rpi_gateway_001')
+                    
+                    logger.debug(f"[FIREBASE] Preparing upload for device: {device_id}")
                     
                     if 'fruiting' in data:
                         readings.append({
@@ -311,8 +316,14 @@ class MASHOrchestrator:
                             }
                         
                         latest_ref.set(latest_data)
+                        logger.info(f"[FIREBASE] ✅ Uploaded to devices/{device_id}/latest_reading")
                 except Exception as e:
-                    logger.warning(f"[FIREBASE] Sync failed: {e}")
+                    logger.error(f"[FIREBASE] ❌ Sync failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+            elif not firebase_sync_enabled:
+                logger.debug("[FIREBASE] Sync disabled by user preference")
+            
             
             # Upload to backend (non-blocking)
             if self.backend:

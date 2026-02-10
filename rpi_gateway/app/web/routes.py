@@ -902,3 +902,71 @@ def get_changelog():
     except Exception as e:
         logger.error(f"Failed to load changelog: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/debug/firebase')
+def debug_firebase():
+    """Debug Firebase sync status and configuration"""
+    try:
+        config = current_app.config.get('MUSHROOM_CONFIG', {})
+        device_config = config.get('device', {})
+        latest_data = current_app.config.get('LATEST_DATA', {})
+        
+        # Check if Firebase client exists
+        firebase_client = getattr(current_app, 'orchestrator', None)
+        firebase_obj = firebase_client.firebase if firebase_client else None
+        
+        # Get user preference
+        user_prefs = current_app.config.get('USER_PREFS')
+        sync_pref = user_prefs.get_preference('firebase_sync_enabled', default=True) if user_prefs else True
+        
+        return jsonify({
+            "success": True,
+            "firebase_initialized": firebase_obj is not None,
+            "firebase_enabled": firebase_obj.is_initialized if firebase_obj else False,
+            "sync_preference": sync_pref,
+            "device_id": device_config.get('serial_number', 'unknown'),
+            "device_uuid": device_config.get('id', 'unknown'),
+            "latest_data": {
+                "fruiting": latest_data.get('fruiting'),
+                "spawning": latest_data.get('spawning')
+            },
+            "firebase_url": os.getenv('FIREBASE_DATABASE_URL', 'not set')
+        })
+    except Exception as e:
+        logger.error(f"Debug firebase failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/firebase-sync/status', methods=['GET'])
+def get_firebase_sync_status():
+    """Get current Firebase sync status (server-side preference)"""
+    try:
+        user_prefs = current_app.config.get('USER_PREFS')
+        if user_prefs:
+            enabled = user_prefs.get_preference('firebase_sync_enabled', default=True)
+        else:
+            enabled = True
+        
+        return jsonify({"success": True, "enabled": enabled})
+    except Exception as e:
+        logger.error(f"Failed to get sync status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/firebase-sync/toggle', methods=['POST'])
+def toggle_firebase_sync():
+    """Toggle Firebase sync (affects all clients)"""
+    try:
+        data = request.json
+        enabled = data.get('enabled', True)
+        
+        user_prefs = current_app.config.get('USER_PREFS')
+        if user_prefs:
+            user_prefs.set_preference('firebase_sync_enabled', enabled)
+            logger.info(f"[FIREBASE] Sync toggled: {enabled}")
+        
+        return jsonify({"success": True, "enabled": enabled})
+    except Exception as e:
+        logger.error(f"Failed to toggle sync: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500

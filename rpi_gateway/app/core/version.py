@@ -12,7 +12,7 @@ Last updated: 2026-02-09
 # Version Components
 MAJOR = 2
 MINOR = 1
-PATCH = 4
+PATCH = 5
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Configuration Management Improvements"
+RELEASE_NAME = "Firebase Sync Improvements"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,29 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.5 (2026-02-10) - Firebase Sync Improvements
+
+Fixed Firebase sync toggle to work across all clients and added debugging tools.
+
+Added:
+ - Server-side Firebase sync preference (affects all dashboards)
+ - /api/firebase-sync/status endpoint (GET - check sync state)
+ - /api/firebase-sync/toggle endpoint (POST - toggle sync for all clients)
+ - /api/debug/firebase endpoint (diagnostic information)
+ - Detailed Firebase upload logging with success/error tracking
+
+Fixed:
+ - Sync toggle now works across multiple browser instances
+ - Removed localStorage dependency for sync state
+ - Fixed async syntax errors in dashboard Firebase initialization
+
+Improved:
+ - Firebase upload now checks user preference before attempting
+ - Better error handling with traceback logging
+ - Clearer log messages for Firebase operations
+
+---
+
 v2.1.4 (2026-02-10) - Configuration Management Improvements
 
 Improved configuration management with dynamic versioning and environment variable precedence.

@@ -269,16 +269,24 @@
 
     // === FIREBASE REALTIME LISTENER ===
     document.addEventListener('DOMContentLoaded', function () {
-        // Check if Firebase sync is enabled (default: true)
-        const firebaseSyncEnabled = localStorage.getItem('firebaseSyncEnabled') !== 'false';
+        // Check if Firebase sync is enabled (server-side preference)
+        let syncEnabled = true;
+        try {
+            const syncResp = await fetch('/api/firebase-sync/status');
+            const syncData = await syncResp.json();
+            syncEnabled = syncData.enabled;
+        } catch (error) {
+            console.log('Failed to check sync status, defaulting to enabled');
+        }
+
         const syncStatusEl = document.getElementById('sync-status');
 
-        if (!firebaseSyncEnabled) {
+        if (!syncEnabled) {
             if (syncStatusEl) {
                 syncStatusEl.textContent = 'Disabled';
                 syncStatusEl.className = 'status-warning';
             }
-            console.log('Firebase sync is disabled in settings');
+            console.log('[FIREBASE] Sync disabled by server preference');
             return;
         }
 
