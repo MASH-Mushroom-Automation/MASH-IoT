@@ -218,20 +218,6 @@ MASH-IoT/
 ### A. Firebase Configuration
 
 - **Location:** `rpi_gateway/config/firebase_config.json`
-- Use this JSON object to initialize your Firebase Admin SDK or Client:
-
-```json
-{
-	"apiKey": "AIzaSyBQ1r2ZHKorNknHpzBDeaLY8FXMM58CNL4",
-	"authDomain": "mash-ddf8d.firebaseapp.com",
-	"databaseURL": "https://mash-ddf8d-default-rtdb.asia-southeast1.firebasedatabase.app",
-	"projectId": "mash-ddf8d",
-	"storageBucket": "mash-ddf8d.firebasestorage.app",
-	"messagingSenderId": "784415877696",
-	"appId": "1:784415877696:web:89853cbc7b1c54d6da4da5",
-	"measurementId": "G-1CSW6DQ885"
-}
-```
 
 ### B. MQTT Configuration (HiveMQ)
 

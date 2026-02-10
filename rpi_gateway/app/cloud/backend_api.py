@@ -59,6 +59,12 @@ class BackendAPIClient:
         self.last_connection_check = 0
         self.connection_check_interval = 300
         
+        # Exponential backoff state for failed connections
+        self.retry_count = 0
+        self.last_failed_attempt = 0
+        self.retry_intervals = [10, 30, 60, 300, 600]  # 10s, 30s, 1min, 5min, 10min (max)
+        self.max_retry_delay = 600  # 10 minutes maximum
+        
         logger.info(f"[BACKEND] Initialized client for {self.base_url}")
         
         # 3. If we have a static token, set up headers immediately
@@ -216,13 +222,67 @@ class BackendAPIClient:
     
     # ... [The rest of the methods (check_connection, send_sensor_data, etc.) remain exactly the same] ...
     
+    def _calculate_retry_delay(self) -> int:
+        """Calculate backoff delay based on retry count."""
+        if self.retry_count == 0:
+            return 0
+        
+        # Get delay from intervals list, or use max delay if exceeded
+        index = min(self.retry_count - 1, len(self.retry_intervals) - 1)
+        return self.retry_intervals[index]
+    
+    def _reset_retry_state(self):
+        """Reset retry state after successful connection."""
+        if self.retry_count > 0:
+            logger.info(f"[BACKEND] Connection successful, resetting retry state (was at retry {self.retry_count})")
+        self.retry_count = 0
+        self.last_failed_attempt = 0
+    
+    def _handle_connection_failure(self, current_time: float):
+        """Handle connection failure and update retry state."""
+        self.retry_count += 1
+        self.last_failed_attempt = current_time
+        next_delay = self._calculate_retry_delay()
+        logger.warning(
+            f"[BACKEND] Connection failed (retry {self.retry_count}/{len(self.retry_intervals)}), "
+            f"backing off for {next_delay}s"
+        )
+    
+    def _is_in_backoff_period(self, current_time: float) -> bool:
+        """Check if we're still in backoff period after a failure."""
+        if self.retry_count == 0 or self.last_failed_attempt == 0:
+            return False
+        
+        retry_delay = self._calculate_retry_delay()
+        time_since_failure = current_time - self.last_failed_attempt
+        
+        return time_since_failure < retry_delay
+    
+    def _get_next_retry_seconds(self, current_time: float) -> int:
+        """Get seconds until next retry attempt."""
+        if not self._is_in_backoff_period(current_time):
+            return 0
+        
+        retry_delay = self._calculate_retry_delay()
+        time_since_failure = current_time - self.last_failed_attempt
+        return int(retry_delay - time_since_failure)
+    
     def check_connection(self) -> bool:
         current_time = time.time()
-        if current_time - self.last_connection_check < self.connection_check_interval:
+        
+        # If in backoff period, don't attempt connection
+        if self._is_in_backoff_period(current_time):
+            next_retry = self._get_next_retry_seconds(current_time)
+            logger.debug(f"[BACKEND] In backoff period, next retry in {next_retry}s")
             return self.is_connected
+        
+        # If successfully connected recently, check per interval
+        if self.is_connected and (current_time - self.last_connection_check < self.connection_check_interval):
+            return True
         
         try:
             if not self.ensure_authenticated():
+                self._handle_connection_failure(current_time)
                 self.is_connected = False
                 return False
             
@@ -232,23 +292,28 @@ class BackendAPIClient:
                 timeout=10
             )
             
-            self.is_connected = response.status_code in [200, 201]
+            success = response.status_code in [200, 201]
             self.last_connection_check = current_time
             
-            if self.is_connected:
+            if success:
                 logger.info(f"[BACKEND] Device heartbeat sent successfully")
+                self._reset_retry_state()
+                self.is_connected = True
             else:
                 logger.warning(f"[BACKEND] Heartbeat failed: {response.status_code}")
+                self._handle_connection_failure(current_time)
+                self.is_connected = False
+                
                 # Fallback registration logic
                 if response.status_code == 404:
-                     self.register_device()
+                    self.register_device()
 
             return self.is_connected
             
         except requests.exceptions.RequestException as e:
             logger.warning(f"[BACKEND] Connection check failed: {e}")
+            self._handle_connection_failure(current_time)
             self.is_connected = False
-            self.last_connection_check = current_time
             return False
 
     def register_device(self) -> bool:

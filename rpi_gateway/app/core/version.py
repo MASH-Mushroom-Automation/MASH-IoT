@@ -11,16 +11,16 @@ Last updated: 2026-02-09
 
 # Version Components
 MAJOR = 2
-MINOR = 1
-PATCH = 5
+MINOR = 2
+PATCH = 0
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Firebase Sync Improvements"
+RELEASE_DATE = "2026-02-11"
+RELEASE_NAME = "Smart Retry Logic"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,34 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.2.0 (2026-02-11) - Smart Retry Logic
+
+Implemented exponential backoff for backend API requests to reduce server load and prevent request spam on connection failures.
+
+New Features:
+ - Exponential backoff retry logic (10s, 30s, 1min, 5min, 10min max)
+ - Intelligent connection state management with retry tracking
+ - Helper methods: _calculate_retry_delay(), _reset_retry_state(), _is_in_backoff_period()
+ - Detailed logging for retry state transitions
+
+Improved:
+ - Backend API client now respects retry intervals after failures
+ - Reduced unnecessary API requests during persistent connection issues
+ - Better logging showing retry count and next retry time
+ - Connection check logic optimized to prevent spam
+
+Fixed:
+ - Excessive PATCH requests to backend on connection failures (issue #IOT-102)
+ - 400 error spam from repeated failed requests
+ - Server load from IoT devices making constant retry attempts
+
+Technical:
+ - Firebase streaming remains unaffected by backend retry logic
+ - Retry state automatically resets on successful connection
+ - Maximum backoff capped at 10 minutes to prevent indefinite delays
+
+---
+
 v2.1.5 (2026-02-10) - Firebase Sync Improvements
 
 Fixed Firebase sync toggle to work across all clients and added debugging tools.
