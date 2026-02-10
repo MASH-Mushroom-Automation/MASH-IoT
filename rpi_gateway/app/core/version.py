@@ -12,7 +12,7 @@ Last updated: 2026-02-09
 # Version Components
 MAJOR = 2
 MINOR = 1
-PATCH = 2
+PATCH = 3
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Firebase Fixes and System Controls"
+RELEASE_NAME = "Changelog Modal and Documentation"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,28 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.3 (2026-02-10) - Changelog Modal and Documentation
+
+Added changelog viewer and updated documentation for Firebase architecture.
+
+Added:
+ - Changelog modal in Settings page
+ - "View Changelog" button in About section
+ - GET /api/changelog endpoint
+ - Responsive modal design with animations
+
+Improved:
+ - Settings page UX with scrollable changelog viewer
+ - Modal closes on outside click or ESC key
+ - Loading spinner while fetching changelog
+
+Documentation:
+ - Explained Firebase RTDB vs Neon DB architecture
+ - Firebase auto-creates structure on first write
+ - Device ID authentication pattern documented
+
+---
+
 v2.1.2 (2026-02-10) - Firebase Fixes and System Controls
 
 Critical bug fix and new system management features.

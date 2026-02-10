@@ -887,3 +887,18 @@ def system_shutdown():
     except Exception as e:
         logger.error(f"Shutdown failed: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/changelog')
+def get_changelog():
+    """Get the system changelog from version.py"""
+    try:
+        from app.core import version
+        return jsonify({
+            "success": True,
+            "changelog": version.CHANGELOG,
+            "version": version.VERSION
+        })
+    except Exception as e:
+        logger.error(f"Failed to load changelog: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500

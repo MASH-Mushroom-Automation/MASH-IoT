@@ -8,7 +8,7 @@ device:
   serial_number: "MASH-B2-CAL26-CE637C"
   type: "MUSHROOM_CHAMBER"
   location: "Mushroom Cultivation Facility"
-  firmware_version: "2.0.0"
+  firmware_version: "2.1.2"
 
 # System Configuration
 system:

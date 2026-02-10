@@ -34,13 +34,17 @@
             <h3>About</h3>
         </div>
         <div class="card-body">
-            <div style="background: #2c2c2c; padding: 15px; border-radius: 8px;">
+            <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                 <p style="margin: 5px 0; color: #4CAF50; font-weight: bold; font-size: 1.1em;">MASH IoT Gateway</p>
                 <p style="margin: 5px 0;"><strong>Version:</strong> <span id="version"></span></p>
                 <p style="margin: 5px 0;"><strong>System:</strong> Raspberry Pi</p>
                 <p style="margin: 5px 0; opacity: 0.7; font-size: 0.9em;">Mushroom Automation with Smart
                     Hydro-Environment</p>
             </div>
+            <button class="setting-button" onclick="showChangelog()"
+                style="background: linear-gradient(135deg, #2196F3, #1976D2);">
+                <i class="fas fa-list-alt"></i> View Changelog
+            </button>
         </div>
     </div>
 
@@ -84,6 +88,21 @@
                 <button class="action-button danger" onclick="handleShutdown()">
                     <i class="fas fa-power-off"></i> Shutdown Device
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Changelog Modal -->
+<div id="changelog-modal" class="changelog-modal">
+    <div class="changelog-modal-content">
+        <div class="changelog-modal-header">
+            <h2><i class="fas fa-history"></i> Changelog</h2>
+            <span class="changelog-close" onclick="closeChangelog()">&times;</span>
+        </div>
+        <div class="changelog-modal-body" id="changelog-content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading changelog...
             </div>
         </div>
     </div>
@@ -183,6 +202,120 @@
 
     input:checked+.toggle-slider:before {
         transform: translateX(24px);
+    }
+
+    /* Changelog Modal */
+    .changelog-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .changelog-modal-content {
+        background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+        margin: 5% auto;
+        padding: 0;
+        border: 2px solid #4CAF50;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 40px rgba(76, 175, 80, 0.3);
+        animation: slideDown 0.3s;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .changelog-modal-header {
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        padding: 20px;
+        border-radius: 10px 10px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .changelog-modal-header h2 {
+        margin: 0;
+        color: white;
+        font-size: 1.5em;
+    }
+
+    .changelog-close {
+        color: white;
+        font-size: 32px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .changelog-close:hover {
+        transform: scale(1.2);
+    }
+
+    .changelog-modal-body {
+        padding: 25px;
+        overflow-y: auto;
+        max-height: calc(80vh - 80px);
+        color: #e0e0e0;
+    }
+
+    .changelog-modal-body pre {
+        background: #1a1a1a;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #4CAF50;
+        white-space: pre-wrap;
+        font-family: 'Courier New', monospace;
+        line-height: 1.6;
+        color: #f0f0f0;
+    }
+
+    .changelog-modal-body .loading {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2em;
+        color: #4CAF50;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .changelog-modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+
+        .changelog-modal-header h2 {
+            font-size: 1.2em;
+        }
     }
 </style>
 
@@ -350,6 +483,40 @@
             showSuccess('Firebase sync enabled. Refresh the dashboard to start syncing.');
         } else {
             showSuccess('Firebase sync disabled. Dashboard will show "Sync: Disabled".');
+        }
+    }
+
+    // Changelog modal functions
+    async function showChangelog() {
+        const modal = document.getElementById('changelog-modal');
+        const content = document.getElementById('changelog-content');
+
+        modal.style.display = 'block';
+
+        try {
+            const response = await fetch('/api/changelog');
+            const data = await response.json();
+
+            if (data.success) {
+                content.innerHTML = `<pre>${data.changelog}</pre>`;
+            } else {
+                content.innerHTML = '<p style="color: #ff6b6b;">Failed to load changelog.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading changelog:', error);
+            content.innerHTML = '<p style="color: #ff6b6b;">Error loading changelog.</p>';
+        }
+    }
+
+    function closeChangelog() {
+        document.getElementById('changelog-modal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('changelog-modal');
+        if (event.target === modal) {
+            closeChangelog();
         }
     }
 
