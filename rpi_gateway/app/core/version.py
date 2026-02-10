@@ -12,7 +12,7 @@ Last updated: 2026-02-09
 # Version Components
 MAJOR = 2
 MINOR = 1
-PATCH = 0
+PATCH = 1
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-10"
-RELEASE_NAME = "Firebase Realtime Database Integration"
+RELEASE_NAME = "Firebase Config Fix and Sync Status"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,23 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.1 (2026-02-10) - Firebase Config Fix and Sync Status
+
+Bug fix release with improved Firebase configuration and status indicator clarity.
+
+Fixed:
+ - Corrected Firebase credentials from eCommerce (mash web app) to IoT-specific config
+ - Firebase connection now uses MASH Grower project credentials
+
+Improved:
+ - Renamed "Cloud:" status indicator to "Sync:" for clarity
+ - Added real-time Firebase connection status monitoring
+ - Sync status updates to "Online" when Firebase connects successfully
+ - Added error handling to show "Offline" or "Failed" states
+ - Changed icon from cloud to sync (fa-sync)
+
+---
+
 v2.1.0 (2026-02-10) - Firebase Realtime Database Integration
 
 Added real-time sensor data updates via Firebase Realtime Database for instant dashboard synchronization.

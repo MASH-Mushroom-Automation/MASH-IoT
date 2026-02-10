@@ -14,9 +14,8 @@
         |
         <span><i class="fas fa-wifi"></i> WiFi: <span id="wifi-status" class="status-warning">Checking...</span></span>
         |
-        <span><i class="fas fa-cloud"></i> Cloud: <span id="cloud-status"
-                class="{% if backend_connected %}status-ok{% else %}status-warning{% endif %}">{% if backend_connected
-                %}Online{% else %}Offline{% endif %}</span></span>
+        <span><i class="fas fa-sync"></i> Sync: <span id="sync-status"
+                class="status-warning">Connecting...</span></span>
         |
         <span><i class="fas fa-clock"></i> Uptime: <span id="uptime">--</span></span>
     </div>
@@ -270,14 +269,14 @@
 
     // === FIREBASE REALTIME LISTENER ===
     const firebaseConfig = {
-        // CONFIG from mash-ddf8d
-        apiKey: "AIzaSy...", // NOTE: Replace with actual Web API Key
+        apiKey: "AIzaSyDkJu5WB5dyWOCIZHVySuCPuoeeCF-qLmI",
         authDomain: "mash-ddf8d.firebaseapp.com",
         databaseURL: "https://mash-ddf8d-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "mash-ddf8d",
-        storageBucket: "mash-ddf8d.appspot.com",
-        messagingSenderId: "117912811339", // Derived from client_id in service account if possible, or leave blank? usage: optional usually for rtdb
-        appId: "1:117912811339:web:..." // Optional for just RTDB
+        storageBucket: "mash-ddf8d.firebasestorage.app",
+        messagingSenderId: "784415877696",
+        appId: "1:784415877696:web:a750bdc3d72e5a36da4da5",
+        measurementId: "G-HLS3NBQG3Z"
     };
 
     try {
@@ -290,11 +289,21 @@
         // Reference to the latest reading path (exactly what main.py writes)
         const latestRef = db.ref(`devices/${deviceId}/latest_reading`);
 
+        // Update sync status when connected
+        const syncStatusEl = document.getElementById('sync-status');
+
         latestRef.on('value', (snapshot) => {
             const data = snapshot.val();
+
+            // Update sync status to Online on first successful connection
+            if (syncStatusEl && syncStatusEl.textContent !== 'Online') {
+                syncStatusEl.textContent = 'Online';
+                syncStatusEl.className = 'status-ok';
+            }
+
             if (!data) return;
 
-            console.log("🔴 Firebase realtime update:", data);
+            console.log("Firebase realtime update:", data);
 
             // Fruiting
             if (data.fruiting) {
@@ -320,8 +329,22 @@
 
             // Optional: Update room condition badges too (you can expand this)
         });
+
+        // Handle connection errors
+        latestRef.on('value', () => { }, (error) => {
+            console.error("Firebase connection error:", error);
+            if (syncStatusEl) {
+                syncStatusEl.textContent = 'Offline';
+                syncStatusEl.className = 'status-error';
+            }
+        });
     } catch (e) {
         console.error("Firebase Initialization Error:", e);
+        const syncStatusEl = document.getElementById('sync-status');
+        if (syncStatusEl) {
+            syncStatusEl.textContent = 'Failed';
+            syncStatusEl.className = 'status-error';
+        }
     }
 </script>
 
