@@ -11,7 +11,7 @@ Last updated: 2026-02-09
 
 # Version Components
 MAJOR = 2
-MINOR = 0
+MINOR = 1
 PATCH = 0
 
 # Formatted Versions
@@ -19,8 +19,8 @@ VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-09"
-RELEASE_NAME = "New features and UI improvements"
+RELEASE_DATE = "2026-02-10"
+RELEASE_NAME = "Firebase Realtime Database Integration"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -31,7 +31,7 @@ ARDUINO_SERIAL_PROTOCOL_VERSION = "1.0"
 FEATURES = {
     'ml_automation': True,           # - Isolation Forest + Decision Tree
     'wifi_provisioning': True,       # - NetworkManager-based provisioning
-    'firebase_sync': False,           # - Realtime DB + Admin SDK
+    'firebase_sync': True,            # - Realtime DB + Admin SDK (client-side listener)
     'backend_api_sync': True,        # - REST API client with JWT
     'mdns_discovery': False,          # - Local network discovery
     'offline_first_db': True,        # - SQLite with sync queue
@@ -112,6 +112,27 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.1.0 (2026-02-10) - Firebase Realtime Database Integration
+
+Added real-time sensor data updates via Firebase Realtime Database for instant dashboard synchronization.
+
+New Features:
+ - Firebase SDK integration in web templates (compat version 10.14.1)
+ - Real-time sensor value updates on dashboard without page refresh
+ - Device ID injection from Flask to Firebase listener
+ - Unique element IDs for all sensor cards (fruiting-temp, spawning-co2, etc.)
+ - Console logging for Firebase sync debugging
+
+Improved:
+ - Dashboard responsiveness with live data streaming
+ - User experience with instant feedback on sensor changes
+
+Known Limitations:
+ - Firebase Web API Key must be manually configured (placeholder in dashboard.html)
+ - Requires Firebase project with Realtime Database enabled at asia-southeast1
+
+---
+
 v2.0.0 (2026-02-09) - New features and UI improvements
 
 Major Milestone: Complete IoT Gateway Implementation

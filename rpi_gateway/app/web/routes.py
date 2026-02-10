@@ -207,6 +207,9 @@ def serve_assets(filename):
 def dashboard():
     """Renders the main dashboard page with live data."""
     context = get_live_data()
+    # Add this line:
+    context['device_id'] = current_app.config.get('MUSHROOM_CONFIG', {}) \
+        .get('device', {}).get('serial_number', 'unknown')
     return render_template('dashboard.html', **context)
 
 @web_bp.route('/controls')
