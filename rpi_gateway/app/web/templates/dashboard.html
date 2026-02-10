@@ -269,102 +269,108 @@
 
     // === FIREBASE REALTIME LISTENER ===
     document.addEventListener('DOMContentLoaded', function () {
-        // Check if Firebase sync is enabled (server-side preference)
-        let syncEnabled = true;
-        try {
-            const syncResp = await fetch('/api/firebase-sync/status');
-            const syncData = await syncResp.json();
-            syncEnabled = syncData.enabled;
-        } catch (error) {
-            console.log('Failed to check sync status, defaulting to enabled');
-        }
-
         const syncStatusEl = document.getElementById('sync-status');
 
-        if (!syncEnabled) {
-            if (syncStatusEl) {
-                syncStatusEl.textContent = 'Disabled';
-                syncStatusEl.className = 'status-warning';
-            }
-            console.log('[FIREBASE] Sync disabled by server preference');
-            return;
-        }
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkJu5WB5dyWOCIZHVySuCPuoeeCF-qLmI",
-            authDomain: "mash-ddf8d.firebaseapp.com",
-            databaseURL: "https://mash-ddf8d-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "mash-ddf8d",
-            storageBucket: "mash-ddf8d.firebasestorage.app",
-            messagingSenderId: "784415877696",
-            appId: "1:784415877696:web:a750bdc3d72e5a36da4da5",
-            measurementId: "G-HLS3NBQG3Z"
-        };
-
-        try {
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.database();
-
-            // Get device ID from template (we'll pass it from Flask)
-            const deviceId = "{{ device_id }}";   // ← Will be injected by Flask
-
-            // Reference to the latest reading path (exactly what main.py writes)
-            const latestRef = db.ref(`devices/${deviceId}/latest_reading`);
-
-            latestRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-
-                // Update sync status to Online on first successful connection
-                if (syncStatusEl && syncStatusEl.textContent !== 'Online') {
-                    syncStatusEl.textContent = 'Online';
-                    syncStatusEl.className = 'status-ok';
+        // Check if Firebase sync is enabled (server-side preference) using promises
+        fetch('/api/firebase-sync/status')
+            .then(res => res.json())
+            .then(syncData => {
+                if (!syncData.enabled) {
+                    if (syncStatusEl) {
+                        syncStatusEl.textContent = 'Disabled';
+                        syncStatusEl.className = 'status-warning';
+                    }
+                    console.log('[FIREBASE] Sync disabled by server preference');
+                    return; // Stop here if disabled
                 }
 
-                if (!data) return;
-
-                console.log("Firebase realtime update:", data);
-
-                // Fruiting
-                if (data.fruiting) {
-                    const fTemp = document.getElementById('fruiting-temp');
-                    const fHum = document.getElementById('fruiting-humidity');
-                    const fCo2 = document.getElementById('fruiting-co2');
-
-                    if (fTemp) fTemp.textContent = data.fruiting.temperature?.toFixed(1) || '--';
-                    if (fHum) fHum.textContent = data.fruiting.humidity?.toFixed(1) || '--';
-                    if (fCo2) fCo2.textContent = data.fruiting.co2 || '--';
-                }
-
-                // Spawning
-                if (data.spawning) {
-                    const sTemp = document.getElementById('spawning-temp');
-                    const sHum = document.getElementById('spawning-humidity');
-                    const sCo2 = document.getElementById('spawning-co2');
-
-                    if (sTemp) sTemp.textContent = data.spawning.temperature?.toFixed(1) || '--';
-                    if (sHum) sHum.textContent = data.spawning.humidity?.toFixed(1) || '--';
-                    if (sCo2) sCo2.textContent = data.spawning.co2 || '--';
-                }
-
-                // Optional: Update room condition badges too (you can expand this)
+                // Continue with Firebase init if enabled
+                initializeFirebase();
+            })
+            .catch(error => {
+                console.error('[FIREBASE] Failed to check sync status, defaulting to enabled:', error);
+                // Default to enabled if check fails
+                initializeFirebase();
             });
 
-            // Handle connection errors
-            latestRef.on('value', () => { }, (error) => {
-                console.error("Firebase connection error:", error);
+        function initializeFirebase() {
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyDkJu5WB5dyWOCIZHVySuCPuoeeCF-qLmI",
+                authDomain: "mash-ddf8d.firebaseapp.com",
+                databaseURL: "https://mash-ddf8d-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "mash-ddf8d",
+                storageBucket: "mash-ddf8d.firebasestorage.app",
+                messagingSenderId: "784415877696",
+                appId: "1:784415877696:web:a750bdc3d72e5a36da4da5",
+                measurementId: "G-HLS3NBQG3Z"
+            };
+
+            try {
+                firebase.initializeApp(firebaseConfig);
+                const db = firebase.database();
+
+                // Get device ID from template (we'll pass it from Flask)
+                const deviceId = "{{ device_id }}";   // ← Will be injected by Flask
+
+                // Reference to the latest reading path (exactly what main.py writes)
+                const latestRef = db.ref(`devices/${deviceId}/latest_reading`);
+
+                latestRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+
+                    // Update sync status to Online on first successful connection
+                    if (syncStatusEl && syncStatusEl.textContent !== 'Online') {
+                        syncStatusEl.textContent = 'Online';
+                        syncStatusEl.className = 'status-ok';
+                    }
+
+                    if (!data) return;
+
+                    console.log("Firebase realtime update:", data);
+
+                    // Fruiting
+                    if (data.fruiting) {
+                        const fTemp = document.getElementById('fruiting-temp');
+                        const fHum = document.getElementById('fruiting-humidity');
+                        const fCo2 = document.getElementById('fruiting-co2');
+
+                        if (fTemp) fTemp.textContent = data.fruiting.temperature?.toFixed(1) || '--';
+                        if (fHum) fHum.textContent = data.fruiting.humidity?.toFixed(1) || '--';
+                        if (fCo2) fCo2.textContent = data.fruiting.co2 || '--';
+                    }
+
+                    // Spawning
+                    if (data.spawning) {
+                        const sTemp = document.getElementById('spawning-temp');
+                        const sHum = document.getElementById('spawning-humidity');
+                        const sCo2 = document.getElementById('spawning-co2');
+
+                        if (sTemp) sTemp.textContent = data.spawning.temperature?.toFixed(1) || '--';
+                        if (sHum) sHum.textContent = data.spawning.humidity?.toFixed(1) || '--';
+                        if (sCo2) sCo2.textContent = data.spawning.co2 || '--';
+                    }
+
+                    // Optional: Update room condition badges too (you can expand this)
+                });
+
+                // Handle connection errors
+                latestRef.on('value', () => { }, (error) => {
+                    console.error("Firebase connection error:", error);
+                    if (syncStatusEl) {
+                        syncStatusEl.textContent = 'Offline';
+                        syncStatusEl.className = 'status-error';
+                    }
+                });
+
+            } catch (e) {
+                console.error("Firebase Initialization Error:", e);
                 if (syncStatusEl) {
-                    syncStatusEl.textContent = 'Offline';
+                    syncStatusEl.textContent = 'Failed';
                     syncStatusEl.className = 'status-error';
                 }
-            });
-
-        } catch (e) {
-            console.error("Firebase Initialization Error:", e);
-            if (syncStatusEl) {
-                syncStatusEl.textContent = 'Failed';
-                syncStatusEl.className = 'status-error';
             }
-        }
+        } // End initializeFirebase
     });
 </script>
 
