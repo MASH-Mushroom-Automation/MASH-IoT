@@ -901,6 +901,207 @@ input:checked + .slider:before {
     line-height: 1.8;
 }
 
-.info-list li {
-    margin-bottom: 8px;
+/* ==================== Settings UI Overhaul ==================== */
+.settings-layout {
+    display: flex;
+    gap: 25px;
+    height: auto;
+    min-height: 500px;
+    margin-top: 20px;
+}
+
+.settings-sidebar {
+    width: 280px;
+    background: #252525;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid #333;
+    height: fit-content;
+    position: sticky;
+    top: 15px;
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    color: #999;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+}
+
+.settings-nav-item i {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+.settings-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+}
+
+.settings-nav-item.active {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.settings-content {
+    flex: 1;
+    background: #252525;
+    border-radius: 12px;
+    border: 1px solid #333;
+    position: relative;
+    padding: 30px;
+}
+
+.settings-pane {
+    display: none;
+    animation: settingsFadeIn 0.4s ease;
+}
+
+.settings-pane.active {
+    display: block;
+}
+
+@keyframes settingsFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-pane h2 {
+    margin-top: 0;
+    font-size: 1.8em;
+    color: #4CAF50;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 15px;
+}
+
+/* Premium Card (Internal) */
+.premium-card {
+    background: #2c2c2c;
+    border: 1px solid #3d3d3d;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+}
+
+.premium-card:hover {
+    border-color: #4CAF50;
+    background: #2d2d2d;
+    transform: translateY(-2px);
+}
+
+.premium-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.premium-card-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Override for existing Custom Modal to make it "Premium" */
+.custom-modal {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px);
+}
+
+.custom-modal-content {
+    background: linear-gradient(145deg, #2c2c2c, #1a1a1a) !important;
+    border: 1px solid #4CAF50 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(76, 175, 80, 0.2) !important;
+    max-width: 500px !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+}
+
+.custom-modal-header {
+    background: linear-gradient(90deg, #4CAF50, #45a049) !important;
+    padding: 20px !important;
+    border-bottom: none !important;
+}
+
+.custom-modal-header h3 {
+    color: white !important;
+    font-size: 1.4em !important;
+    font-weight: 600 !important;
+}
+
+.custom-modal-header i {
+    color: white !important;
+}
+
+.custom-modal-body {
+    padding: 30px !important;
+    color: #e0e0e0 !important;
+    font-size: 1.1em !important;
+}
+
+.custom-modal-footer {
+    padding: 20px 30px !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-top: 1px solid #333 !important;
+}
+
+/* Premium Settings Elements */
+.settings-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #333;
+}
+
+.settings-info-row:last-child {
+    border-bottom: none;
+}
+
+.settings-info-label {
+    color: #999;
+}
+
+.settings-info-value {
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+/* Responsive Overrides */
+@media (max-width: 900px) {
+    .settings-layout {
+        flex-direction: column;
+    }
+    .settings-sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        position: static;
+        padding-bottom: 10px;
+    }
+    .settings-nav-item {
+        white-space: nowrap;
+        padding: 10px 15px;
+    }
 }

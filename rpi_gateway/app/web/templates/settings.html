@@ -4,90 +4,149 @@
 {% block content %}
 <h1 class="page-title">System Settings</h1>
 
-<div class="content-area">
-    <!-- WiFi Status Card (Full Width) -->
-    <div class="card" style="margin-bottom: 25px;">
-        <div class="card-header">
-            <i class="fas fa-wifi"></i>
-            <h3>WiFi Connection</h3>
+<div class="settings-layout">
+    <!-- Sidebar Navigation -->
+    <div class="settings-sidebar">
+        <div
+            style="padding: 10px 15px 20px 15px; border-bottom: 1px solid #333; margin-bottom: 15px; text-align: center;">
+            <img src="{{ url_for('web.static', filename='assets/logo-123x89.png') }}" alt="Logo"
+                style="height: 40px; margin-bottom: 10px;">
+            <div style="font-size: 0.85em; color: #4CAF50; font-weight: 600;">MASH GATEWAY</div>
+            <div style="font-size: 0.7em; color: #666; margin-top: 4px;">SYSTEM OPERATIONAL</div>
         </div>
-        <div class="card-body">
-            <div id="wifi-status-container" style="margin-bottom: 15px;">
-                <div class="loading">
-                    <i class="fas fa-spinner fa-spin"></i> Loading WiFi status...
+        <a class="settings-nav-item active" data-tab="general" onclick="switchTab('general')">
+            <i class="fas fa-info-circle"></i> General
+        </a>
+        <a class="settings-nav-item" data-tab="wifi" onclick="switchTab('wifi')">
+            <i class="fas fa-wifi"></i> WiFi Connection
+        </a>
+        <a class="settings-nav-item" data-tab="cloud" onclick="switchTab('cloud')">
+            <i class="fas fa-sync"></i> Cloud Sync
+        </a>
+        <a class="settings-nav-item" data-tab="power" onclick="switchTab('power')">
+            <i class="fas fa-power-off"></i> Power Controls
+        </a>
+        <a class="settings-nav-item" data-tab="about" onclick="switchTab('about')">
+            <i class="fas fa-microchip"></i> About System
+        </a>
+    </div>
+
+    <!-- Content Area -->
+    <div class="settings-content">
+        <!-- General Tab -->
+        <div id="pane-general" class="settings-pane active">
+            <h2><i class="fas fa-info-circle"></i> General Settings</h2>
+            <div class="premium-card">
+                <div class="premium-card-header">
+                    <h3><i class="fas fa-clock"></i> System Time</h3>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Local Time</span>
+                    <span class="settings-info-value" id="current-time">Loading...</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Uptime</span>
+                    <span class="settings-info-value" id="system-uptime">Calculating...</span>
                 </div>
             </div>
+        </div>
 
-            <div id="wifi-controls" style="display: none;">
-                <button id="disconnect-btn" class="setting-button"
-                    style="background: linear-gradient(135deg, #f44336, #d32f2f);">
-                    <i class="fas fa-unlink"></i> Disconnect and Enable Provisioning
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- About Section -->
-    <div class="card" style="margin-bottom: 25px;">
-        <div class="card-header">
-            <i class="fas fa-info-circle"></i>
-            <h3>About</h3>
-        </div>
-        <div class="card-body">
-            <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <p style="margin: 5px 0; color: #4CAF50; font-weight: bold; font-size: 1.1em;">MASH IoT Gateway</p>
-                <p style="margin: 5px 0;"><strong>Version:</strong> <span id="version"></span></p>
-                <p style="margin: 5px 0;"><strong>System:</strong> Raspberry Pi</p>
-                <p style="margin: 5px 0; opacity: 0.7; font-size: 0.9em;">Mushroom Automation with Smart
-                    Hydro-Environment</p>
-            </div>
-            <button class="setting-button" onclick="showChangelog()"
-                style="background: linear-gradient(135deg, #2196F3, #1976D2);">
-                <i class="fas fa-list-alt"></i> View Changelog
-            </button>
-        </div>
-    </div>
-
-    <!-- Sync Settings -->
-    <div class="card" style="margin-bottom: 25px;">
-        <div class="card-header">
-            <i class="fas fa-sync"></i>
-            <h3>Sync Settings</h3>
-        </div>
-        <div class="card-body">
-            <div class="toggle-row"
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div>
-                    <strong>Firebase Realtime Sync</strong>
-                    <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 0.9em;">Enable real-time sensor data
-                        synchronization via Firebase</p>
+        <!-- WiFi Tab -->
+        <div id="pane-wifi" class="settings-pane">
+            <h2><i class="fas fa-wifi"></i> WiFi Connection</h2>
+            <div class="premium-card">
+                <div class="premium-card-header">
+                    <h3><i class="fas fa-network-wired"></i> Connection Status</h3>
                 </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="firebase-sync-toggle" checked>
-                    <span class="toggle-slider"></span>
-                </label>
+                <div id="wifi-status-container">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading WiFi status...
+                    </div>
+                </div>
+                <div id="wifi-controls"
+                    style="display: none; margin-top: 25px; padding-top: 20px; border-top: 1px solid #3d3d3d;">
+                    <button id="disconnect-btn" class="setting-button"
+                        style="background: linear-gradient(135deg, #f44336, #d32f2f); max-width: 300px;">
+                        <i class="fas fa-unlink"></i> Disconnect and Enable Provisioning
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Power Controls -->
-    <div class="card" style="margin-top: 25px; border-color: #ff9800;">
-        <div class="card-header" style="background: rgba(255, 152, 0, 0.1);">
-            <i class="fas fa-power-off" style="color: #ff9800;"></i>
-            <h3>Power Controls</h3>
+        <!-- Cloud Tab -->
+        <div id="pane-cloud" class="settings-pane">
+            <h2><i class="fas fa-sync"></i> Cloud Sync</h2>
+            <div class="premium-card">
+                <div class="premium-card-header">
+                    <h3><i class="fas fa-database"></i> Firebase Realtime Sync</h3>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="firebase-sync-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p style="color: #bbb; line-height: 1.6;">
+                    Enable real-time sensor data synchronization. When enabled, all dashboard data is pushed to Firebase
+                    instantly, allowing your mobile app to receive live updates anywhere in the world.
+                </p>
+                <div class="settings-info-row" style="margin-top: 15px;">
+                    <span class="settings-info-label">Sync Status</span>
+                    <span class="settings-info-value" id="sync-status-text" style="color: #4CAF50;">Active</span>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <p style="color: #ff9800; margin-bottom: 20px;">
-                <i class="fas fa-exclamation-triangle"></i>
-                System operations will interrupt monitoring temporarily.
-            </p>
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                <button class="action-button danger" onclick="handleReboot()">
-                    <i class="fas fa-sync-alt"></i> Reboot Device
-                </button>
-                <button class="action-button danger" onclick="handleShutdown()">
-                    <i class="fas fa-power-off"></i> Shutdown Device
-                </button>
+
+        <!-- Power Tab -->
+        <div id="pane-power" class="settings-pane">
+            <h2><i class="fas fa-power-off"></i> Power Controls</h2>
+            <div class="premium-card" style="border-left: 4px solid #f44336;">
+                <div class="premium-card-header">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #f44336;"></i> Critical Actions</h3>
+                </div>
+                <p style="color: #aaa; margin-bottom: 25px;">
+                    Perform maintenance operations on the gateway hardware. These actions will interrupt mushroom
+                    environment monitoring temporarily.
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="action-button danger" onclick="handleReboot()">
+                        <i class="fas fa-sync-alt"></i> Reboot Device
+                    </button>
+                    <button class="action-button danger" onclick="handleShutdown()">
+                        <i class="fas fa-power-off"></i> Shutdown Device
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="pane-about" class="settings-pane">
+            <h2><i class="fas fa-microchip"></i> About System</h2>
+            <div class="premium-card">
+                <div style="text-align: center; margin-bottom: 30px; padding-top: 10px;">
+                    <img src="{{ url_for('web.static', filename='assets/logo-123x89.png') }}" alt="MASH IoT"
+                        style="height: 80px; filter: drop-shadow(0 0 15px rgba(76, 175, 80, 0.4)); margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #4CAF50; font-size: 1.5em; letter-spacing: 1px;">MASH IoT Gateway</h3>
+                    <p style="color: #888; margin-top: 5px;">Mushroom Automation Smart Home</p>
+                </div>
+
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Version</span>
+                    <span class="settings-info-value" id="version">Loading...</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">System Hardware</span>
+                    <span class="settings-info-value">Raspberry Pi</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">OS Environment</span>
+                    <span class="settings-info-value">Linux (Debian)</span>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="setting-button" onclick="showChangelog()"
+                        style="background: linear-gradient(135deg, #2196F3, #1976D2);">
+                        <i class="fas fa-list-alt"></i> View Release Changelog
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -97,7 +156,7 @@
 <div id="changelog-modal" class="changelog-modal">
     <div class="changelog-modal-content">
         <div class="changelog-modal-header">
-            <h2><i class="fas fa-history"></i> Changelog</h2>
+            <h2><i class="fas fa-history"></i> System Changelog</h2>
             <span class="changelog-close" onclick="closeChangelog()">&times;</span>
         </div>
         <div class="changelog-modal-body" id="changelog-content">
@@ -288,22 +347,22 @@
         color: #e0e0e0;
     }
 
-    .changelog-modal-body pre {
-        background: #1a1a1a;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 4px solid #4CAF50;
-        white-space: pre-wrap;
-        font-family: 'Courier New', monospace;
-        line-height: 1.6;
-        color: #f0f0f0;
-    }
-
     .changelog-modal-body .loading {
         text-align: center;
         padding: 40px;
         font-size: 1.2em;
         color: #4CAF50;
+    }
+
+    /* Page specific overrides if any */
+    .changelog-entry {
+        margin-bottom: 25px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 20px;
+    }
+
+    .changelog-entry:last-child {
+        border-bottom: none;
     }
 
     /* Responsive */
@@ -320,6 +379,21 @@
 </style>
 
 <script>
+    // Tab switching logic
+    function switchTab(tabId) {
+        // Update nav items
+        document.querySelectorAll('.settings-nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+        // Update panes
+        document.querySelectorAll('.settings-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+        document.getElementById(`pane-${tabId}`).classList.add('active');
+    }
+
     // Load WiFi status
     async function loadWiFiStatus() {
         try {
@@ -330,43 +404,55 @@
             const controls = document.getElementById('wifi-controls');
 
             if (!data.success) {
-                container.innerHTML = '<p style="color: #f44336;">Failed to load WiFi status</p>';
+                container.innerHTML = '<p style="color: #f44336; padding: 10px;">Failed to load WiFi status</p>';
                 return;
             }
 
             if (data.mode === 'station') {
-                // Connected to WiFi
                 container.innerHTML = `
-                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
-                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #4CAF50;">Connected</span></p>
-                    <p style="margin: 5px 0;"><strong>Network:</strong> ${data.ssid}</p>
-                    <p style="margin: 5px 0;"><strong>IP Address:</strong> ${data.ip}</p>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Status</span>
+                    <span class="settings-info-value" style="color: #4CAF50;">Connected</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Network SSID</span>
+                    <span class="settings-info-value">${data.ssid}</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">IP Address</span>
+                    <span class="settings-info-value">${data.ip}</span>
                 </div>
             `;
                 controls.style.display = 'block';
 
             } else if (data.mode === 'hotspot') {
-                // In provisioning mode
                 container.innerHTML = `
-                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
-                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #ff9800;">Provisioning Mode</span></p>
-                    <p style="margin: 5px 0;"><strong>Hotspot SSID:</strong> ${data.ssid}</p>
-                    <p style="margin: 5px 0;"><strong>IP Address:</strong> ${data.ip}</p>
-                    <p style="margin: 10px 0 0 0; color: #856404;">
-                        <i class="fas fa-info-circle"></i>
-                        Device is waiting for WiFi configuration.
-                    </p>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Status</span>
+                    <span class="settings-info-value" style="color: #ff9800;">Provisioning Mode</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Hotspot SSID</span>
+                    <span class="settings-info-value">${data.ssid}</span>
+                </div>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Hotspot IP</span>
+                    <span class="settings-info-value">${data.ip}</span>
+                </div>
+                <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.1); border-radius: 8px; color: #ff9800;">
+                    <i class="fas fa-info-circle"></i>
+                    Device is broadcasting its own network for configuration.
                 </div>
             `;
                 controls.style.display = 'none';
 
             } else {
-                // Disconnected
                 container.innerHTML = `
-                <div style="background: #2c2c2c; padding: 15px; border-radius: 8px; border-left: 4px solid #f44336;">
-                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #f44336;">Disconnected</span></p>
-                    <p style="margin: 5px 0;">No network connection</p>
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Status</span>
+                    <span class="settings-info-value" style="color: #f44336;">Disconnected</span>
                 </div>
+                <p style="color: #888; margin-top: 10px;">No network connection established.</p>
             `;
                 controls.style.display = 'none';
             }
@@ -393,6 +479,13 @@
             console.error('Error loading version info:', error);
             document.getElementById('version').textContent = 'Error';
         }
+    }
+
+    // System info helpers
+    function updateSystemInfo() {
+        const now = new Date();
+        document.getElementById('current-time').textContent = now.toLocaleString();
+        document.getElementById('system-uptime').textContent = "Running (MASH 2.0 Engine)";
     }
 
     // Disconnect from WiFi with custom modal
@@ -478,6 +571,7 @@
 
     // Firebase sync toggle handler
     async function handleFirebaseSyncToggle(enabled) {
+        const statusText = document.getElementById('sync-status-text');
         try {
             const response = await fetch('/api/firebase-sync/toggle', {
                 method: 'POST',
@@ -490,8 +584,12 @@
             if (data.success) {
                 if (enabled) {
                     showSuccess('Firebase sync enabled. All dashboards will sync in real-time.');
+                    statusText.textContent = 'Active';
+                    statusText.style.color = '#4CAF50';
                 } else {
-                    showSuccess('Firebase sync disabled. Dashboards will show "Sync: Disabled".');
+                    showSuccess('Firebase sync disabled.');
+                    statusText.textContent = 'Disabled';
+                    statusText.style.color = '#999';
                 }
             } else {
                 showError('Failed to update sync preference.');
@@ -517,7 +615,8 @@
                 let html = '';
                 data.changelogs.forEach(entry => {
                     html += `<div class="changelog-entry">`;
-                    html += `<pre>${entry.content || 'No details available.'}</pre>`;
+                    html += `<h4 style="color: #4CAF50; margin: 0 0 10px 0;">Version ${entry.version} (${entry.date})</h4>`;
+                    html += `<pre style="background: #1a1a1a; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50; white-space: pre-wrap; font-family: monospace; color: #eee; line-height: 1.5;">${entry.content || 'No details available.'}</pre>`;
                     html += `</div>`;
                 });
                 content.innerHTML = html;
@@ -545,9 +644,12 @@
     // Initialize
     document.addEventListener('DOMContentLoaded', function () {
         loadWiFiStatus();
+        updateSystemInfo();
+        loadVersionInfo();
 
-        // Refresh every 10 seconds
+        // Refresh every 10 seconds for Wifi & Time
         setInterval(loadWiFiStatus, 10000);
+        setInterval(updateSystemInfo, 1000);
 
         // Disconnect button handler
         const disconnectBtn = document.getElementById('disconnect-btn');
@@ -555,11 +657,10 @@
             disconnectBtn.addEventListener('click', handleDisconnect);
         }
 
-        loadVersionInfo();
-
-
         // Firebase sync toggle handler
         const syncToggle = document.getElementById('firebase-sync-toggle');
+        const syncStatusText = document.getElementById('sync-status-text');
+
         if (syncToggle) {
             // Load state from server
             fetch('/api/firebase-sync/status')
@@ -567,6 +668,8 @@
                 .then(data => {
                     if (data.success) {
                         syncToggle.checked = data.enabled;
+                        syncStatusText.textContent = data.enabled ? 'Active' : 'Disabled';
+                        syncStatusText.style.color = data.enabled ? '#4CAF50' : '#999';
                     }
                 })
                 .catch(err => console.error('Failed to load sync status:', err));
