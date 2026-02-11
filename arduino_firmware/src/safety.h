@@ -1,6 +1,6 @@
-// M.A.S.H. IoT - Safety Watchdog
-// Monitors serial connection and shuts down relays if RPi disconnects
-// Supports automatic recovery when serial communication resumes
+// M.A.S.H. IoT - Safety Watchdog (Simplified)
+// Tracks serial connection status for diagnostics
+// Hardware WDT (avr/wdt.h) handles crash recovery from I2C lockups
 
 #ifndef SAFETY_H
 #define SAFETY_H
@@ -13,8 +13,8 @@ private:
     unsigned long timeout;
     bool isActive;
     bool hasTriggered;
-    unsigned long triggeredAt;        // When watchdog was triggered
-    unsigned long recoveryCount;      // Number of recoveries since boot
+    unsigned long triggeredAt;
+    unsigned long recoveryCount;
     
 public:
     SafetyWatchdog(unsigned long timeoutMs);
@@ -27,6 +27,8 @@ public:
     bool heartbeat();
     
     // Check if timeout occurred (call in main loop)
+    // NOTE: This only tracks serial silence, it does NOT shut down relays.
+    // The hardware WDT handles crash recovery from I2C lockups.
     bool checkTimeout();
     
     // Reset watchdog

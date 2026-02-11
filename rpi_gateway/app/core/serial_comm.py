@@ -78,6 +78,12 @@ class ArduinoSerialComm:
         # Heartbeat tracking
         self.last_write_time = time.time()
         self.heartbeat_interval = 15.0  # Send keepalive every 15s (well below 60s watchdog)
+        
+        # Stale data detection (Arduino stopped sending)
+        self.last_data_time = time.time()
+        self.stale_warning_interval = 30.0   # Warn after 30s of no new data
+        self.stale_reset_interval = 60.0     # Attempt serial reset after 60s
+        self.stale_warned = False
     
     @staticmethod
     def find_arduino_port() -> Optional[str]:
@@ -408,6 +414,16 @@ class ArduinoSerialComm:
                 if line:
                     # Reset failure counter on successful read
                     consecutive_failures = 0
+                    self.last_data_time = time.time()
+                    self.stale_warned = False
+                    
+                    # Detect Arduino reboot (hardware WDT reset)
+                    # Arduino prints this banner on startup after WDT or power-on
+                    if '========' in line or 'M.A.S.H. IoT' in line:
+                        logger.info("[SERIAL] Arduino rebooted (likely hardware WDT reset)")
+                        time.sleep(3)  # Wait for Arduino to finish booting
+                        self.restore_relay_states()
+                        continue
                     
                     # Check for watchdog recovery signal from Arduino
                     # Arduino sends {"watchdog":"recovered"} after resuming from timeout
@@ -426,6 +442,25 @@ class ArduinoSerialComm:
                     
                     if data and self.data_callback:
                         self.data_callback(data)
+                else:
+                    # No data received this iteration - check for stale data
+                    if self.is_connected:
+                        stale_duration = time.time() - self.last_data_time
+                        if stale_duration > self.stale_reset_interval:
+                            logger.error(f"[SERIAL] No data from Arduino for {stale_duration:.0f}s - possible I2C lockup")
+                            logger.info("[SERIAL] Attempting serial connection reset...")
+                            # Force reconnection cycle
+                            self.is_connected = False
+                            if self.serial_conn:
+                                try:
+                                    self.serial_conn.close()
+                                except:
+                                    pass
+                                self.serial_conn = None
+                            self.last_data_time = time.time()  # Reset to prevent rapid retries
+                        elif stale_duration > self.stale_warning_interval and not self.stale_warned:
+                            logger.warning(f"[SERIAL] No data from Arduino for {stale_duration:.0f}s")
+                            self.stale_warned = True
                 
                 # Small delay to prevent CPU spinning
                 time.sleep(0.1)

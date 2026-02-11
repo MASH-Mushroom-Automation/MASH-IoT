@@ -1,9 +1,11 @@
 // M.A.S.H. IoT - Arduino Main
 // Two-layer architecture: Arduino reads sensors, RPi makes decisions
 // Communication: JSON over USB Serial (9600 baud)
+// Hardware WDT: Auto-resets Arduino if loop() hangs (e.g. I2C lockup)
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <avr/wdt.h>
 #include "config.h"
 #include "sensors.h"
 #include "actuators.h"
@@ -34,6 +36,9 @@ int bufferIndex = 0;
 
 // ==================== SETUP ====================
 void setup() {
+    // Disable WDT during setup (in case of WDT reset loop)
+    wdt_disable();
+    
     // Initialize serial communication
     Serial.begin(SERIAL_BAUD);
     while (!Serial) {
@@ -54,23 +59,40 @@ void setup() {
     Serial.println(F("[INIT] Initializing sensors..."));
     if (!sensors.begin()) {
         Serial.println(F("[ERROR] Sensor initialization failed!"));
+        // Enable WDT even in error state so it can recover
+        wdt_enable(WDTO_8S);
         while (1) {
+            wdt_reset();
             delay(1000);
             Serial.println(F("[ERROR] Please check sensor wiring"));
         }
     }
     
-    // Start watchdog
+    // Start software watchdog (diagnostics only)
     watchdog.begin();
     
     Serial.println(F(""));
     Serial.println(F("[READY] System ready. Waiting for commands..."));
     Serial.println(F("[INFO] Send commands: FRUITING_FAN_ON, SPAWNING_MIST_OFF, etc."));
+    
+    // Enable hardware WDT (8 second timeout)
+    // If loop() hangs for >8s (I2C lockup), AVR chip auto-resets
+#if WDT_ENABLED
+    wdt_enable(WDTO_8S);
+    Serial.println(F("[WDT] Hardware watchdog enabled (8s timeout)"));
+#endif
+    
     Serial.println(F(""));
 }
 
 // ==================== MAIN LOOP ====================
 void loop() {
+    // Reset hardware WDT at the start of every loop iteration
+    // If we never reach here again (I2C lockup), WDT resets the chip
+#if WDT_ENABLED
+    wdt_reset();
+#endif
+    
     unsigned long currentMillis = millis();
 
     // ==================== TASK 1: HANDLE INCOMING COMMANDS ====================
@@ -80,7 +102,7 @@ void loop() {
     if (currentMillis - lastSensorRead >= SENSOR_READ_INTERVAL) {
         lastSensorRead = currentMillis;
         
-        // Read both sensors
+        // Read both sensors (now with I2C timeout - won't hang forever)
         SensorReading fruiting = sensors.readSensor1();
         SensorReading spawning = sensors.readSensor2();
         
@@ -112,12 +134,12 @@ void loop() {
         Serial.println();  // End with newline
     }
     
-    // ==================== TASK 3: CHECK WATCHDOG ====================
+    // ==================== TASK 3: CHECK SOFTWARE WATCHDOG (diagnostics) ====================
     if (currentMillis - lastWatchdogCheck >= 1000) {
         lastWatchdogCheck = currentMillis;
-        if (watchdog.checkTimeout()) {
-            actuators.shutdownAll();
-        }
+        // Diagnostics only -- logs if RPi keepalive is missing
+        // Does NOT shut down relays (hardware WDT handles crash recovery)
+        watchdog.checkTimeout();
     }
 }
 
@@ -204,4 +226,3 @@ ActuatorState stringToActuatorState(const char* str) {
     if (strcmp(str, "ON") == 0) return STATE_ON;
     return STATE_OFF;
 }
-

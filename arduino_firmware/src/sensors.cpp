@@ -1,5 +1,6 @@
 // M.A.S.H. IoT - Sensor Implementation
 // Dual SCD41 sensor reading with anomaly filtering
+// I2C timeout and bus recovery to prevent hangs
 
 #include "sensors.h"
 #include "config.h"
@@ -23,6 +24,66 @@
 // Both sensors use Hardware I2C through multiplexer
 SensirionI2CScd4x scd41_fruiting;
 SensirionI2CScd4x scd41_spawning;
+
+// Track consecutive I2C failures for recovery
+static uint8_t i2cFailCount = 0;
+
+
+// ==================== I2C BUS RECOVERY ====================
+
+void recoverI2CBus() {
+    /**
+     * Attempt to recover a locked I2C bus by toggling SCL.
+     * 
+     * When SDA is stuck LOW (common with SCD41 sensors), the master
+     * can clock SCL to force the slave to release the bus.
+     * This is the standard I2C bus recovery procedure from the spec.
+     */
+    Serial.println(F("[I2C] Bus recovery: toggling SCL to release SDA"));
+    
+    // Disable Wire library temporarily
+    Wire.end();
+    
+    // Configure SCL as output, SDA as input
+    pinMode(HARDWARE_SCL_PIN, OUTPUT);
+    pinMode(HARDWARE_SDA_PIN, INPUT_PULLUP);
+    
+    // Toggle SCL up to 9 times to unstick SDA
+    for (int i = 0; i < 9; i++) {
+        digitalWrite(HARDWARE_SCL_PIN, LOW);
+        delayMicroseconds(5);
+        digitalWrite(HARDWARE_SCL_PIN, HIGH);
+        delayMicroseconds(5);
+        
+        // Check if SDA is released
+        if (digitalRead(HARDWARE_SDA_PIN) == HIGH) {
+            Serial.print(F("[I2C] SDA released after "));
+            Serial.print(i + 1);
+            Serial.println(F(" clock cycles"));
+            break;
+        }
+    }
+    
+    // Generate STOP condition: SDA LOW->HIGH while SCL HIGH
+    pinMode(HARDWARE_SDA_PIN, OUTPUT);
+    digitalWrite(HARDWARE_SDA_PIN, LOW);
+    delayMicroseconds(5);
+    digitalWrite(HARDWARE_SCL_PIN, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(HARDWARE_SDA_PIN, HIGH);
+    delayMicroseconds(5);
+    
+    // Re-initialize Wire library
+    Wire.begin();
+    
+    // Set I2C timeout again after re-init
+#if defined(WIRE_HAS_TIMEOUT)
+    Wire.setWireTimeout(I2C_TIMEOUT_MS * 1000, true);  // microseconds, reset on timeout
+#endif
+    
+    delay(100);  // Allow bus to stabilize
+    Serial.println(F("[I2C] Bus recovery complete"));
+}
 
 
 // ==================== MOVING AVERAGE FILTER ====================
@@ -131,6 +192,17 @@ bool SensorManager::begin() {
     
     Wire.begin();
     
+    // Set I2C timeout to prevent bus lockup hangs
+#if defined(WIRE_HAS_TIMEOUT)
+    Wire.setWireTimeout(I2C_TIMEOUT_MS * 1000, true);  // microseconds, reset on timeout
+    Serial.print(F("[I2C] Timeout set to "));
+    Serial.print(I2C_TIMEOUT_MS);
+    Serial.println(F("ms"));
+#else
+    Serial.println(F("[I2C] WARNING: Wire timeout not supported on this board"));
+    Serial.println(F("[I2C] Hardware WDT will handle I2C lockup recovery"));
+#endif
+    
     if (detectMultiplexer()) {
         Serial.println(F("[OK] TCA9548A multiplexer detected!"));
         
@@ -185,6 +257,11 @@ SensorReading SensorManager::readSensor1() {
     
     // Select multiplexer channel for fruiting sensor
     if (!selectMuxChannel(MUX_CHANNEL_FRUITING)) {
+        i2cFailCount++;
+        if (i2cFailCount >= I2C_RECOVERY_RETRIES) {
+            recoverI2CBus();
+            i2cFailCount = 0;
+        }
         return lastReading1;
     }
     
@@ -192,6 +269,20 @@ SensorReading SensorManager::readSensor1() {
     float temp_raw, humidity_raw;
     
     uint16_t error = scd41_fruiting.readMeasurement(co2_raw, temp_raw, humidity_raw);
+    
+    // Check for I2C timeout (Wire library returns error on timeout)
+#if defined(WIRE_HAS_TIMEOUT)
+    if (Wire.getWireTimeoutFlag()) {
+        Wire.clearWireTimeoutFlag();
+        Serial.println(F("[I2C] Timeout reading fruiting sensor"));
+        i2cFailCount++;
+        if (i2cFailCount >= I2C_RECOVERY_RETRIES) {
+            recoverI2CBus();
+            i2cFailCount = 0;
+        }
+        return lastReading1;
+    }
+#endif
     
     if (error != 0 || co2_raw == 0) {
         // Return last valid reading if current read fails
@@ -203,6 +294,9 @@ SensorReading SensorManager::readSensor1() {
         Serial.println(F("[WARNING] Fruiting sensor out of range"));
         return lastReading1;
     }
+    
+    // Successful read - reset failure counter
+    i2cFailCount = 0;
     
     // Apply moving average filter
     reading.temperature = tempFilter1->add(temp_raw);
@@ -223,6 +317,11 @@ SensorReading SensorManager::readSensor2() {
     
     // Select multiplexer channel for spawning sensor
     if (!selectMuxChannel(MUX_CHANNEL_SPAWNING)) {
+        i2cFailCount++;
+        if (i2cFailCount >= I2C_RECOVERY_RETRIES) {
+            recoverI2CBus();
+            i2cFailCount = 0;
+        }
         return lastReading2;
     }
     
@@ -230,6 +329,20 @@ SensorReading SensorManager::readSensor2() {
     float temp_raw, humidity_raw;
     
     uint16_t error = scd41_spawning.readMeasurement(co2_raw, temp_raw, humidity_raw);
+    
+    // Check for I2C timeout
+#if defined(WIRE_HAS_TIMEOUT)
+    if (Wire.getWireTimeoutFlag()) {
+        Wire.clearWireTimeoutFlag();
+        Serial.println(F("[I2C] Timeout reading spawning sensor"));
+        i2cFailCount++;
+        if (i2cFailCount >= I2C_RECOVERY_RETRIES) {
+            recoverI2CBus();
+            i2cFailCount = 0;
+        }
+        return lastReading2;
+    }
+#endif
     
     if (error != 0 || co2_raw == 0) {
         // Return last valid reading if current read fails
@@ -241,6 +354,9 @@ SensorReading SensorManager::readSensor2() {
         Serial.println(F("[WARNING] Spawning sensor out of range"));
         return lastReading2;
     }
+    
+    // Successful read - reset failure counter
+    i2cFailCount = 0;
     
     // Apply moving average filter
     reading.temperature = tempFilter2->add(temp_raw);
@@ -266,7 +382,7 @@ void SensorManager::printReading(const char* room, SensorReading reading) {
     Serial.print(room);
     Serial.print(F("] T:"));
     Serial.print(reading.temperature, 1);
-    Serial.print(F("°C H:"));
+    Serial.print(F(" H:"));
     Serial.print(reading.humidity, 1);
     Serial.print(F("% CO2:"));
     Serial.print(reading.co2);

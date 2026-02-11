@@ -43,6 +43,15 @@
 #define WATCHDOG_TIMEOUT 60000   // 60 seconds without serial = shutdown (RPi keepalive every 15s)
 #define WATCHDOG_CHECK_INTERVAL 1000  // Check every 1 second
 
+// ==================== HARDWARE WATCHDOG (WDT) ====================
+#define WDT_ENABLED true             // Enable AVR hardware watchdog timer
+// WDT timeout is set via wdt_enable() in main.cpp (WDTO_8S = 8 seconds)
+// If loop() hangs (e.g. I2C lockup), WDT forces a hardware reset
+
+// ==================== I2C CONFIGURATION ====================
+#define I2C_TIMEOUT_MS 3000          // I2C bus timeout in milliseconds
+#define I2C_RECOVERY_RETRIES 3       // Number of I2C bus recovery attempts
+
 // ==================== ANOMALY FILTERING ====================
 #define TEMP_MIN -10.0    // Minimum valid temperature (°C)
 #define TEMP_MAX 60.0     // Maximum valid temperature (°C)

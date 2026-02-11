@@ -12,7 +12,7 @@ Last updated: 2026-02-11
 # Version Components
 MAJOR = 2
 MINOR = 2
-PATCH = 1
+PATCH = 2
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -20,7 +20,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-11"
-RELEASE_NAME = "Heartbeat Stability"
+RELEASE_NAME = "I2C Recovery"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -112,6 +112,31 @@ def _is_version_compatible(current: str, minimum: str) -> bool:
 
 # Changelog
 CHANGELOG = """
+v2.2.2 (2026-02-11) - I2C Recovery
+
+Fixed root cause of Arduino sensor stoppage: I2C bus lockup freezing loop() (#IOT-100).
+
+Root Cause:
+  The SCD41 readMeasurement() via TCA9548A multiplexer would hang indefinitely when
+  the I2C bus locked up (SDA stuck LOW). Since Wire.h has no timeout on Arduino Uno,
+  this froze loop() entirely -- no sensor output, no serial commands, no watchdog checks.
+  This was observed as data stopping after ~3m50s from boot.
+
+New:
+ - AVR hardware watchdog timer (WDT) with 8s timeout via avr/wdt.h
+   Auto-resets Arduino if loop() hangs (I2C lockup) -- operates independently of software
+ - I2C bus timeout via Wire.setWireTimeout() (3s, auto-reset on timeout)
+ - I2C bus recovery function: toggles SCL to release stuck SDA line
+ - RPi stale data detection: warns at 30s, resets serial connection at 60s
+ - RPi detects Arduino boot banner (WDT reboot) and auto-restores relay states
+
+Changed:
+ - Safety watchdog simplified to diagnostics-only (no relay shutdown)
+   Hardware WDT now handles crash recovery instead of software watchdog
+ - WDT_ENABLED and I2C_TIMEOUT_MS added to config.h
+
+---
+
 v2.2.1 (2026-02-11) - Heartbeat Stability
 
 Fixed backend API PATCH spam and Arduino watchdog recovery for continuous operation.
