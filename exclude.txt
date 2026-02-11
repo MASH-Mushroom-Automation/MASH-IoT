@@ -1,0 +1,12 @@
+venv
+__pycache__
+*.pyc
+.git
+.gitignore
+.vscode
+*.db
+test_improvements.py
+FIREBASE_CHECKLIST.md
+FIREBASE_INTEGRATION_GUIDE.md
+FIREBASE_QUICK_START.md
+exclude.txt
