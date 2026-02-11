@@ -1,0 +1,62 @@
+name: Create Release
+
+# Trigger on tag push (e.g. v2.3.0, v2.4.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Package rpi_gateway directory
+        run: |
+          tar -czf rpi_gateway-${{ steps.version.outputs.version }}.tar.gz \
+            --exclude='rpi_gateway/venv' \
+            --exclude='rpi_gateway/__pycache__' \
+            --exclude='rpi_gateway/*/__pycache__' \
+            --exclude='rpi_gateway/data.db' \
+            --exclude='rpi_gateway/data' \
+            --exclude='rpi_gateway/config/.env' \
+            rpi_gateway/
+      
+      - name: Get changelog for this version
+        id: changelog
+        run: |
+          CHANGELOG_FILE="rpi_gateway/app/core/changelogs/${{ steps.version.outputs.tag }}.md"
+          if [ -f "$CHANGELOG_FILE" ]; then
+            echo "changelog_exists=true" >> $GITHUB_OUTPUT
+            # Escape newlines for GitHub Actions
+            CHANGELOG_BODY=$(cat "$CHANGELOG_FILE" | sed 's/$/\\n/' | tr -d '\n')
+            echo "body=$CHANGELOG_BODY" >> $GITHUB_OUTPUT
+          else
+            echo "changelog_exists=false" >> $GITHUB_OUTPUT
+            echo "body=Release ${{ steps.version.outputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: ${{ steps.changelog.outputs.body }}
+          files: rpi_gateway-${{ steps.version.outputs.version }}.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

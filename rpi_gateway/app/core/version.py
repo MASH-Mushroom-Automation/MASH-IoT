@@ -14,7 +14,7 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 3
-PATCH = 0
+PATCH = 1
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -22,7 +22,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-11"
-RELEASE_NAME = "Version Management"
+RELEASE_NAME = "OTA & Asset System"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -31,8 +31,8 @@ ARDUINO_SERIAL_PROTOCOL_VERSION = "1.0"
 
 # Feature Flags
 FEATURES = {
-    'ml_automation': True,           # - Isolation Forest + Decision Tree
-    'wifi_provisioning': True,       # - NetworkManager-based provisioning
+    'wifi_manager': True,            # - NetworkManager-based provisioning
+    'ml_models': True,               # - Isolation Forest + Decision Tree
     'firebase_sync': True,            # - Realtime DB + Admin SDK (client-side listener)
     'backend_api_sync': True,        # - REST API client with JWT
     'mdns_discovery': False,          # - Local network discovery
@@ -40,13 +40,13 @@ FEATURES = {
     'web_dashboard': True,           # - Flask Blueprint web UI
     'version_api': True,             # - Version endpoint for frontend
     'manual_controls': True,         # - Override automation
+    'ota_updates': True,             # - GitHub Release OTA updates with A/B rollback
     'sensor_warmup': True,           # - Initial calibration period
     'smart_humidifier': False,        # - Predictive cycle manager
     'screen_management': True,       # - HDMI power control
     'mqtt_fallback': False,          # - Partial (client exists, not integrated)
     'systemd_service': True,         # - Scripts available, manual setup
     'chromium_kiosk': True,          # - Scripts available, manual setup
-    'ota_updates': False,            # - Not implemented (Phase 2)
     'advanced_recovery': True,       # - I2C recovery + hardware WDT
     'per_version_changelogs': True,  # - File-based changelogs with on-demand API
 }

@@ -20,7 +20,8 @@
     <div class="container">
         <nav class="top-nav">
             <div class="nav-brand">
-                <img src="/assets/logo-123x89.png" alt="MASH IoT" class="nav-logo">
+                <img src="{{ url_for('web.static', filename='assets/logo-123x89.png') }}" alt="MASH IoT"
+                    class="nav-logo">
             </div>
             <ul class="nav-links">
                 <li><a href="{{ url_for('web.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>

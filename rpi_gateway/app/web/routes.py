@@ -195,14 +195,8 @@ def get_live_data():
 
 @web_bp.route('/')
 def index():
-    """Redirect to dashboard (intro page removed)."""
+    """Redirect to dashboard."""
     return redirect(url_for('web.dashboard'))
-
-@web_bp.route('/assets/<path:filename>')
-def serve_assets(filename):
-    """Serve files from the assets directory."""
-    assets_dir = os.path.join(os.path.dirname(__file__), '../../../assets')
-    return send_from_directory(assets_dir, filename)
 
 @web_bp.route('/dashboard')
 def dashboard():
@@ -1012,4 +1006,158 @@ def toggle_firebase_sync():
         return jsonify({"success": True, "enabled": enabled})
     except Exception as e:
         logger.error(f"Failed to toggle sync: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# OTA Update Endpoints
+# =============================================================================
+
+@web_bp.route('/api/update/check')
+def check_ota_update():
+    """
+    Check GitHub Releases for available updates.
+    
+    Query params:
+        force - If 'true', bypass cache and check immediately (default: false)
+    
+    Returns:
+        {
+            "success": true,
+            "update_available": true/false,
+            "current_version": "2.3.0",
+            "latest_version": "2.4.0",
+            "release_name": "Release Name",
+            "priority": "high|medium|low",
+            "changelog": "Release body markdown",
+            "published_at": "ISO datetime"
+        }
+    """
+    try:
+        from app.core import updater, version
+
+        force = request.args.get('force', '').lower() == 'true'
+        
+        logger.info(f"[OTA] Check update requested (force={force})")
+        result = updater.check_for_update(force=force)
+
+        if result.get('available'):
+            return jsonify({
+                "success": True,
+                "update_available": True,
+                "current_version": version.VERSION,
+                "latest_version": result['version'],
+                "release_name": result.get('name', ''),
+                "priority": result.get('priority', 'medium'),
+                "changelog": result.get('changelog', ''),
+                "published_at": result.get('published_at', ''),
+                "download_url": result.get('download_url'),
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "update_available": False,
+                "current_version": version.VERSION,
+                "reason": result.get('reason', 'up_to_date'),
+                "error": result.get('error'),
+            })
+
+    except Exception as e:
+        logger.error(f"[OTA] Check update failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/update/install', methods=['POST'])
+def install_ota_update():
+    """
+    Trigger OTA update installation.
+    Downloads the release tarball and runs ota_update.sh.
+    
+    Request body:
+        {
+            "version": "2.4.0",
+            "download_url": "https://github.com/.../rpi_gateway.tar.gz"
+        }
+    
+    Returns:
+        {
+            "success": true/false,
+            "message": "Update status message",
+            "output": "Script output (if available)"
+        }
+    """
+    try:
+        from app.core import updater
+
+        data = request.json
+        if not data:
+            return jsonify({"success": False, "error": "Missing request body"}), 400
+
+        target_version = data.get('version')
+        download_url = data.get('download_url')
+
+        if not target_version or not download_url:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: version, download_url"
+            }), 400
+
+        logger.info(f"[OTA] Install update requested: v{target_version}")
+
+        # Download the release tarball
+        tarball_path = updater.download_update(download_url)
+        if not tarball_path:
+            return jsonify({
+                "success": False,
+                "error": "Failed to download update package"
+            }), 500
+
+        # Run the update script
+        result = updater.install_update(tarball_path, target_version)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"[OTA] Install update failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@web_bp.route('/api/update/status')
+def get_ota_status():
+    """
+    Get current OTA update state.
+    
+    Returns:
+        {
+            "success": true,
+            "current_version": "2.3.0",
+            "last_check": "ISO datetime or null",
+            "last_update": "ISO datetime or null",
+            "update_status": "stable|rolled_back",
+            "update_in_progress": true/false,
+            "backup_version": "2.2.2 or null",
+            "unstable_versions": ["2.2.3"]
+        }
+    """
+    try:
+        from app.core import updater, version
+
+        state = updater.get_update_state()
+
+        return jsonify({
+            "success": True,
+            "current_version": version.VERSION,
+            "last_check": state.get('last_check'),
+            "last_update": state.get('last_update'),
+            "update_status": state.get('update_status', 'stable'),
+            "update_in_progress": state.get('update_in_progress', False),
+            "backup_version": state.get('backup_version'),
+            "unstable_versions": state.get('unstable_versions', []),
+        })
+
+    except Exception as e:
+        logger.error(f"[OTA] Get update status failed: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
