@@ -217,7 +217,7 @@ Follow the versioning file: `rpi_gateway/app/core/version.py`
 - Documentation updates
 - Performance optimizations
 - Code refactoring without feature changes
-- Example: 2.0.0 → 2.0.1
+- Example: 2.0.0 -> 2.0.1
 
 **MINOR (x.Y.0)** - New features (backward compatible):
 - New API endpoints
@@ -225,14 +225,14 @@ Follow the versioning file: `rpi_gateway/app/core/version.py`
 - New configuration options
 - UI feature additions
 - Enhanced error handling
-- Example: 2.0.1 → 2.1.0
+- Example: 2.0.1 -> 2.1.0
 
 **MAJOR (X.0.0)** - Breaking changes:
 - API contract changes (endpoint removal/modification)
-- Serial protocol changes (Arduino ↔ RPi)
+- Serial protocol changes (Arduino <-> RPi)
 - Database schema migrations
 - Configuration file format changes
-- Example: 2.1.0 → 3.0.0
+- Example: 2.1.0 -> 3.0.0
 
 ### Version Update Workflow (MANDATORY)
 1. **Before writing code**: Determine if change is MAJOR/MINOR/PATCH
@@ -240,63 +240,88 @@ Follow the versioning file: `rpi_gateway/app/core/version.py`
 3. **Update RELEASE_DATE**: Set to current date
 4. **Update RELEASE_NAME**: Descriptive name for the release
 5. **Update FEATURES dict**: Add/modify feature flags as needed
-6. **Add to CHANGELOG**: 
-   - **NEVER modify previous changelog entries** (integrity)
-   - Add new section at the TOP of changelog
-   - Use format: `vX.Y.Z (YYYY-MM-DD) - Release Name`
-   - List changes under categories: New Features, Improved, Fixed, Breaking Changes, Known Limitations
-7. **Verify**: Run `python rpi_gateway/app/core/version.py` to confirm
+6. **Add CHANGELOG_REGISTRY entry**: Add a new entry at the TOP of the list in version.py
+7. **Create changelog file**: Create `changelogs/vX.Y.Z.md` (see template below)
+   - **NEVER modify previous changelog files** (integrity)
+   - Use standardized tags and user-friendly language
+8. **Verify**: Run `python rpi_gateway/app/core/version.py` to confirm
 
-### Changelog Format (Strict Template)
+### Changelog File Template (Strict)
+
+Each version gets its own file at `rpi_gateway/app/core/changelogs/vX.Y.Z.md`:
+
+```markdown
+## vX.Y.Z (YYYY-MM-DD) - Release Name
+Priority: high|medium|low
+
+Brief summary of the release milestone in user-friendly language.
+
+### New
+- Feature description (no function names or technical jargon)
+
+### Improved
+- Enhancement description
+
+### Fixed
+- Bug fix description (describe the user-visible problem, not the code fix)
+
+### Changed
+- Behavior change description (non-breaking)
+
+### Breaking
+- Breaking change description (MAJOR version only)
+
+### Security
+- Security fix description
+
+### Known Limitations
+- Limitation description
 ```
-vX.Y.Z (YYYY-MM-DD) - Release Name
 
-Brief summary of the release milestone
+**Standardized Tags** (use only these, omit sections with no entries):
 
-New Features:
- - Feature 1 description
- - Feature 2 description
+| Tag | Purpose |
+|-----|---------|
+| `New` | New features or capabilities |
+| `Improved` | Enhancements to existing features |
+| `Fixed` | Bug fixes |
+| `Changed` | Behavior changes (non-breaking) |
+| `Breaking` | Breaking changes (MAJOR only) |
+| `Security` | Security fixes |
+| `Known Limitations` | Known issues or limitations |
 
-Improved:
- - Improvement 1
- - Improvement 2
+**Priority Levels** (for future OTA update notifications):
+- `high` - Required update, security fix, or critical bug fix
+- `medium` - Recommended update, new features
+- `low` - Optional, documentation, minor improvements
 
-Fixed:
- - Bug fix 1
- - Bug fix 2
-
-Breaking Changes:
- - Breaking change 1 (MAJOR version only)
-
-Known Limitations:
-Limitation 1
-
----
-
-[Previous version entries below - DO NOT MODIFY]
-```
+**Language Rules**:
+- Write for users, not developers
+- BAD: "Fixed check_connection() timing bug in backend_api.py"
+- GOOD: "Fixed connection retry logic that caused excessive server requests"
+- Never reference function names, file paths, or variable names
 
 ### Examples of Version Bumps
 
-**PATCH Example (2.0.0 → 2.0.1):**
+**PATCH Example (2.0.0 -> 2.0.1):**
 - Fix WiFi reconnection bug
 - Improve logging clarity
 - Update documentation typos
 
-**MINOR Example (2.0.1 → 2.1.0):**
+**MINOR Example (2.0.1 -> 2.1.0):**
 - Add `/api/version` endpoint
 - Implement on-screen keyboard support
 - Add mDNS service discovery
 - New feature flags in config
 
-**MAJOR Example (2.1.0 → 3.0.0):**
+**MAJOR Example (2.1.0 -> 3.0.0):**
 - Change serial protocol from JSON to Protocol Buffers
 - Rename API endpoints (breaking mobile app compatibility)
 - Require new config.yaml structure
 
 ### Enforcement Rules
 1. **NO PR/commit without version bump** (except docs-only changes)
-2. **NEVER edit old changelog entries** - append new sections only
+2. **NEVER edit old changelog files** - create new files only
 3. **ALWAYS update RELEASE_DATE** to match current date
 4. **Test version endpoint**: Verify `/api/version` returns correct info
 5. **Run version.py**: Confirm output shows updated version

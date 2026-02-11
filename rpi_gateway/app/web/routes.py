@@ -891,13 +891,56 @@ def system_shutdown():
 
 @web_bp.route('/api/changelog')
 def get_changelog():
-    """Get the system changelog from version.py"""
+    """
+    Get system changelogs with optional filtering.
+    
+    Query params:
+        since    - Return changelogs newer than this version (e.g. ?since=2.1.0)
+        version  - Return a specific version's changelog (e.g. ?version=2.2.2)
+        limit    - Return the last N versions (e.g. ?limit=3)
+        full     - Return all changelogs (e.g. ?full=true)
+    
+    Default (no params): Returns only the current version's changelog.
+    """
     try:
-        from app.core import version
+        from app.core import version as version_module
+
+        since = request.args.get('since')
+        specific_version = request.args.get('version')
+        limit = request.args.get('limit', type=int)
+        full = request.args.get('full', '').lower() == 'true'
+
+        if specific_version:
+            # Single version lookup
+            entry = version_module.get_changelog(specific_version)
+            if entry is None:
+                return jsonify({
+                    "success": False,
+                    "error": f"Version {specific_version} not found"
+                }), 404
+            changelogs = [entry]
+
+        elif since:
+            # All versions newer than 'since'
+            changelogs = version_module.get_changelogs_since(since)
+
+        elif full:
+            # All versions
+            changelogs = version_module.get_changelogs()
+
+        elif limit:
+            # Last N versions
+            changelogs = version_module.get_changelogs(limit=limit)
+
+        else:
+            # Default: current version only
+            entry = version_module.get_changelog()
+            changelogs = [entry] if entry else []
+
         return jsonify({
             "success": True,
-            "changelog": version.CHANGELOG,
-            "version": version.VERSION
+            "current_version": version_module.VERSION,
+            "changelogs": changelogs
         })
     except Exception as e:
         logger.error(f"Failed to load changelog: {e}")

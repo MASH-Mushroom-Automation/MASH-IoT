@@ -510,13 +510,19 @@
         modal.style.display = 'block';
 
         try {
-            const response = await fetch('/api/changelog');
+            const response = await fetch('/api/changelog?full=true');
             const data = await response.json();
 
-            if (data.success) {
-                content.innerHTML = `<pre>${data.changelog}</pre>`;
+            if (data.success && data.changelogs && data.changelogs.length > 0) {
+                let html = '';
+                data.changelogs.forEach(entry => {
+                    html += `<div class="changelog-entry">`;
+                    html += `<pre>${entry.content || 'No details available.'}</pre>`;
+                    html += `</div>`;
+                });
+                content.innerHTML = html;
             } else {
-                content.innerHTML = '<p style="color: #ff6b6b;">Failed to load changelog.</p>';
+                content.innerHTML = '<p style="color: #ff6b6b;">No changelog entries found.</p>';
             }
         } catch (error) {
             console.error('Error loading changelog:', error);
