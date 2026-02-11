@@ -5,9 +5,12 @@ body {
     color: #e0e0e0;
     margin: 0;
     padding: 0;
-    overflow-y: auto; /* Enable vertical scrolling */
-    overflow-x: hidden; /* Prevent horizontal scroll */
-    -webkit-overflow-scrolling: touch; /* Smooth touch scrolling on mobile */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth touch scrolling on mobile */
 }
 
 /* Custom scrollbar styling */
@@ -76,7 +79,8 @@ body {
     height: 60px;
 }
 
-.nav-links li a:hover, .nav-links li a.active {
+.nav-links li a:hover,
+.nav-links li a.active {
     background-color: #4CAF50;
     color: #fff;
 }
@@ -120,7 +124,8 @@ body {
 .main-content {
     flex-grow: 1;
     padding: 15px;
-    overflow: hidden; /* Ensure no overflow */
+    overflow: hidden;
+    /* Ensure no overflow */
 }
 
 .page-title {
@@ -208,11 +213,13 @@ body {
     display: flex;
     gap: 15px;
     font-size: 1.5em;
-    color: #555; /* Inactive color */
+    color: #555;
+    /* Inactive color */
 }
 
 .actuator-icons .active {
-    color: #4CAF50; /* Active color */
+    color: #4CAF50;
+    /* Active color */
 }
 
 
@@ -269,9 +276,17 @@ body {
 }
 
 /* Sensor-specific colors */
-.sensor-card.co2 .sensor-value { color: #5dade2; }
-.sensor-card.temp .sensor-value { color: #e67e22; }
-.sensor-card.humidity .sensor-value { color: #48c9b0; }
+.sensor-card.co2 .sensor-value {
+    color: #5dade2;
+}
+
+.sensor-card.temp .sensor-value {
+    color: #e67e22;
+}
+
+.sensor-card.humidity .sensor-value {
+    color: #48c9b0;
+}
 
 
 /* ==================== Controls Page Styles ==================== */
@@ -353,15 +368,15 @@ body {
     transition: .4s;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: #4CAF50;
 }
 
-input:focus + .slider {
+input:focus+.slider {
     box-shadow: 0 0 1px #4CAF50;
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     transform: translateX(26px);
 }
 
@@ -387,7 +402,8 @@ input:checked + .slider:before {
     border-collapse: collapse;
 }
 
-.alerts-table th, .alerts-table td {
+.alerts-table th,
+.alerts-table td {
     padding: 12px 15px;
     border-bottom: 1px solid #444;
     text-align: left;
@@ -405,11 +421,13 @@ input:checked + .slider:before {
 
 /* Alert level styling */
 .alert-level-warning td {
-    background-color: #4b4635; /* Dark yellow */
+    background-color: #4b4635;
+    /* Dark yellow */
 }
 
 .alert-level-critical td {
-    background-color: #5d3a3a; /* Dark red */
+    background-color: #5d3a3a;
+    /* Dark red */
 }
 
 /* ================== AI Insights Page Styles =================== */
@@ -545,21 +563,27 @@ input:checked + .slider:before {
 /* ENHANCED ON STATE - More Noticeable */
 .actuator-card[data-state=\"on\"] {
     background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-    border: 3px solid #5dde5d; /* Thicker border */
-    box-shadow: 0 0 25px rgba(76, 175, 80, 0.8), /* Strong glow */
-                0 4px 15px rgba(76, 175, 80, 0.5);
-    animation: glow-pulse 2s ease-in-out infinite; /* Pulsing glow effect */
+    border: 3px solid #5dde5d;
+    /* Thicker border */
+    box-shadow: 0 0 25px rgba(76, 175, 80, 0.8),
+        /* Strong glow */
+        0 4px 15px rgba(76, 175, 80, 0.5);
+    animation: glow-pulse 2s ease-in-out infinite;
+    /* Pulsing glow effect */
 }
 
 /* Pulsing glow animation for ON state */
 @keyframes glow-pulse {
-    0%, 100% { 
+
+    0%,
+    100% {
         box-shadow: 0 0 25px rgba(76, 175, 80, 0.8),
-                    0 4px 15px rgba(76, 175, 80, 0.5);
+            0 4px 15px rgba(76, 175, 80, 0.5);
     }
-    50% { 
+
+    50% {
         box-shadow: 0 0 35px rgba(76, 175, 80, 1),
-                    0 6px 20px rgba(76, 175, 80, 0.7);
+            0 6px 20px rgba(76, 175, 80, 0.7);
     }
 }
 
@@ -567,7 +591,8 @@ input:checked + .slider:before {
 .actuator-card[data-state=\"on\"] .card-info .card-description,
 .actuator-card[data-state=\"on\"] .card-icon i {
     color: #fff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add text shadow for contrast */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    /* Add text shadow for contrast */
 }
 
 .actuator-card.disabled {
@@ -592,8 +617,15 @@ input:checked + .slider:before {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 /* Card Info */
@@ -634,10 +666,13 @@ input:checked + .slider:before {
 
 /* Pulsing animation for ON status badge */
 @keyframes status-pulse {
-    0%, 100% { 
+
+    0%,
+    100% {
         transform: scale(1);
     }
-    50% { 
+
+    50% {
         transform: scale(1.05);
     }
 }
@@ -696,8 +731,17 @@ input:checked + .slider:before {
 }
 
 @keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.6; }
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0.6;
+    }
 }
 
 /* Responsive Design for Cards */
@@ -705,7 +749,7 @@ input:checked + .slider:before {
     .actuator-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .auto-control-bar {
         flex-direction: column;
         gap: 15px;
@@ -905,9 +949,11 @@ input:checked + .slider:before {
 .settings-layout {
     display: flex;
     gap: 25px;
-    height: auto;
+    height: calc(100vh - 140px);
     min-height: 500px;
     margin-top: 20px;
+    overflow: hidden;
+    /* Prevent outer scroll */
 }
 
 .settings-sidebar {
@@ -961,6 +1007,60 @@ input:checked + .slider:before {
     border: 1px solid #333;
     position: relative;
     padding: 30px;
+    overflow-y: auto;
+    /* Independent scroll */
+    height: 100%;
+}
+
+/* Update Status Badge Styles */
+.update-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.update-badge.up-to-date {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.update-badge.available {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196F3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.update-badge.critical {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.btn-update-check {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-update-check:hover {
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-update-check:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .settings-pane {
@@ -973,8 +1073,15 @@ input:checked + .slider:before {
 }
 
 @keyframes settingsFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .settings-pane h2 {
@@ -1093,6 +1200,7 @@ input:checked + .slider:before {
     .settings-layout {
         flex-direction: column;
     }
+
     .settings-sidebar {
         width: 100%;
         flex-direction: row;
@@ -1100,6 +1208,7 @@ input:checked + .slider:before {
         position: static;
         padding-bottom: 10px;
     }
+
     .settings-nav-item {
         white-space: nowrap;
         padding: 10px 15px;

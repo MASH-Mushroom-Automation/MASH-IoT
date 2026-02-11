@@ -124,8 +124,9 @@
                 <div style="text-align: center; margin-bottom: 30px; padding-top: 10px;">
                     <img src="{{ url_for('web.static', filename='assets/logo-123x89.png') }}" alt="MASH IoT"
                         style="height: 80px; filter: drop-shadow(0 0 15px rgba(76, 175, 80, 0.4)); margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #4CAF50; font-size: 1.5em; letter-spacing: 1px;">MASH IoT Gateway</h3>
-                    <p style="color: #888; margin-top: 5px;">Mushroom Automation Smart Home</p>
+                    <h3 style="margin: 0; color: #4CAF50; font-size: 1.5em; letter-spacing: 1px;">MASH Chamber Controls
+                    </h3>
+                    <p style="color: #888; margin-top: 5px;">Mushroom Automation w/ Smart Hydro-Environment</p>
                 </div>
 
                 <div class="settings-info-row">
@@ -141,13 +142,73 @@
                     <span class="settings-info-value">Linux (Debian)</span>
                 </div>
 
-                <div style="margin-top: 30px;">
+                <div class="settings-info-row">
+                    <span class="settings-info-label">Update Status</span>
+                    <span class="settings-info-value">
+                        <span id="update-status-badge" class="update-badge">Checking...</span>
+                    </span>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-update-check" onclick="checkForUpdates()" id="btn-check-update">
+                        <i class="fas fa-sync-alt"></i> Check for Updates
+                    </button>
                     <button class="setting-button" onclick="showChangelog()"
-                        style="background: linear-gradient(135deg, #2196F3, #1976D2);">
-                        <i class="fas fa-list-alt"></i> View Release Changelog
+                        style="background: linear-gradient(135deg, #607D8B, #455A64); flex: 1;">
+                        <i class="fas fa-list-alt"></i> History
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Update Available Modal -->
+<div id="update-modal" class="custom-modal"
+    style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div class="custom-modal-content" style="margin: 10% auto; width: 90%; max-width: 500px;">
+        <div class="custom-modal-header">
+            <h3><i class="fas fa-cloud-download-alt"></i> Update Available</h3>
+            <span class="close" onclick="closeUpdateModal()"
+                style="color: white; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="custom-modal-body">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 4em; color: #4CAF50; margin-bottom: 10px;">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <h4 id="update-version-title" style="margin: 0; color: #e0e0e0; font-size: 1.2em;">New Version Found
+                </h4>
+                <p id="update-release-name" style="color: #999; margin-top: 5px;">Release Name</p>
+            </div>
+
+            <div
+                style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
+                <h5 style="margin-top: 0; color: #4CAF50; border-bottom: 1px solid #444; padding-bottom: 5px;">What's
+                    New</h5>
+                <div id="update-changelog-preview"
+                    style="white-space: pre-wrap; font-family: sans-serif; font-size: 0.9em; color: #ccc;">
+                    Loading details...
+                </div>
+            </div>
+
+            <div class="alert-box warning"
+                style="background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); padding: 10px; border-radius: 6px; font-size: 0.9em; color: #ff9800; display: flex; gap: 10px; align-items: start;">
+                <i class="fas fa-exclamation-triangle" style="margin-top: 3px;"></i>
+                <div>
+                    <strong>Note:</strong> The device will restart automatically after the update. Monitoring will be
+                    briefly interrupted.
+                </div>
+            </div>
+        </div>
+        <div class="custom-modal-footer" style="padding: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="action-button" onclick="closeUpdateModal()">Later</button>
+            <button class="action-button" onclick="performUpdate()" id="btn-install-update"
+                style="background: linear-gradient(135deg, #4CAF50, #45a049);">
+                <i class="fas fa-download"></i> Update Now
+            </button>
         </div>
     </div>
 </div>
@@ -678,8 +739,118 @@
             syncToggle.addEventListener('change', function () {
                 handleFirebaseSyncToggle(this.checked);
             });
+
         }
+
+        // Check for updates on load
+        checkForUpdates(false);
     });
+
+    // OTA Update Functions
+    let currentUpdateData = null;
+
+    async function checkForUpdates(force = true) {
+        const badge = document.getElementById('update-status-badge');
+        const btn = document.getElementById('btn-check-update');
+
+        if (badge) {
+            badge.textContent = 'Checking...';
+            badge.className = 'update-badge';
+        }
+
+        if (btn && force) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        }
+
+        try {
+            const response = await fetch(`/api/update/check?force=${force}`);
+            const data = await response.json();
+
+            if (data.update_available) {
+                currentUpdateData = data;
+                if (badge) {
+                    badge.textContent = `v${data.latest_version} Available`;
+                    badge.className = 'update-badge available';
+                    badge.onclick = () => showUpdateModal();
+                    badge.style.cursor = 'pointer';
+                }
+                if (force) showUpdateModal();
+            } else {
+                if (badge) {
+                    badge.textContent = 'Up to Date';
+                    badge.className = 'update-badge up-to-date';
+                    badge.onclick = null;
+                    badge.style.cursor = 'default';
+                }
+                if (force) showSuccess('System is up to date.');
+            }
+        } catch (error) {
+            console.error('Error checking for updates:', error);
+            if (badge) {
+                badge.textContent = 'Check Failed';
+                badge.className = 'update-badge critical';
+            }
+            if (force) showError('Failed to check for updates.');
+        } finally {
+            if (btn && force) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Check for Updates';
+            }
+        }
+    }
+
+    function showUpdateModal() {
+        if (!currentUpdateData) return;
+
+        document.getElementById('update-version-title').textContent = `v${currentUpdateData.latest_version} Available`;
+        document.getElementById('update-release-name').textContent = currentUpdateData.release_name || 'New Release';
+        document.getElementById('update-changelog-preview').textContent = currentUpdateData.changelog || 'No details provided.';
+
+        document.getElementById('update-modal').style.display = 'block';
+    }
+
+    function closeUpdateModal() {
+        document.getElementById('update-modal').style.display = 'none';
+    }
+
+    async function performUpdate() {
+        if (!currentUpdateData) return;
+
+        const btn = document.getElementById('btn-install-update');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing...';
+
+        try {
+            const response = await fetch('/api/update/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    version: currentUpdateData.latest_version,
+                    download_url: currentUpdateData.download_url
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showSuccess('Update installed successfully! Rebooting...');
+                setTimeout(() => {
+                    location.reload();
+                }, 5000);
+            } else {
+                showError('Update failed: ' + (data.message || data.error));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download"></i> Try Again';
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            showError('Update request failed: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> Try Again';
+        }
+    }
+
 </script>
 
 {% endblock %}

@@ -13,8 +13,8 @@ import os
 
 # Version Components
 MAJOR = 2
-MINOR = 3
-PATCH = 2
+MINOR = 4
+PATCH = 0
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -22,7 +22,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-02-11"
-RELEASE_NAME = "Settings UI Overhaul"
+RELEASE_NAME = "Multi-Device Sync & OTA UI"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -73,6 +73,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.4.0", "date": "2026-02-11", "name": "Multi-Device Sync & OTA UI", "priority": "medium"},
     {"version": "2.3.2", "date": "2026-02-11", "name": "Settings UI Overhaul", "priority": "medium"},
     {"version": "2.3.1", "date": "2026-02-11", "name": "OTA & Asset System", "priority": "medium"},
     {"version": "2.3.0", "date": "2026-02-11", "name": "Version Management", "priority": "medium"},

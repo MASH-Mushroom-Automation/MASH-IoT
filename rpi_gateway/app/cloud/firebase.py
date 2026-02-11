@@ -68,13 +68,13 @@ class FirebaseSync:
             logger.error(f"[FIREBASE] Initialization failed: {e}")
             self.is_initialized = False
     
-    def sync_sensor_readings(self, readings: List[Dict]) -> int:
+    def sync_sensor_readings(self, readings: List[Dict], device_id: str) -> int:
         """
         Upload sensor readings to Firebase.
         
         Args:
-            readings: List of sensor data dicts with structure:
-                      {'id': 1, 'room': 'fruiting', 'temp': 24.5, 'humidity': 85, 'co2': 800, 'timestamp': ...}
+            readings: List of sensor data dicts
+            device_id: Unique device identifier to nest data under
         
         Returns:
             Number of successfully synced records
@@ -86,7 +86,8 @@ class FirebaseSync:
         synced_count = 0
         
         try:
-            ref = firebase_db.reference('sensor_data')
+            # nest under device_id to avoid collisions
+            ref = firebase_db.reference(f'sensor_data/{device_id}')
             
             for reading in readings:
                 try:
@@ -99,7 +100,7 @@ class FirebaseSync:
                     
                     room = reading.get('room', 'unknown')
                     
-                    # Path: /sensor_data/{room}/{timestamp_key}
+                    # Path: /sensor_data/{device_id}/{room}/{timestamp_key}
                     room_ref = ref.child(room).child(timestamp_key)
                     
                     # Upload data
@@ -118,7 +119,7 @@ class FirebaseSync:
                     logger.error(f"[FIREBASE] Failed to sync reading {reading.get('id')}: {e}")
             
             if synced_count > 0:
-                logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings")
+                logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings for device {device_id}")
             
             return synced_count
             

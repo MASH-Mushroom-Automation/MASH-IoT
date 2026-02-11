@@ -288,7 +288,7 @@ class MASHOrchestrator:
                         })
                     
                     if readings:
-                        self.firebase.sync_sensor_readings(readings)
+                        self.firebase.sync_sensor_readings(readings, device_id)
                         
                         # Also update latest_reading path for quick access
                         # Normalize field names: Arduino uses 'temp' but mobile expects 'temperature'
