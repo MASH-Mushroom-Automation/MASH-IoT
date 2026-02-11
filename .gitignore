@@ -10,3 +10,7 @@ rpi_gateway/config/.env
 /rpi_gateway/app/cloud/__pycache__
 rpi_gateway/config/firebase_config.json
 /build
+*.db
+*.sqlite
+/rpi_gateway/data/*.db
+/rpi_gateway/rpi_gateway/data/*.db
