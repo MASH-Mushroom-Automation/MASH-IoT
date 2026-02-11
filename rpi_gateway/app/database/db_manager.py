@@ -230,7 +230,7 @@ class DatabaseManager:
             return None
     
     def get_recent_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get recent system alerts."""
+        """Get recent system logs (alerts history)."""
         if not self.conn:
             return []
         
@@ -247,8 +247,92 @@ class DatabaseManager:
             return [dict(row) for row in rows]
             
         except sqlite3.Error as e:
-            logger.error(f"[DB] Alerts query failed: {e}")
+            logger.error(f"[DB] Logs query failed: {e}")
             return []
+
+    # ==================== ACTIVE ALERTS (STATEFUL) ====================
+    def upsert_active_alert(self, room: str, alert_type: str, message: str, severity: str = 'WARNING'):
+        """
+        Upsert an active alert. 
+        If it exists, update the message and timestamp.
+        If it doesn't exist, insert it.
+        """
+        if not self.conn:
+            return
+
+        try:
+            # We also log to system_logs for history
+            self.insert_alert(room, alert_type, message, severity)
+
+            self.conn.execute("""
+                INSERT INTO active_alerts (room, alert_type, severity, message, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(room, alert_type) DO UPDATE SET
+                    severity = excluded.severity,
+                    message = excluded.message,
+                    updated_at = excluded.updated_at
+            """, (room, alert_type, severity.upper(), message, datetime.now().timestamp()))
+            
+            self.conn.commit()
+            logger.info(f"[DB] Active alert upserted: {room}/{alert_type}")
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Active alert upsert failed: {e}")
+
+    def resolve_alert(self, room: str, alert_type: str):
+        """
+        Remove an alert from active_alerts table (mark as resolved).
+        """
+        if not self.conn:
+            return
+
+        try:
+            self.conn.execute("""
+                DELETE FROM active_alerts
+                WHERE room = ? AND alert_type = ?
+            """, (room, alert_type))
+            
+            self.conn.commit()
+            # logger.debug(f"[DB] Alert resolved: {room}/{alert_type}") # debug only to avoid noise
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Alert resolution failed: {e}")
+
+    def get_active_alerts(self) -> List[Dict[str, Any]]:
+        """Get all active alerts."""
+        if not self.conn:
+            return []
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM active_alerts
+                ORDER BY severity = 'CRITICAL' DESC, severity = 'ERROR' DESC, created_at DESC
+            """)
+            
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Active alerts query failed: {e}")
+            return []
+
+    def acknowledge_alert(self, alert_id: int):
+        """Mark an active alert as acknowledged."""
+        if not self.conn:
+            return
+
+        try:
+            self.conn.execute("""
+                UPDATE active_alerts
+                SET is_acknowledged = 1, acknowledged_at = ?
+                WHERE id = ?
+            """, (datetime.now().timestamp(), alert_id))
+            self.conn.commit()
+            logger.info(f"[DB] Alert {alert_id} acknowledged")
+            
+        except sqlite3.Error as e:
+            logger.error(f"[DB] Alert acknowledgement failed: {e}")
     
     def mark_command_executed(self, command_id: int):
         """Mark command as executed."""

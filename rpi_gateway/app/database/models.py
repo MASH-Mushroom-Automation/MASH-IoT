@@ -90,6 +90,20 @@ CREATE TABLE IF NOT EXISTS device_config (
     updated_at REAL DEFAULT (strftime('%s', 'now'))
 );
 
+-- Active alerts (stateful)
+CREATE TABLE IF NOT EXISTS active_alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room TEXT NOT NULL,
+    alert_type TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK(severity IN ('INFO', 'WARNING', 'ERROR', 'CRITICAL')),
+    message TEXT NOT NULL,
+    is_acknowledged INTEGER DEFAULT 0,
+    acknowledged_at REAL,
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    updated_at REAL DEFAULT (strftime('%s', 'now')),
+    UNIQUE(room, alert_type)
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_sensor_timestamp ON sensor_data(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_sensor_room ON sensor_data(room, timestamp DESC);
@@ -99,6 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_sync_queue_table ON sync_queue(table_name, create
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON system_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_level ON system_logs(level, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_sensor_mapping_room ON sensor_mapping(room, sensor_type);
+CREATE INDEX IF NOT EXISTS idx_active_alerts_room ON active_alerts(room);
 """
 
 # Data classes for type safety

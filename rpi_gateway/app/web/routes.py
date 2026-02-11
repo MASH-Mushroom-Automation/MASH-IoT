@@ -286,12 +286,28 @@ def ai_insights():
 def alerts():
     """Display system alerts page."""
     db = current_app.config.get('DB')
-    recent_alerts = []
+    active_alerts = []
+    history = []
     
     if db:
-        recent_alerts = db.get_recent_alerts(limit=100)
+        active_alerts = db.get_active_alerts()
+        # Also fetch history for reference
+        history = db.get_recent_alerts(limit=50)
     
-    return render_template('alerts.html', alerts=recent_alerts)
+    return render_template('alerts.html', active_alerts=active_alerts, history=history)
+
+@web_bp.route('/api/alerts/acknowledge/<int:alert_id>', methods=['POST'])
+def acknowledge_alert(alert_id):
+    """Acknowledge an active alert."""
+    try:
+        db = current_app.config.get('DB')
+        if db:
+            db.acknowledge_alert(alert_id)
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Database not available'}), 500
+    except Exception as e:
+        logger.error(f"Failed to acknowledge alert {alert_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @web_bp.route('/settings')
 def settings():

@@ -482,14 +482,8 @@ class MushroomAI:
         intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "ON"
 
         # Generate alerts for critical conditions and save to database
-        alerts = self._check_and_alert("fruiting", sensor_data, config)
-        if alerts and self.db is not None:
-            for room, alert_type, message, severity in alerts:
-                try:
-                    self.db.insert_alert(room, alert_type, message, severity)
-                    logger.info(f"[ALERT] {message}")
-                except Exception as e:
-                    logger.error(f"[ALERT] Failed to save alert: {e}")
+        # _check_and_alert now handles DB operations directly
+        self._check_and_alert("fruiting", sensor_data, config)
 
         return {
             "exhaust_fan": exhaust_fan_state,
@@ -525,41 +519,78 @@ class MushroomAI:
         }
 
     def _check_and_alert(self, room: str, sensor_data: Dict, config: Dict):
-        """Check sensor data against thresholds and log alerts."""
+        """
+        Check sensor data against thresholds and manage active alerts.
+        Uses upsert_active_alert for violations and resolve_alert when normal.
+        """
+        if self.db is None:
+            return []
+
         temp = sensor_data.get('temp', 0)
         humidity = sensor_data.get('humidity', 0)
         co2 = sensor_data.get('co2', 0)
         
-        alerts = []
+        # Define alert conditions
+        # Format: (alert_type, is_active, message, severity)
+        checks = []
         
-        # Temperature alerts
+        # Temperature checks
         temp_target = config.get('temp_target', 24)
         temp_tolerance = config.get('temp_tolerance', 2)
-        if temp > (temp_target + temp_tolerance):
-            msg = f"{room.upper()} temperature HIGH: {temp}°C (target: {temp_target}°C)"
-            logger.warning(f"[ALERT] {msg}")
-            alerts.append((room, 'temperature_high', msg, 'warning'))
-        elif temp < (temp_target - temp_tolerance):
-            msg = f"{room.upper()} temperature LOW: {temp}°C (target: {temp_target}°C)"
-            logger.warning(f"[ALERT] {msg}")
-            alerts.append((room, 'temperature_low', msg, 'warning'))
         
-        # Humidity alerts
+        checks.append((
+            'temperature_high', 
+            temp > (temp_target + temp_tolerance),
+            f"{room.upper()} temperature HIGH: {temp}°C (target: {temp_target}°C)",
+            'WARNING'
+        ))
+        
+        checks.append((
+            'temperature_low',
+            temp < (temp_target - temp_tolerance),
+            f"{room.upper()} temperature LOW: {temp}°C (target: {temp_target}°C)",
+            'WARNING'
+        ))
+        
+        # Humidity checks
         humidity_target = config.get('humidity_target', 90)
         humidity_tolerance = config.get('humidity_tolerance', 10)
-        if humidity < (humidity_target - humidity_tolerance):
-            msg = f"{room.upper()} humidity LOW: {humidity}% (target: {humidity_target}%)"
-            logger.warning(f"[ALERT] {msg}")
-            alerts.append((room, 'humidity_low', msg, 'warning'))
         
-        # CO2 alerts
+        checks.append((
+            'humidity_low',
+            humidity < (humidity_target - humidity_tolerance),
+            f"{room.upper()} humidity LOW: {humidity}% (target: {humidity_target}%)",
+            'WARNING'
+        ))
+        
+        # CO2 checks
         co2_max = config.get('co2_max', 1000)
-        if co2 > co2_max:
-            msg = f"{room.upper()} CO2 HIGH: {co2}ppm (max: {co2_max}ppm)"
-            logger.warning(f"[ALERT] {msg}")
-            alerts.append((room, 'co2_high', msg, 'warning'))
         
-        return alerts
+        checks.append((
+            'co2_high',
+            co2 > co2_max,
+            f"{room.upper()} CO2 HIGH: {co2}ppm (max: {co2_max}ppm)",
+            'WARNING'
+        ))
+        
+        # Process checks
+        active_alerts_list = []
+        
+        for alert_type, is_active, message, severity in checks:
+            if is_active:
+                try:
+                    self.db.upsert_active_alert(room, alert_type, message, severity)
+                    logger.warning(f"[ALERT] {message}")
+                    active_alerts_list.append((room, alert_type, message, severity))
+                except Exception as e:
+                    logger.error(f"[ALERT] Failed to upsert alert {alert_type}: {e}")
+            else:
+                try:
+                    self.db.resolve_alert(room, alert_type)
+                except Exception as e:
+                    logger.error(f"[ALERT] Failed to resolve alert {alert_type}: {e}")
+        
+        return active_alerts_list
     
     def process_sensor_reading(self, room_data: Dict) -> List[str]:
         """
