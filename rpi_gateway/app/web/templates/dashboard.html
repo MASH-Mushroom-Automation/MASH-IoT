@@ -204,7 +204,138 @@
     </div>
 </div>
 
+<!-- Floating QR Code Button -->
+<div class="qr-float-button" onclick="openQRModal()" title="Show Connection QR Code">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <polyline points="14 14 14 18 18 18 18 14 14 14"/>
+        <line x1="21" y1="21" x2="21" y2="21"/>
+    </svg>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qrCodeModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2>Connect Mobile App</h2>
+            <span class="close" onclick="closeQRModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 30px 20px;">
+            <p style="margin-bottom: 20px; color: #555;">Scan this QR code with the MASH mobile app to connect instantly</p>
+            
+            <div id="qr-loading" style="padding: 40px;">
+                <p>Loading QR Code...</p>
+            </div>
+            
+            <div id="qr-display" style="display: none;">
+                <img id="connection-qr-image" alt="Connection QR Code" style="max-width: 300px; width: 100%; border: 3px solid #2563eb; border-radius: 8px; padding: 10px; background: white;">
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                        <strong>Device ID:</strong> {{ device_id }}<br>
+                        <strong>IP Address:</strong> {{ request.host.split(':')[0] }}
+                    </p>
+                </div>
+                
+                <p style="margin-top: 15px; font-size: 13px; color: #666;">
+                    Open MASH app → Connect Device → Scan QR Code
+                </p>
+            </div>
+            
+            <div id="qr-error" style="display: none; color: #dc2626; padding: 20px;">
+                <p>Failed to load QR code. Please try manual connection.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .qr-float-button {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        transition: all 0.3s ease;
+        z-index: 999;
+        color: white;
+    }
+    
+    .qr-float-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+    }
+    
+    .qr-float-button:active {
+        transform: scale(0.95);
+    }
+    
+    /* Responsive: hide on very small screens */
+    @media (max-width: 600px) {
+        .qr-float-button {
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+        }
+        
+        .qr-float-button svg {
+            width: 24px;
+            height: 24px;
+        }
+    }
+</style>
+
 <script>
+    // QR Code Modal Functions
+    function openQRModal() {
+        const modal = document.getElementById('qrCodeModal');
+        modal.style.display = 'flex';
+        loadConnectionQR();
+    }
+    
+    function closeQRModal() {
+        document.getElementById('qrCodeModal').style.display = 'none';
+    }
+    
+    async function loadConnectionQR() {
+        const loadingEl = document.getElementById('qr-loading');
+        const displayEl = document.getElementById('qr-display');
+        const errorEl = document.getElementById('qr-error');
+        const qrImageEl = document.getElementById('connection-qr-image');
+        
+        // Reset states
+        loadingEl.style.display = 'block';
+        displayEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/connection-qr');
+            const data = await response.json();
+            
+            if (data.success && data.qr_code) {
+                qrImageEl.src = data.qr_code;
+                loadingEl.style.display = 'none';
+                displayEl.style.display = 'block';
+            } else {
+                throw new Error('Invalid QR code response');
+            }
+        } catch (error) {
+            console.error('Failed to load connection QR:', error);
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+        }
+    }
+    
     // Modal Functions
     function openWifiModal() {
         document.getElementById('wifiSetupModal').style.display = 'flex';
@@ -229,9 +360,15 @@
 
     // Close modal if clicked outside
     window.onclick = function (event) {
-        const modal = document.getElementById('wifiSetupModal');
-        if (event.target == modal) {
-            modal.style.display = "none";
+        const wifiModal = document.getElementById('wifiSetupModal');
+        const qrModal = document.getElementById('qrCodeModal');
+        
+        if (event.target == wifiModal) {
+            wifiModal.style.display = "none";
+        }
+        
+        if (event.target == qrModal) {
+            qrModal.style.display = "none";
         }
     }
 

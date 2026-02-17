@@ -1,7 +1,7 @@
 # M.A.S.H. IoT Project - AI Coding Agent Instructions
 
 ## Project Overview
-**Mushroom Automation Smart Home (M.A.S.H.)** - A two-layer IoT system for automated mushroom cultivation monitoring and control.
+**Mushroom Automation Smart Hydro-Environment (M.A.S.H.)** - A two-layer IoT system for automated mushroom cultivation monitoring and control.
 
 **Architecture:** Arduino (hardware layer) ↔ USB Serial ↔ Raspberry Pi (control layer) ↔ Firebase/MQTT (cloud)
 
@@ -100,6 +100,44 @@ Use `Blueprint` for all routes (see `rpi_gateway/app/web/routes.py`):
 web_bp = Blueprint('web', __name__, template_folder='templates')
 ```
 Register in `main.py` with: `app.register_blueprint(web_bp)`
+
+### Web UI Resolution Constraints (CRITICAL)
+
+**Target Display: 1024x600** (Raspberry Pi Official 7" Touchscreen)
+
+The Flask web interface runs on the same display as the Flutter mobile app. **ALL UI elements MUST be readable with the naked eye at 1024x600 resolution**.
+
+**Design Guidelines:**
+- **Minimum font sizes:**
+  - Body text: 14px minimum
+  - Headings: 18px minimum
+  - Sensor values/metrics: 20px minimum
+  - Button labels: 16px minimum
+
+- **Touch targets:**
+  - Minimum button/link area: 48x48px (Material Design standard)
+  - Spacing between interactive elements: 8px minimum
+
+- **Layout considerations:**
+  - Use responsive CSS (flexbox, grid) for different viewports
+  - Prioritize critical sensor data in above-the-fold area
+  - Avoid excessive padding that wastes screen real estate
+  - Test all templates at 1024x600 during development
+
+- **Common issues to avoid:**
+  - Text smaller than 14px (hard to read at arm's length)
+  - Buttons smaller than 48px (difficult to tap accurately)
+  - Fixed-width layouts that require horizontal scrolling
+  - Critical controls hidden below the fold without scroll indicators
+
+**Testing:**
+```bash
+# Test on RPi display
+python -m app.main
+# Access at http://localhost:5000 on RPi touchscreen
+
+# Or test on desktop with browser window set to 1024x600
+```
 
 ## Hardware Constraints
 

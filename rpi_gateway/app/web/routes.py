@@ -571,6 +571,63 @@ def api_wifi_connect():
 # =======================================================
 
 
+# ---------------- Connection QR Code Endpoint ----------------
+@web_bp.route('/api/connection-qr')
+def get_connection_qr():
+    """
+    Generate QR code for mobile app to scan and connect to this device.
+    
+    Returns a base64-encoded QR code image containing connection info in JSON format:
+    {
+        "type": "mash_device",
+        "deviceId": "MASH-RPI-12345",
+        "deviceName": "Caloocan Chamber 1",
+        "ipAddress": "192.168.1.100",
+        "port": 5000
+    }
+    """
+    try:
+        from app.utils import wifi_manager
+        
+        # Get device information
+        config = current_app.config.get('MUSHROOM_CONFIG', {})
+        device_config = config.get('device', {})
+        
+        device_id = device_config.get('serial_number', 'unknown')
+        device_name = device_config.get('name', 'MASH IoT Chamber')
+        
+        # Get current IP address
+        ip_address = wifi_manager.get_local_ip()
+        
+        if not ip_address:
+            return jsonify({
+                'success': False,
+                'error': 'Device IP address not available'
+            }), 500
+        
+        # Generate QR code
+        qr_code = wifi_manager.generate_device_connection_qr(
+            device_id=device_id,
+            device_name=device_name,
+            ip_address=ip_address,
+            port=5000
+        )
+        
+        return jsonify({
+            'success': True,
+            'qr_code': qr_code,
+            'device_id': device_id,
+            'device_name': device_name,
+            'ip_address': ip_address,
+            'port': 5000,
+            'instructions': 'Scan this QR code with the MASH Grower mobile app to connect'
+        })
+        
+    except Exception as e:
+        logger.error(f"[API] Connection QR generation error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ---------------- Version API Endpoint ----------------
 @web_bp.route('/api/version')
 def api_version():

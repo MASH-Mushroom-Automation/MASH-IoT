@@ -109,6 +109,53 @@ def generate_url_qr_code(url: str) -> str:
     
     return f"data:image/png;base64,{img_base64}"
 
+
+def generate_device_connection_qr(device_id: str, device_name: str, ip_address: str, port: int = 5000) -> str:
+    """
+    Generate a QR code for device connection with all necessary info.
+    
+    Format: JSON string with connection details:
+    {
+        "type": "mash_device",
+        "deviceId": "MASH-RPI-12345",
+        "deviceName": "Caloocan Chamber 1",
+        "ipAddress": "192.168.1.100",
+        "port": 5000
+    }
+    
+    Returns base64-encoded PNG image string.
+    """
+    connection_data = {
+        "type": "mash_device",
+        "deviceId": device_id,
+        "deviceName": device_name,
+        "ipAddress": ip_address,
+        "port": port
+    }
+    
+    # Convert to JSON string
+    qr_data = json.dumps(connection_data)
+    
+    # Create QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,  # Medium error correction for better reliability
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    
+    # Generate image
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
+    return f"data:image/png;base64,{img_base64}"
+
 def run_command(command, ignore_fail=False):
     """Executes a shell command and returns True if successful."""
     try:

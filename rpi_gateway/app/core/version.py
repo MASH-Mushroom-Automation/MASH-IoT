@@ -13,7 +13,7 @@ import os
 
 # Version Components
 MAJOR = 2
-MINOR = 5
+MINOR = 6
 PATCH = 0
 
 # Formatted Versions
@@ -21,8 +21,8 @@ VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-11"
-RELEASE_NAME = "Stateful Alerts & Notifications"
+RELEASE_DATE = "2026-02-17"
+RELEASE_NAME = "QR Code Device Pairing"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -50,6 +50,7 @@ FEATURES = {
     'advanced_recovery': True,       # - I2C recovery + hardware WDT
     'per_version_changelogs': True,  # - File-based changelogs with on-demand API
     'stateful_alerts': True,         # - Active alerts with acknowledgement
+    'qr_code_pairing': True,         # - QR code device connection for mobile app
 }
 
 # Hardware Requirements
@@ -74,6 +75,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.6.0", "date": "2026-02-17", "name": "QR Code Device Pairing", "priority": "medium"},
     {"version": "2.5.0", "date": "2026-02-11", "name": "Stateful Alerts & Notifications", "priority": "medium"},
     {"version": "2.4.0", "date": "2026-02-11", "name": "Multi-Device Sync & OTA UI", "priority": "medium"},
     {"version": "2.3.2", "date": "2026-02-11", "name": "Settings UI Overhaul", "priority": "medium"},
