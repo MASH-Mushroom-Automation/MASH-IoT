@@ -104,16 +104,20 @@ def get_live_data():
     # Get components from Flask app context
     serial_comm = getattr(current_app, 'serial_comm', None)
     config = current_app.config.get('MUSHROOM_CONFIG', {})
-    
+
     # Get latest sensor data from app context (stored by orchestrator)
     sensor_data = current_app.config.get('LATEST_DATA', {})
-    
+
+    # DEBUG: Log when we're accessing LATEST_DATA (helps diagnose mobile app connection issues)
     if not sensor_data or not isinstance(sensor_data, dict):
+        logger.warning("[API] LATEST_DATA is empty or invalid - sensor data may not be updating")
         # Fallback if no data available
         sensor_data = {
             'fruiting': None,
             'spawning': None
         }
+    else:
+        logger.debug(f"[API] Retrieved sensor data - fruiting: {sensor_data.get('fruiting') is not None}, spawning: {sensor_data.get('spawning') is not None}")
     
     # Handle null/error states
     fruiting_data = sensor_data.get('fruiting')

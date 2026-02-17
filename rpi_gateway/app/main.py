@@ -8,7 +8,7 @@ import time
 import yaml
 from flask import Flask
 from flask_cors import CORS
-from threading import Thread
+from threading import Thread, Lock
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -154,6 +154,9 @@ class MASHOrchestrator:
             'fruiting': None,
             'spawning': None
         }
+
+        # Thread safety for data access (prevents race conditions when mobile app polls rapidly)
+        self.data_lock = Lock()
     
     def _load_config(self, config_path):
         """Load configuration from YAML file."""
@@ -233,22 +236,29 @@ class MASHOrchestrator:
             if not self.sensor_warmup_complete:
                 if time_since_boot < self.warmup_duration:
                     logger.info(f"[WARMUP] Sensor calibration in progress... {int(self.warmup_duration - time_since_boot)}s remaining")
-                    # Store data but don't run automation yet
-                    if 'fruiting' in data:
-                        self.latest_data['fruiting'] = data['fruiting']
-                    if 'spawning' in data:
-                        self.latest_data['spawning'] = data['spawning']
+                    # Store data but don't run automation yet - use lock for thread safety
+                    with self.data_lock:
+                        if 'fruiting' in data:
+                            self.latest_data['fruiting'] = data['fruiting']
+                        if 'spawning' in data:
+                            self.latest_data['spawning'] = data['spawning']
+                        # Update app config
+                        self.app.config['LATEST_DATA'] = self.latest_data.copy()
                     return
                 else:
                     self.sensor_warmup_complete = True
                     self.app.config['SENSOR_WARMUP_COMPLETE'] = True  # Update Flask config
                     logger.info("[WARMUP] ✅ Sensor calibration complete! Starting automatic control...")
             
-            # Store latest data (for web UI)
-            if 'fruiting' in data:
-                self.latest_data['fruiting'] = data['fruiting']
-            if 'spawning' in data:
-                self.latest_data['spawning'] = data['spawning']
+            # Store latest data (for web UI) - use lock for thread safety
+            with self.data_lock:
+                if 'fruiting' in data:
+                    self.latest_data['fruiting'] = data['fruiting']
+                if 'spawning' in data:
+                    self.latest_data['spawning'] = data['spawning']
+
+                # Also update app config (needed for Flask routes to see changes)
+                self.app.config['LATEST_DATA'] = self.latest_data.copy()  # Use copy to prevent shared reference issues
             
             # Save to database (IMMEDIATELY - offline-first pattern)
             self.db.insert_sensor_data_batch(data)
