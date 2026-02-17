@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, current_app, request, send_from_directory
+from flask_cors import CORS
 import time
 import logging
 import os
@@ -10,6 +11,8 @@ logger = logging.getLogger(__name__)
 # Create Flask Blueprint
 web_bp = Blueprint('web', __name__, template_folder='templates', static_folder='static')
 
+# Enable CORS for all routes in this blueprint
+CORS(web_bp, resources={r"/*": {"origins": "*"}})
 
 @web_bp.route('/status', methods=['GET'])
 def get_status():

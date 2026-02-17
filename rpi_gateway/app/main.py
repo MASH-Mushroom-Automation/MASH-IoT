@@ -84,6 +84,8 @@ class MASHOrchestrator:
             r"/dashboard": {"origins": "*"},
             r"/provisioning/*": {"origins": "*"},
             r"/wifi-*": {"origins": "*"},
+            r"/automation/*": {"origins": "*"},  # NEW: Add automation routes
+            r"/*": {"origins": "*"},  # NEW: Catch-all for any other routes
         })
         
         # Register web blueprint
