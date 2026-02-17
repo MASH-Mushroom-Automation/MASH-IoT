@@ -176,12 +176,9 @@ def get_live_data():
     backend_client = getattr(current_app, 'backend_client', None)
     backend_connected = backend_client.is_connected if backend_client else False
     
-    # Get Firebase sync status (checks both initialization and user preference)
-    firebase = getattr(current_app, 'firebase', None)
+    # Get Firebase sync user preference (controls whether Firebase sync is active)
     user_prefs = current_app.config.get('USER_PREFS')
     firebase_sync_enabled = user_prefs.get_preference('firebase_sync_enabled', default=True) if user_prefs else True
-    firebase_connected = firebase.is_initialized if firebase else False
-    firebase_active = firebase_connected and firebase_sync_enabled  # Only active if both initialized AND enabled
 
     return {
         "fruiting_data": fruiting_data,
@@ -197,9 +194,7 @@ def get_live_data():
         "spawning_condition": spawning_condition,
         "spawning_condition_class": spawning_condition_class,
         "backend_connected": backend_connected,  # Backend API (PostgreSQL) connection status
-        "firebase_connected": firebase_connected,  # Firebase initialized status
-        "firebase_sync_enabled": firebase_sync_enabled,  # User preference for Firebase sync
-        "firebase_active": firebase_active,  # True only if initialized AND enabled
+        "firebase_sync_enabled": firebase_sync_enabled,  # Whether Firebase sync is enabled (on_sensor_data checks this)
         "arduino_connected": serial_comm.is_connected if serial_comm else False
     }
 
@@ -690,9 +685,7 @@ def api_latest_data():
     return jsonify({
         "arduino_connected": data.get('arduino_connected', False),
         "backend_connected": data.get('backend_connected', False),
-        "firebase_connected": data.get('firebase_connected', False),
         "firebase_sync_enabled": data.get('firebase_sync_enabled', False),
-        "firebase_active": data.get('firebase_active', False),
         "uptime": data['uptime'],
         "warmup_complete": warmup_complete,
         "warmup_remaining": remaining_warmup,
