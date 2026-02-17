@@ -15,11 +15,16 @@ web_bp = Blueprint('web', __name__, template_folder='templates', static_folder='
 def get_status():
     """Health check endpoint for device connection testing."""
     try:
+        # Get Firebase sync user preference
+        user_prefs = current_app.config.get('USER_PREFS')
+        firebase_sync_enabled = user_prefs.get_preference('firebase_sync_enabled', default=True) if user_prefs else True
+
         return jsonify({
             'success': True,
             'status': 'online',
             'device_id': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('serial_number', 'unknown'),
             'device_name': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('name', 'MASH IoT Chamber'),
+            'firebase_sync_enabled': firebase_sync_enabled,  # NEW: Connection mode decision
             'timestamp': time.time()
         }), 200
     except Exception as e:

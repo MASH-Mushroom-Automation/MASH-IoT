@@ -526,54 +526,86 @@ class MASHOrchestrator:
     def _handle_mqtt_command(self, payload):
         """
         Handle incoming MQTT commands from mobile app or backend.
-        Payload format: {"actuator": "MIST_MAKER", "state": "ON", "source": "mobile_app"}
+        Payload format: {
+            "room": "fruiting",         # Room identifier (fruiting/spawning/device)
+            "actuator": "mist_maker",   # Actuator ID (mobile app format)
+            "state": "ON",              # ON or OFF
+            "source": "mobile_app",     # Command source
+            "timestamp": "ISO8601"      # Timestamp
+        }
         """
         try:
-            actuator = payload.get('actuator')
+            room = payload.get('room', 'fruiting').lower()
+            actuator = payload.get('actuator', '').lower()
             state = payload.get('state', '').upper()
             source = payload.get('source', 'unknown')
-            
+
             if not actuator or state not in ['ON', 'OFF']:
                 logger.warning(f"[MQTT] Invalid command payload: {payload}")
                 return
-            
-            logger.info(f"[MQTT] 📱 Remote command from {source}: {actuator} -> {state}")
-            
-            # Send to Arduino via serial
-            import json
-            json_cmd = json.dumps({"actuator": actuator, "state": state})
-            success = self.arduino.send_command(json_cmd)
-            
-            if success:
-                logger.info(f"[MQTT] ✅ Command forwarded to Arduino: {json_cmd}")
-                # Update local actuator state for web UI
-                command_for_state = f"{actuator}_{state}"
-                self._update_actuator_state_from_command(command_for_state)
-                # Log command to database
-                self.db.insert_command(json_cmd, source=f'mqtt_{source}')
-                
-                # Track manual override to prevent auto-mode from changing this actuator
-                with self.app.app_context():
-                    manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
-                    # Map Arduino actuator name to UI actuator name and room
-                    room = 'fruiting'
-                    ui_actuator = actuator.lower()
-                    if 'SPAWNING' in actuator:
-                        room = 'spawning'
-                    if 'DEVICE' in actuator:
-                        room = 'device'
-                    # Strip room prefix for UI name
-                    ui_actuator = ui_actuator.replace('fruiting_', '').replace('spawning_', '').replace('device_', '')
-                    
-                    if room not in manual_overrides:
-                        manual_overrides[room] = {}
-                    manual_overrides[room][ui_actuator] = {'state': state, 'timestamp': time.time()}
-                    self.app.config['MANUAL_OVERRIDES'] = manual_overrides
+
+            logger.info(f"[MQTT] 📱 Remote command from {source}: {room}/{actuator} -> {state}")
+
+            # Map mobile app actuator names to Arduino firmware names
+            actuator_map = {
+                'mist_maker': 'MIST_MAKER',
+                'humidifier_fan': 'HUMIDIFIER_FAN',
+                'blower_fan': 'BLOWER_FAN',
+                'led': 'FRUITING_LED',
+            }
+
+            # Room-specific actuators
+            if actuator == 'exhaust_fan':
+                if room == 'fruiting':
+                    actuator_map['exhaust_fan'] = 'FRUITING_EXHAUST_FAN'
+                elif room == 'spawning':
+                    actuator_map['exhaust_fan'] = 'SPAWNING_EXHAUST_FAN'
+                elif room == 'device':
+                    actuator_map['exhaust_fan'] = 'DEVICE_EXHAUST_FAN'
+            elif actuator == 'intake_fan':
+                actuator_map['intake_fan'] = 'FRUITING_INTAKE_FAN'
+
+            arduino_actuator = actuator_map.get(actuator)
+            if not arduino_actuator:
+                logger.warning(f"[MQTT] Unknown actuator: {actuator}")
+                return
+
+            # Send command to Arduino
+            if self.arduino and self.arduino.is_connected:
+                import json
+                json_cmd = json.dumps({"actuator": arduino_actuator, "state": state})
+                success = self.arduino.send_command(json_cmd)
+
+                if success:
+                    logger.info(f"[MQTT] ✅ Command executed: {json_cmd}")
+
+                    # Update local actuator state for web UI
+                    command_for_state = f"{arduino_actuator}_{state}"
+                    self._update_actuator_state_from_command(command_for_state)
+
+                    # Log command to database
+                    self.db.insert_command(json_cmd, source=f'mqtt_{source}')
+
+                    # Track manual override with room context
+                    with self.app.app_context():
+                        manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
+                        if room not in manual_overrides:
+                            manual_overrides[room] = {}
+
+                        manual_overrides[room][actuator] = {
+                            'timestamp': time.time(),
+                            'state': state,
+                            'source': source
+                        }
+                        self.app.config['MANUAL_OVERRIDES'] = manual_overrides
+                        logger.debug(f"[MQTT] Set manual override: {room}/{actuator}")
+                else:
+                    logger.error(f"[MQTT] ❌ Failed to send command to Arduino")
             else:
-                logger.warning(f"[MQTT] ❌ Failed to forward command to Arduino")
-                
+                logger.warning("[MQTT] Arduino not connected - command ignored")
+
         except Exception as e:
-            logger.error(f"[MQTT] Error handling command: {e}")
+            logger.error(f"[MQTT] Command handling error: {e}")
             import traceback
             traceback.print_exc()
     
