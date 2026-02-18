@@ -13,7 +13,7 @@ import os
 
 # Version Components
 MAJOR = 2
-MINOR = 6
+MINOR = 7
 PATCH = 0
 
 # Formatted Versions
@@ -21,8 +21,8 @@ VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-17"
-RELEASE_NAME = "QR Code Device Pairing"
+RELEASE_DATE = "2026-02-18"
+RELEASE_NAME = "Analytics API Endpoints"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -75,6 +75,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.7.0", "date": "2026-02-18", "name": "Analytics API Endpoints", "priority": "medium"},
     {"version": "2.6.0", "date": "2026-02-17", "name": "QR Code Device Pairing", "priority": "medium"},
     {"version": "2.5.0", "date": "2026-02-11", "name": "Stateful Alerts & Notifications", "priority": "medium"},
     {"version": "2.4.0", "date": "2026-02-11", "name": "Multi-Device Sync & OTA UI", "priority": "medium"},
