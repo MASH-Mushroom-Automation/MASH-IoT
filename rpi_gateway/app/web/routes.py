@@ -1252,3 +1252,297 @@ def get_ota_status():
     except Exception as e:
         logger.error(f"[OTA] Get update status failed: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ==================== ANALYTICS & LOGS ENDPOINTS ====================
+@web_bp.route('/logs/statistics', methods=['GET'])
+def get_statistics():
+    """
+    Get aggregated sensor statistics for analytics dashboard.
+    
+    Query Params:
+        hours (int): Time window in hours (default: 24)
+    
+    Returns:
+        {
+            "success": true,
+            "statistics": {
+                "fruiting": {...}, 
+                "spawning": {...}
+            },
+            "hours": 24,
+            "count": 100
+        }
+    """
+    try:
+        hours = int(request.args.get('hours', 24))
+        db_manager = current_app.config.get('DB_MANAGER')
+        
+        if not db_manager:
+            return jsonify({'success': False, 'error': 'Database not available'}), 500
+        
+        # Calculate time threshold
+        import time
+        threshold = time.time() - (hours * 3600)
+        
+        # Query sensor data for time window
+        cursor = db_manager.conn.cursor()
+        cursor.execute("""
+            SELECT room, 
+                   COUNT(*) as count,
+                   AVG(temperature) as avg_temp,
+                   MIN(temperature) as min_temp,
+                   MAX(temperature) as max_temp,
+                   AVG(humidity) as avg_humidity,
+                   MIN(humidity) as min_humidity,
+                   MAX(humidity) as max_humidity,
+                   AVG(co2) as avg_co2,
+                   MIN(co2) as min_co2,
+                   MAX(co2) as max_co2
+            FROM sensor_data
+            WHERE timestamp > ?
+            GROUP BY room
+        """, (threshold,))
+        
+        rows = cursor.fetchall()
+        
+        statistics = {}
+        total_count = 0
+        for row in rows:
+            room = row[0]
+            statistics[room] = {
+                'count': row[1],
+                'temperature': {
+                    'avg': round(row[2], 1) if row[2] else 0,
+                    'min': round(row[3], 1) if row[3] else 0,
+                    'max': round(row[4], 1) if row[4] else 0
+                },
+                'humidity': {
+                    'avg': round(row[5], 1) if row[5] else 0,
+                    'min': round(row[6], 1) if row[6] else 0,
+                    'max': round(row[7], 1) if row[7] else 0
+                },
+                'co2': {
+                    'avg': round(row[8], 0) if row[8] else 0,
+                    'min': round(row[9], 0) if row[9] else 0,
+                    'max': round(row[10], 0) if row[10] else 0
+                }
+            }
+            total_count += row[1]
+        
+        return jsonify({
+            'success': True,
+            'statistics': statistics,
+            'hours': hours,
+            'count': total_count
+        })
+        
+    except Exception as e:
+        logger.error(f"[Analytics] Get statistics failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/logs/sensors', methods=['GET'])
+def get_sensor_logs():
+    """
+    Get historical sensor readings for analytics charts.
+    
+    Query Params:
+        hours (int): Time window in hours (default: 24)
+        limit (int): Maximum number of records (default: 100)
+    
+    Returns:
+        {
+            "success": true,
+            "logs": [
+                {
+                    "timestamp": 1234567890.0,
+                    "room": "fruiting",
+                    "temperature": 24.5,
+                    "humidity": 85.0,
+                    "co2": 800
+                },
+                ...
+            ],
+            "count": 100
+        }
+    """
+    try:
+        hours = int(request.args.get('hours', 24))
+        limit = int(request.args.get('limit', 100))
+        db_manager = current_app.config.get('DB_MANAGER')
+        
+        if not db_manager:
+            return jsonify({'success': False, 'error': 'Database not available'}), 500
+        
+        import time
+        threshold = time.time() - (hours * 3600)
+        
+        cursor = db_manager.conn.cursor()
+        cursor.execute("""
+            SELECT timestamp, room, temperature, humidity, co2
+            FROM sensor_data
+            WHERE timestamp > ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (threshold, limit))
+        
+        rows = cursor.fetchall()
+        
+        logs = []
+        for row in rows:
+            logs.append({
+                'timestamp': row[0],
+                'room': row[1],
+                'temperature': round(row[2], 1) if row[2] else 0,
+                'humidity': round(row[3], 1) if row[3] else 0,
+                'co2': int(row[4]) if row[4] else 0
+            })
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+        
+    except Exception as e:
+        logger.error(f"[Analytics] Get sensor logs failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/logs/actuators', methods=['GET'])
+def get_actuator_logs():
+    """
+    Get historical actuator commands for analytics.
+    
+    Query Params:
+        hours (int): Time window in hours (default: 24)
+        limit (int): Maximum number of records (default: 50)
+    
+    Returns:
+        {
+            "success": true,
+            "logs": [
+                {
+                    "timestamp": 1234567890.0,
+                    "room": "fruiting",
+                    "actuator": "fan",
+                    "action": "on",
+                    "source": "ml"
+                },
+                ...
+            ],
+            "count": 50
+        }
+    """
+    try:
+        hours = int(request.args.get('hours', 24))
+        limit = int(request.args.get('limit', 50))
+        db_manager = current_app.config.get('DB_MANAGER')
+        
+        if not db_manager:
+            return jsonify({'success': False, 'error': 'Database not available'}), 500
+        
+        import time
+        threshold = time.time() - (hours * 3600)
+        
+        cursor = db_manager.conn.cursor()
+        cursor.execute("""
+            SELECT timestamp, room, actuator, action, source
+            FROM device_commands
+            WHERE timestamp > ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (threshold, limit))
+        
+        rows = cursor.fetchall()
+        
+        logs = []
+        for row in rows:
+            logs.append({
+                'timestamp': row[0],
+                'room': row[1],
+                'actuator': row[2],
+                'action': row[3],
+                'source': row[4]
+            })
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+        
+    except Exception as e:
+        logger.error(f"[Analytics] Get actuator logs failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@web_bp.route('/logs/ai-decisions', methods=['GET'])
+def get_ai_decision_logs():
+    """
+    Get AI/ML automation decision logs.
+    
+    Query Params:
+        hours (int): Time window in hours (default: 24)
+        limit (int): Maximum number of records (default: 20)
+    
+    Returns:
+        {
+            "success": true,
+            "logs": [
+                {
+                    "timestamp": 1234567890.0,
+                    "level": "INFO",
+                    "component": "ml_engine",
+                    "message": "Activated mist maker for humidity correction",
+                    "data": {...}
+                },
+                ...
+            ],
+            "count": 20
+        }
+    """
+    try:
+        hours = int(request.args.get('hours', 24))
+        limit = int(request.args.get('limit', 20))
+        db_manager = current_app.config.get('DB_MANAGER')
+        
+        if not db_manager:
+            return jsonify({'success': False, 'error': 'Database not available'}), 500
+        
+        import time
+        threshold = time.time() - (hours * 3600)
+        
+        cursor = db_manager.conn.cursor()
+        cursor.execute("""
+            SELECT timestamp, level, component, message, data
+            FROM system_logs
+            WHERE timestamp > ? 
+              AND component IN ('ml_engine', 'logic_engine', 'automation')
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (threshold, limit))
+        
+        rows = cursor.fetchall()
+        
+        logs = []
+        for row in rows:
+            import json
+            logs.append({
+                'timestamp': row[0],
+                'level': row[1],
+                'component': row[2],
+                'message': row[3],
+                'data': json.loads(row[4]) if row[4] else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+        
+    except Exception as e:
+        logger.error(f"[Analytics] Get AI decision logs failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
