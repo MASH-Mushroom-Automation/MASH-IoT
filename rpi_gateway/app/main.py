@@ -106,6 +106,9 @@ class MASHOrchestrator:
         # Components
         self.db = DatabaseManager()
         
+        # Store DB manager in app config for analytics endpoints
+        self.app.config['DB_MANAGER'] = self.db
+        
         # Backend API client with device config
         device_config = self.config.get('device', {})
         self.backend = BackendAPIClient(device_config=device_config)

@@ -1274,16 +1274,24 @@ def get_statistics():
             "count": 100
         }
     """
+    import traceback
+    import time
+    
     try:
         hours = int(request.args.get('hours', 24))
         db_manager = current_app.config.get('DB_MANAGER')
         
         if not db_manager:
+            logger.error("[Analytics] DB_MANAGER not found in app config")
             return jsonify({'success': False, 'error': 'Database not available'}), 500
         
+        if not db_manager.conn:
+            logger.error("[Analytics] Database connection is None")
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
         # Calculate time threshold
-        import time
         threshold = time.time() - (hours * 3600)
+        logger.info(f"[Analytics] Fetching statistics for last {hours} hours (threshold: {threshold})")
         
         # Query sensor data for time window
         cursor = db_manager.conn.cursor()
@@ -1305,6 +1313,7 @@ def get_statistics():
         """, (threshold,))
         
         rows = cursor.fetchall()
+        logger.info(f"[Analytics] Found {len(rows)} room(s) with data")
         
         statistics = {}
         total_count = 0
@@ -1313,19 +1322,19 @@ def get_statistics():
             statistics[room] = {
                 'count': row[1],
                 'temperature': {
-                    'avg': round(row[2], 1) if row[2] else 0,
-                    'min': round(row[3], 1) if row[3] else 0,
-                    'max': round(row[4], 1) if row[4] else 0
+                    'avg': round(row[2], 1) if row[2] is not None else 0,
+                    'min': round(row[3], 1) if row[3] is not None else 0,
+                    'max': round(row[4], 1) if row[4] is not None else 0
                 },
                 'humidity': {
-                    'avg': round(row[5], 1) if row[5] else 0,
-                    'min': round(row[6], 1) if row[6] else 0,
-                    'max': round(row[7], 1) if row[7] else 0
+                    'avg': round(row[5], 1) if row[5] is not None else 0,
+                    'min': round(row[6], 1) if row[6] is not None else 0,
+                    'max': round(row[7], 1) if row[7] is not None else 0
                 },
                 'co2': {
-                    'avg': round(row[8], 0) if row[8] else 0,
-                    'min': round(row[9], 0) if row[9] else 0,
-                    'max': round(row[10], 0) if row[10] else 0
+                    'avg': round(row[8], 0) if row[8] is not None else 0,
+                    'min': round(row[9], 0) if row[9] is not None else 0,
+                    'max': round(row[10], 0) if row[10] is not None else 0
                 }
             }
             total_count += row[1]
@@ -1339,6 +1348,7 @@ def get_statistics():
         
     except Exception as e:
         logger.error(f"[Analytics] Get statistics failed: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1367,16 +1377,20 @@ def get_sensor_logs():
             "count": 100
         }
     """
+    import traceback
+    import time
+    
     try:
         hours = int(request.args.get('hours', 24))
         limit = int(request.args.get('limit', 100))
         db_manager = current_app.config.get('DB_MANAGER')
         
-        if not db_manager:
+        if not db_manager or not db_manager.conn:
+            logger.error("[Analytics] Database not available")
             return jsonify({'success': False, 'error': 'Database not available'}), 500
         
-        import time
         threshold = time.time() - (hours * 3600)
+        logger.info(f"[Analytics] Fetching sensor logs: hours={hours}, limit={limit}, threshold={threshold}")
         
         cursor = db_manager.conn.cursor()
         cursor.execute("""
@@ -1388,15 +1402,16 @@ def get_sensor_logs():
         """, (threshold, limit))
         
         rows = cursor.fetchall()
+        logger.info(f"[Analytics] Found {len(rows)} sensor readings")
         
         logs = []
         for row in rows:
             logs.append({
                 'timestamp': row[0],
                 'room': row[1],
-                'temperature': round(row[2], 1) if row[2] else 0,
-                'humidity': round(row[3], 1) if row[3] else 0,
-                'co2': int(row[4]) if row[4] else 0
+                'temperature': round(row[2], 1) if row[2] is not None else 0,
+                'humidity': round(row[3], 1) if row[3] is not None else 0,
+                'co2': int(row[4]) if row[4] is not None else 0
             })
         
         return jsonify({
@@ -1407,6 +1422,7 @@ def get_sensor_logs():
         
     except Exception as e:
         logger.error(f"[Analytics] Get sensor logs failed: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1435,16 +1451,20 @@ def get_actuator_logs():
             "count": 50
         }
     """
+    import traceback
+    import time
+    
     try:
         hours = int(request.args.get('hours', 24))
         limit = int(request.args.get('limit', 50))
         db_manager = current_app.config.get('DB_MANAGER')
         
-        if not db_manager:
+        if not db_manager or not db_manager.conn:
+            logger.error("[Analytics] Database not available")
             return jsonify({'success': False, 'error': 'Database not available'}), 500
         
-        import time
         threshold = time.time() - (hours * 3600)
+        logger.info(f"[Analytics] Fetching actuator logs: hours={hours}, limit={limit}, threshold={threshold}")
         
         cursor = db_manager.conn.cursor()
         cursor.execute("""
@@ -1456,15 +1476,16 @@ def get_actuator_logs():
         """, (threshold, limit))
         
         rows = cursor.fetchall()
+        logger.info(f"[Analytics] Found {len(rows)} actuator commands")
         
         logs = []
         for row in rows:
             logs.append({
                 'timestamp': row[0],
-                'room': row[1],
-                'actuator': row[2],
-                'action': row[3],
-                'source': row[4]
+                'room': row[1] if row[1] else '',
+                'actuator': row[2] if row[2] else '',
+                'action': row[3] if row[3] else '',
+                'source': row[4] if row[4] else 'unknown'
             })
         
         return jsonify({
@@ -1475,6 +1496,7 @@ def get_actuator_logs():
         
     except Exception as e:
         logger.error(f"[Analytics] Get actuator logs failed: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1503,16 +1525,21 @@ def get_ai_decision_logs():
             "count": 20
         }
     """
+    import traceback
+    import time
+    import json
+    
     try:
         hours = int(request.args.get('hours', 24))
         limit = int(request.args.get('limit', 20))
         db_manager = current_app.config.get('DB_MANAGER')
         
-        if not db_manager:
+        if not db_manager or not db_manager.conn:
+            logger.error("[Analytics] Database not available")
             return jsonify({'success': False, 'error': 'Database not available'}), 500
         
-        import time
         threshold = time.time() - (hours * 3600)
+        logger.info(f"[Analytics] Fetching AI decision logs: hours={hours}, limit={limit}, threshold={threshold}")
         
         cursor = db_manager.conn.cursor()
         cursor.execute("""
@@ -1525,16 +1552,21 @@ def get_ai_decision_logs():
         """, (threshold, limit))
         
         rows = cursor.fetchall()
+        logger.info(f"[Analytics] Found {len(rows)} AI decision logs")
         
         logs = []
         for row in rows:
-            import json
+            try:
+                data_value = json.loads(row[4]) if row[4] else None
+            except (json.JSONDecodeError, TypeError):
+                data_value = row[4]  # Return raw value if not valid JSON
+            
             logs.append({
                 'timestamp': row[0],
-                'level': row[1],
-                'component': row[2],
-                'message': row[3],
-                'data': json.loads(row[4]) if row[4] else None
+                'level': row[1] if row[1] else 'INFO',
+                'component': row[2] if row[2] else 'unknown',
+                'message': row[3] if row[3] else '',
+                'data': data_value
             })
         
         return jsonify({
@@ -1545,4 +1577,5 @@ def get_ai_decision_logs():
         
     except Exception as e:
         logger.error(f"[Analytics] Get AI decision logs failed: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
