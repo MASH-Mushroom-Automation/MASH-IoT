@@ -130,7 +130,9 @@ class MASHOrchestrator:
             self.firebase = None
 
         # Initialize MQTT Client
-        self.mqtt = create_mqtt_client(device_id=device_config.get('serial_number', 'rpi_gateway_001'))
+        device_serial = device_config.get('serial_number', 'rpi_gateway_001')
+        logger.info(f"[MQTT] Initializing MQTT client with device_id: {device_serial}")
+        self.mqtt = create_mqtt_client(device_id=device_serial)
         
         # Arduino port (Windows: COM3, Linux: /dev/ttyACM0)
         arduino_port = 'COM3' if sys.platform == 'win32' else '/dev/ttyACM0'
@@ -537,16 +539,22 @@ class MASHOrchestrator:
         }
         """
         try:
+            logger.info(f"[MQTT HANDLER] ================================")
+            logger.info(f"[MQTT HANDLER] 🎯 _handle_mqtt_command CALLED")
+            logger.info(f"[MQTT HANDLER]    Payload: {payload}")
+
             room = payload.get('room', 'fruiting').lower()
             actuator = payload.get('actuator', '').lower()
             state = payload.get('state', '').upper()
             source = payload.get('source', 'unknown')
 
+            logger.info(f"[MQTT HANDLER]    Parsed - Room: {room}, Actuator: {actuator}, State: {state}, Source: {source}")
+
             if not actuator or state not in ['ON', 'OFF']:
-                logger.warning(f"[MQTT] Invalid command payload: {payload}")
+                logger.warning(f"[MQTT HANDLER] ❌ Invalid command payload: {payload}")
                 return
 
-            logger.info(f"[MQTT] 📱 Remote command from {source}: {room}/{actuator} -> {state}")
+            logger.info(f"[MQTT HANDLER] 📱 Remote command from {source}: {room}/{actuator} -> {state}")
 
             # Map mobile app actuator names to Arduino firmware names
             actuator_map = {
@@ -647,10 +655,13 @@ class MASHOrchestrator:
             
             # Connect MQTT
             if self.mqtt:
+                logger.info("[MQTT] Setting command callback...")
                 self.mqtt.set_command_callback(self._handle_mqtt_command)
+                logger.info("[MQTT] Attempting to connect...")
                 mqtt_connected = self.mqtt.connect()
                 if mqtt_connected:
                     logger.info("[MQTT] ✅ Connected to HiveMQ Cloud - remote control enabled")
+                    logger.info(f"[MQTT] 📡 Listening on topic: devices/{self.mqtt.device_id}/commands")
                 else:
                     logger.warning("[MQTT] ⚠️ Failed to connect - remote control unavailable")
 

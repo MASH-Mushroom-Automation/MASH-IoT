@@ -119,22 +119,37 @@ class MQTTClient:
         """Callback when message received."""
         try:
             topic = msg.topic
-            payload = json.loads(msg.payload.decode('utf-8'))
-            
-            logger.info(f"[MQTT] Received message on {topic}")
-            logger.debug(f"[MQTT] Payload: {payload}")
-            
+            raw_payload = msg.payload.decode('utf-8')
+
+            logger.info(f"[MQTT] ================================")
+            logger.info(f"[MQTT] 📨 MESSAGE RECEIVED")
+            logger.info(f"[MQTT]    Topic: {topic}")
+            logger.info(f"[MQTT]    Raw Payload: {raw_payload}")
+
+            payload = json.loads(raw_payload)
+            logger.info(f"[MQTT]    Parsed Payload: {payload}")
+
             # Handle commands
             if topic.endswith('/commands'):
+                logger.info(f"[MQTT] ✅ Command topic detected")
                 if self.command_callback:
+                    logger.info(f"[MQTT] 🔄 Calling command callback...")
                     self.command_callback(payload)
+                    logger.info(f"[MQTT] ✅ Command callback executed")
                 else:
-                    logger.warning("[MQTT] Received command but no callback registered")
-            
+                    logger.error("[MQTT] ❌ Received command but NO CALLBACK REGISTERED!")
+            else:
+                logger.warning(f"[MQTT] ⚠️ Unknown topic: {topic}")
+
+            logger.info(f"[MQTT] ================================")
+
         except json.JSONDecodeError as e:
-            logger.error(f"[MQTT] Failed to parse message: {e}")
+            logger.error(f"[MQTT] ❌ Failed to parse message: {e}")
+            logger.error(f"[MQTT]    Raw payload: {msg.payload}")
         except Exception as e:
-            logger.error(f"[MQTT] Error processing message: {e}")
+            logger.error(f"[MQTT] ❌ Error processing message: {e}")
+            import traceback
+            logger.error(f"[MQTT]    Traceback: {traceback.format_exc()}")
     
     def _on_publish(self, client, userdata, mid):
         """Callback when message published."""
