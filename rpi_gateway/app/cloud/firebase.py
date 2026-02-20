@@ -158,6 +158,84 @@ class FirebaseSync:
             logger.error(f"[FIREBASE] Status update failed: {e}")
             return False
     
+    def sync_actuator_states(self, device_id: str, actuator_states: Dict) -> bool:
+        """
+        Upload actuator states to Firebase for real-time mobile app sync.
+        
+        Args:
+            device_id: Device identifier
+            actuator_states: Dictionary of actuator states by room
+                Format: {'fruiting': {'mist_maker': True, ...}, 'spawning': {...}}
+        
+        Returns:
+            True if successful
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+        
+        try:
+            # Update latest_actuators path for quick access
+            ref = firebase_db.reference(f'devices/{device_id}/latest_actuators')
+            
+            # Prepare data with timestamp
+            actuator_data = {
+                'timestamp': datetime.now().isoformat(),
+                'fruiting': actuator_states.get('fruiting', {}),
+                'spawning': actuator_states.get('spawning', {}),
+                'device': actuator_states.get('device', {})
+            }
+            
+            # Set to Firebase
+            ref.set(actuator_data)
+            logger.debug(f"[FIREBASE] ✅ Uploaded actuator states to devices/{device_id}/latest_actuators")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[FIREBASE] ❌ Actuator sync failed: {e}")
+            return False
+    
+    def log_actuator_event(self, device_id: str, room: str, actuator: str, state: bool, mode: str = 'auto') -> bool:
+        """
+        Log actuator state change event to Firebase for historical tracking.
+        
+        Args:
+            device_id: Device identifier
+            room: Room name (fruiting, spawning, device)
+            actuator: Actuator name (mist_maker, exhaust_fan, etc.)
+            state: New state (True = ON, False = OFF)
+            mode: Control mode ('auto' or 'manual')
+        
+        Returns:
+            True if successful
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+        
+        try:
+            # Create timestamp key for Firebase
+            timestamp = datetime.now()
+            timestamp_key = timestamp.isoformat().replace(':', '-').replace('.', '-')
+            
+            # Path: actuator_logs/{device_id}/{timestamp_key}
+            ref = firebase_db.reference(f'actuator_logs/{device_id}/{timestamp_key}')
+            
+            # Log event
+            ref.set({
+                'room': room,
+                'actuator': actuator,
+                'state': 'ON' if state else 'OFF',
+                'mode': mode,
+                'timestamp': timestamp.isoformat(),
+                'timestamp_unix': int(timestamp.timestamp())
+            })
+            
+            logger.debug(f"[FIREBASE] ✅ Logged actuator event: {room}/{actuator} = {state} ({mode})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[FIREBASE] ❌ Actuator event logging failed: {e}")
+            return False
+    
     def get_device_config(self, device_id: str) -> Optional[Dict]:
         """
         Fetch device configuration from Firebase.

@@ -265,6 +265,45 @@ class MQTTClient:
             logger.error(f"[MQTT] Status publish error: {e}")
             return False
     
+    def publish_actuator_state(self, room: str, actuator: str, state: bool) -> bool:
+        """
+        Publish actuator state change to MQTT for real-time mobile app sync.
+        
+        Args:
+            room: Room identifier ('fruiting', 'spawning', 'device')
+            actuator: Actuator name ('mist_maker', 'exhaust_fan', 'led', etc.)
+            state: Actuator state (True = ON, False = OFF)
+        
+        Returns:
+            True if published successfully
+        """
+        if not self.is_connected:
+            logger.warning("[MQTT] Cannot publish actuator state - not connected")
+            return False
+        
+        topic = f"devices/{self.device_id}/actuator_states"
+        
+        try:
+            payload = {
+                'room': room,
+                'actuator': actuator,
+                'state': 'on' if state else 'off',
+                'timestamp': time.time()
+            }
+            
+            result = self.client.publish(topic, json.dumps(payload), qos=1, retain=False)
+            
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                logger.debug(f"[MQTT] Published actuator state: {room}.{actuator} = {'ON' if state else 'OFF'}")
+                return True
+            else:
+                logger.error(f"[MQTT] Actuator state publish failed: {result.rc}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"[MQTT] Actuator state publish error: {e}")
+            return False
+    
     def publish_alert(self, alert_type: str, message: str, severity: str = "WARNING") -> bool:
         """
         Publish alert to MQTT.

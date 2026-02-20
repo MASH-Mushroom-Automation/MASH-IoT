@@ -334,6 +334,13 @@ class MASHOrchestrator:
                         
                         latest_ref.set(latest_data)
                         logger.info(f"[FIREBASE] ✅ Uploaded to devices/{device_id}/latest_reading")
+                        
+                        # Also sync actuator states for mobile app
+                        actuator_states = self.app.config.get('ACTUATOR_STATES', {})
+                        if actuator_states:
+                            self.firebase.sync_actuator_states(device_id, actuator_states)
+                            logger.debug(f"[FIREBASE] ✅ Synced actuator states")
+                        
                 except Exception as e:
                     logger.error(f"[FIREBASE] ❌ Sync failed: {e}")
                     import traceback
@@ -509,23 +516,54 @@ class MASHOrchestrator:
             actuator_states = self.app.config.get('ACTUATOR_STATES', {})
             
             # Map Arduino commands to rooms and actuators
+            room = None
+            actuator_name = None
+            
             if actuator_cmd == 'MIST_MAKER':
+                room, actuator_name = 'fruiting', 'mist_maker'
                 actuator_states['fruiting']['mist_maker'] = state
             elif actuator_cmd == 'HUMIDIFIER_FAN':
+                room, actuator_name = 'fruiting', 'humidifier_fan'
                 actuator_states['fruiting']['humidifier_fan'] = state
             elif actuator_cmd == 'FRUITING_EXHAUST_FAN':
+                room, actuator_name = 'fruiting', 'exhaust_fan'
                 actuator_states['fruiting']['exhaust_fan'] = state
             elif actuator_cmd == 'FRUITING_INTAKE_FAN':
+                room, actuator_name = 'fruiting', 'intake_fan'
                 actuator_states['fruiting']['intake_fan'] = state
             elif actuator_cmd == 'FRUITING_LED':
+                room, actuator_name = 'fruiting', 'led'
                 actuator_states['fruiting']['led'] = state
             elif actuator_cmd == 'SPAWNING_EXHAUST_FAN':
+                room, actuator_name = 'spawning', 'exhaust_fan'
                 actuator_states['spawning']['exhaust_fan'] = state
             elif actuator_cmd == 'DEVICE_EXHAUST_FAN':
+                room, actuator_name = 'device', 'exhaust_fan'
                 actuator_states['device']['exhaust_fan'] = state
             
             # Update app config
             self.app.config['ACTUATOR_STATES'] = actuator_states
+            
+            # Publish actuator state change to MQTT for real-time mobile app sync
+            if room and actuator_name and self.mqtt:
+                try:
+                    self.mqtt.publish_actuator_state(room, actuator_name, state)
+                    logger.debug(f"[MQTT] Published actuator state: {room}.{actuator_name} = {'ON' if state else 'OFF'}")
+                except Exception as mqtt_err:
+                    logger.warning(f"[MQTT] Failed to publish actuator state: {mqtt_err}")
+            
+            # Sync actuator states to Firebase for mobile app
+            if self.firebase and self.firebase.is_initialized:
+                try:
+                    device_id = self.config.get('device', {}).get('serial_number', 'MASH-DEFAULT-001')
+                    self.firebase.sync_actuator_states(device_id, actuator_states)
+                    
+                    # Log actuator event (auto mode because this is from Arduino feedback)
+                    auto_mode = self.config.get('system', {}).get('auto_mode', True)
+                    mode = 'auto' if auto_mode else 'manual'
+                    self.firebase.log_actuator_event(device_id, room, actuator_name, state, mode)
+                except Exception as fb_err:
+                    logger.warning(f"[FIREBASE] Failed to sync actuator states: {fb_err}")
             
         except Exception as e:
             logger.error(f"[STATE] Failed to update actuator state: {e}")

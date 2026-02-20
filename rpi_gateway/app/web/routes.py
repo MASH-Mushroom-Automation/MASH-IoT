@@ -771,6 +771,19 @@ def control_actuator():
         actuator_states[room][actuator] = (state == 'ON')
         current_app.config['ACTUATOR_STATES'] = actuator_states
         
+        # Sync actuator states to Firebase for mobile app
+        orchestrator = current_app.config.get('orchestrator')
+        if orchestrator and hasattr(orchestrator, 'firebase') and orchestrator.firebase:
+            try:
+                device_id = current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('serial_number', 'MASH-DEFAULT-001')
+                orchestrator.firebase.sync_actuator_states(device_id, actuator_states)
+                
+                # Log actuator event (manual mode)
+                orchestrator.firebase.log_actuator_event(device_id, room, actuator, state == 'ON', 'manual')
+                logger.debug(f"[FIREBASE] Synced actuator states after manual control")
+            except Exception as fb_err:
+                logger.warning(f"[FIREBASE] Failed to sync actuator states: {fb_err}")
+        
         # Track manual override to prevent auto-mode from changing this actuator
         # Manual overrides are stored with timestamp and cleared after 5 minutes or when auto-mode is toggled
         manual_overrides = current_app.config.get('MANUAL_OVERRIDES', {})
