@@ -13,16 +13,16 @@ import os
 
 # Version Components
 MAJOR = 2
-MINOR = 8
-PATCH = 0
+MINOR = 9
+PATCH = 1
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-02-20"
-RELEASE_NAME = "Actuator Event Logging & Analytics"
+RELEASE_DATE = "2026-03-11"
+RELEASE_NAME = "Historical Sensor Aggregation"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -51,6 +51,7 @@ FEATURES = {
     'per_version_changelogs': True,  # - File-based changelogs with on-demand API
     'stateful_alerts': True,         # - Active alerts with acknowledgement
     'qr_code_pairing': True,         # - QR code device connection for mobile app
+    'sensor_aggregation': True,      # - Per-hour RTDB aggregates (historical_aggregates path)
 }
 
 # Hardware Requirements
@@ -75,6 +76,8 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.1", "date": "2026-03-11", "name": "Remove Redundant Live Readings Path", "priority": "low"},
+    {"version": "2.9.0", "date": "2026-03-11", "name": "Historical Sensor Aggregation", "priority": "medium"},
     {"version": "2.8.0", "date": "2026-02-20", "name": "Actuator Event Logging & Analytics", "priority": "medium"},
     {"version": "2.7.1", "date": "2026-02-19", "name": "Critical Bug Fixes: MQTT Actuator Sync", "priority": "high"},
     {"version": "2.7.0", "date": "2026-02-18", "name": "Analytics API Endpoints", "priority": "medium"},

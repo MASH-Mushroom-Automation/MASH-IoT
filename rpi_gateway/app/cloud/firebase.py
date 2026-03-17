@@ -3,6 +3,7 @@ Implements offline-first pattern: SQLite -> Firebase Realtime Database
 """
 
 import os
+import time
 import logging
 import json
 from typing import List, Dict, Optional
@@ -236,6 +237,31 @@ class FirebaseSync:
             logger.error(f"[FIREBASE] ❌ Actuator event logging failed: {e}")
             return False
     
+    def push_hourly_aggregate(
+        self,
+        device_id: str,
+        room: str,
+        year_month: str,
+        day: str,
+        hour_key: str,
+        data: Dict,
+    ) -> bool:
+        """
+        Write a completed hourly aggregate bucket.
+        Path: historical_aggregates/{device_id}/{room}/{YYYY-MM}/{DD}/{HH:00}
+        Called by SensorAggregator when the UTC hour rolls over.
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+        path = f'historical_aggregates/{device_id}/{room}/{year_month}/{day}/{hour_key}'
+        try:
+            firebase_db.reference(path).set(data)
+            logger.debug(f"[FIREBASE] ✅ Pushed aggregate: {path}")
+            return True
+        except Exception as e:
+            logger.error(f"[FIREBASE] ❌ aggregate push failed ({path}): {e}")
+            return False
+
     def get_device_config(self, device_id: str) -> Optional[Dict]:
         """
         Fetch device configuration from Firebase.

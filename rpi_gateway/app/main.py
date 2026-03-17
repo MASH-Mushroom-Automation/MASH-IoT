@@ -132,6 +132,17 @@ class MASHOrchestrator:
             logger.warning("[FIREBASE] Not initialized - running in offline mode only")
             self.firebase = None
 
+        # Sensor aggregator: writes live_readings + historical_aggregates per hour
+        device_id_for_agg = device_config.get('serial_number', 'rpi_gateway_001')
+        if self.firebase:
+            from cloud.sensor_aggregator import SensorAggregator
+            self.aggregator = SensorAggregator(
+                firebase_sync=self.firebase, device_id=device_id_for_agg
+            )
+            logger.info("[AGG] Sensor aggregator initialized")
+        else:
+            self.aggregator = None
+
         # Initialize MQTT Client
         device_serial = device_config.get('serial_number', 'rpi_gateway_001')
         logger.info(f"[MQTT] Initializing MQTT client with device_id: {device_serial}")
@@ -347,8 +358,23 @@ class MASHOrchestrator:
                     traceback.print_exc()
             elif not firebase_sync_enabled:
                 logger.debug("[FIREBASE] Sync disabled by user preference")
-            
-            
+
+            # Push live_readings and accumulate hourly aggregates (always, regardless
+            # of whether the legacy sensor_data sync above is enabled)
+            if self.aggregator:
+                agg_ts = time.time()
+                for room_key in ('fruiting', 'spawning'):
+                    if room_key in data:
+                        rd = data[room_key]
+                        if isinstance(rd, dict) and 'error' not in rd:
+                            self.aggregator.add_reading(
+                                room=room_key,
+                                temp=rd.get('temp'),
+                                hum=rd.get('humidity'),
+                                co2=rd.get('co2'),
+                                ts=agg_ts,
+                            )
+
             # Backend heartbeat is handled by check_connection() at 5-min intervals.
             # Firebase RTDB is the real-time sensor data channel for the mobile app.
             # No need to send_sensor_data() on every reading (was causing PATCH spam).
@@ -766,7 +792,12 @@ class MASHOrchestrator:
         """Graceful shutdown."""
         logger.info("[MAIN] Shutting down M.A.S.H. system...")
         self.is_running = False
-        
+
+        # Flush partial hour bucket so no sensor data is lost
+        if hasattr(self, 'aggregator') and self.aggregator:
+            logger.info("[AGG] Flushing sensor aggregator...")
+            self.aggregator.flush_all()
+
         # Stop mDNS service
         try:
             stop_mdns_service()
