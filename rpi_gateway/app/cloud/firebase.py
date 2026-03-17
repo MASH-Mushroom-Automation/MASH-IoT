@@ -71,53 +71,11 @@ class FirebaseSync:
     
     def sync_sensor_readings(self, readings: List[Dict], device_id: str) -> int:
         """
-        Upload sensor readings to Firebase.
-        
-        Args:
-            readings: List of sensor data dicts
-            device_id: Unique device identifier to nest data under
-        
-        Returns:
-            Number of successfully synced records
+        Deprecated. The live sensor readings are now written to devices/{device_id}/latest_reading.
+        Historical data is handled exclusively by the sensor_aggregator bucket mechanism.
+        This method is kept as a no-op to avoid breaking backward compatibility.
         """
-        if not self.is_initialized or not FIREBASE_AVAILABLE:
-            logger.debug("[FIREBASE] Not initialized, skipping sync")
-            return 0
-        
-        synced_count = 0
-        
-        try:
-            # nest under device_id to avoid collisions
-            ref = firebase_db.reference(f'sensor_data/{device_id}')
-            
-            for reading in readings:
-                try:
-                    # Create timestamp key (Firebase-friendly)
-                    timestamp = reading.get('timestamp')
-                    if isinstance(timestamp, str):
-                        timestamp_key = timestamp.replace(':', '-').replace('.', '-')
-                    else:
-                        timestamp_key = datetime.now().isoformat().replace(':', '-').replace('.', '-')
-                    
-                    room = reading.get('room', 'unknown')
-                    
-                    # Path: /sensor_data/{device_id}/{room}/{timestamp_key}
-                    room_ref = ref.child(room).child(timestamp_key)
-                    
-                    # Upload data
-                    room_ref.set({
-                        'temperature': reading.get('temp'),
-                        'humidity': reading.get('humidity'),
-                        'co2': reading.get('co2'),
-                        'timestamp': reading.get('timestamp'),
-                        'synced_at': datetime.now().isoformat(),
-                        'record_id': reading.get('id')
-                    })
-                    
-                    synced_count += 1
-                    
-                except Exception as e:
-                    logger.error(f"[FIREBASE] Failed to sync reading {reading.get('id')}: {e}")
+        return len(readings)
             
             if synced_count > 0:
                 logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings for device {device_id}")

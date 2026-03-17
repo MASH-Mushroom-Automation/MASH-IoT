@@ -289,68 +289,44 @@ class MASHOrchestrator:
             
             if self.firebase and firebase_sync_enabled:
                 try:
-                    # Prepare readings for Firebase
-                    readings = []
                     device_id = self.config.get('device', {}).get('serial_number', 'rpi_gateway_001')
                     
                     logger.debug(f"[FIREBASE] Preparing upload for device: {device_id}")
                     
+                    # Instead of pushing every reading to sensor_data, we only maintain latest_reading
+                    # The historical data will be handled exclusively by the sensor_aggregator bucket mechanism
+                    # Normalize field names: Arduino uses 'temp' but mobile expects 'temperature'
+                    from firebase_admin import db as firebase_db
+                    latest_ref = firebase_db.reference(f'devices/{device_id}/latest_reading')
+                    
+                    latest_data = {'timestamp': data.get('timestamp')}
+                    
                     if 'fruiting' in data:
-                        readings.append({
-                            'id': 0,
-                            'room': 'fruiting',
-                            'temp': data['fruiting'].get('temp'),
-                            'humidity': data['fruiting'].get('humidity'),
-                            'co2': data['fruiting'].get('co2'),
-                            'timestamp': data.get('timestamp')
-                        })
+                        fr = data['fruiting']
+                        latest_data['fruiting'] = {
+                            'temperature': fr.get('temp', fr.get('temperature')),
+                            'humidity': fr.get('humidity'),
+                            'co2': fr.get('co2'),
+                            'timestamp': data.get('timestamp'),
+                        }
                     
                     if 'spawning' in data:
-                        readings.append({
-                            'id': 0,
-                            'room': 'spawning',
-                            'temp': data['spawning'].get('temp'),
-                            'humidity': data['spawning'].get('humidity'),
-                            'co2': data['spawning'].get('co2'),
-                            'timestamp': data.get('timestamp')
-                        })
+                        sp = data['spawning']
+                        latest_data['spawning'] = {
+                            'temperature': sp.get('temp', sp.get('temperature')),
+                            'humidity': sp.get('humidity'),
+                            'co2': sp.get('co2'),
+                            'timestamp': data.get('timestamp'),
+                        }
                     
-                    if readings:
-                        self.firebase.sync_sensor_readings(readings, device_id)
-                        
-                        # Also update latest_reading path for quick access
-                        # Normalize field names: Arduino uses 'temp' but mobile expects 'temperature'
-                        from firebase_admin import db as firebase_db
-                        latest_ref = firebase_db.reference(f'devices/{device_id}/latest_reading')
-                        
-                        latest_data = {'timestamp': data.get('timestamp')}
-                        
-                        if 'fruiting' in data:
-                            fr = data['fruiting']
-                            latest_data['fruiting'] = {
-                                'temperature': fr.get('temp', fr.get('temperature')),
-                                'humidity': fr.get('humidity'),
-                                'co2': fr.get('co2'),
-                                'timestamp': data.get('timestamp'),
-                            }
-                        
-                        if 'spawning' in data:
-                            sp = data['spawning']
-                            latest_data['spawning'] = {
-                                'temperature': sp.get('temp', sp.get('temperature')),
-                                'humidity': sp.get('humidity'),
-                                'co2': sp.get('co2'),
-                                'timestamp': data.get('timestamp'),
-                            }
-                        
-                        latest_ref.set(latest_data)
-                        logger.info(f"[FIREBASE] Uploaded to devices/{device_id}/latest_reading")
-                        
-                        # Also sync actuator states for mobile app
-                        actuator_states = self.app.config.get('ACTUATOR_STATES', {})
-                        if actuator_states:
-                            self.firebase.sync_actuator_states(device_id, actuator_states)
-                            logger.debug(f"[FIREBASE] Synced actuator states")
+                    latest_ref.set(latest_data)
+                    logger.info(f"[FIREBASE] Uploaded to devices/{device_id}/latest_reading")
+                    
+                    # Also sync actuator states for mobile app
+                    actuator_states = self.app.config.get('ACTUATOR_STATES', {})
+                    if actuator_states:
+                        self.firebase.sync_actuator_states(device_id, actuator_states)
+                        logger.debug(f"[FIREBASE] Synced actuator states")
                         
                 except Exception as e:
                     logger.error(f"[FIREBASE] Sync failed: {e}")

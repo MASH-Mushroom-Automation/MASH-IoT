@@ -14,7 +14,7 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 9
-PATCH = 2
+PATCH = 3
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -22,7 +22,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-03-17"
-RELEASE_NAME = "Actuator Automation Fixes"
+RELEASE_NAME = "Stop Unnecessary Sensor Data Push"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -76,6 +76,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.3", "date": "2026-03-17", "name": "Stop Unnecessary Sensor Data Push", "priority": "low"},
     {"version": "2.9.2", "date": "2026-03-17", "name": "Actuator Automation Fixes", "priority": "high"},
     {"version": "2.9.1", "date": "2026-03-11", "name": "Remove Redundant Live Readings Path", "priority": "low"},
     {"version": "2.9.0", "date": "2026-03-11", "name": "Historical Sensor Aggregation", "priority": "medium"},
