@@ -76,15 +76,6 @@ class FirebaseSync:
         This method is kept as a no-op to avoid breaking backward compatibility.
         """
         return len(readings)
-            
-            if synced_count > 0:
-                logger.info(f"[FIREBASE] Synced {synced_count}/{len(readings)} readings for device {device_id}")
-            
-            return synced_count
-            
-        except Exception as e:
-            logger.error(f"[FIREBASE] Batch sync failed: {e}")
-            return synced_count
     
     def sync_device_status(self, device_id: str, status: str, metadata: Optional[Dict] = None) -> bool:
         """

@@ -438,11 +438,11 @@ class MushroomAI:
         # Decision logic for humidifier cycle
         cycle_info = self.humidifier_cycle.get_phase_info()
         
-        if humidity < humidity_min - 2:
-            # Far below target - start cycle if not active
+        if humidity < humidity_min:
+            # Below target - start cycle if not active
             if not cycle_info['active']:
                 self.humidifier_cycle.start_cycle()
-                logger.info(f"[AI-HUMIDIFIER] Started cycle - Humidity {humidity:.1f}% < target {humidity_min}%")
+                logger.info(f"[AI-HUMIDIFIER] Started cycle - Humidity {humidity:.1f}% < min {humidity_min}%")
         
         elif humidity >= humidity_target and cycle_info['active']:
             # At or above target - check if we should stop
@@ -481,6 +481,11 @@ class MushroomAI:
         # When exhaust is ON, intake is OFF. When exhaust is OFF, intake is ON for passive airflow
         intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "ON"
 
+        # Time-based LED control (simulate day/night cycle)
+        # Assuming 12 hours ON (8 AM to 8 PM) by default
+        current_hour = datetime.now().hour
+        led_state = "ON" if 8 <= current_hour < 20 else "OFF"
+
         # Generate alerts for critical conditions and save to database
         # _check_and_alert now handles DB operations directly
         self._check_and_alert("fruiting", sensor_data, config)
@@ -490,6 +495,7 @@ class MushroomAI:
             "intake_fan": intake_fan_state,
             "mist_maker": mist_maker_state,
             "humidifier_fan": humidifier_fan_state,
+            "led": led_state
         }
 
     def _rule_based_spawning_actuation(self, sensor_data: Dict) -> Dict[str, str]:

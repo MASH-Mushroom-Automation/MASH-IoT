@@ -319,6 +319,7 @@ class MASHOrchestrator:
                             'timestamp': data.get('timestamp'),
                         }
                     
+                    latest_data['timestamp'] = data.get('timestamp')
                     latest_ref.set(latest_data)
                     logger.info(f"[FIREBASE] Uploaded to devices/{device_id}/latest_reading")
                     
