@@ -190,10 +190,51 @@ class DatabaseManager:
             logger.error(f"[DB] Update failed: {e}")
     
     # ==================== DEVICE COMMANDS ====================
-    def insert_command(self, command: DeviceCommand) -> Optional[int]:
+    def insert_command(self, command, source: str = 'manual') -> Optional[int]:
         """Insert device command into database."""
         if not self.conn:
             return None
+        
+        # Handle string commands (JSON) passed from main.py
+        if isinstance(command, str):
+            import json
+            try:
+                cmd_dict = json.loads(command)
+                actuator_raw = cmd_dict.get('actuator', '').upper()
+                state_raw = cmd_dict.get('state', '').lower()
+                
+                room = 'all'
+                actuator = 'all'
+                action = state_raw if state_raw in ('on', 'off') else 'off'
+                
+                if 'FRUITING' in actuator_raw:
+                    room = 'fruiting'
+                elif 'SPAWNING' in actuator_raw:
+                    room = 'spawning'
+                else:
+                    # Shared actuators default to fruiting for now
+                    room = 'fruiting'
+                
+                if 'FAN' in actuator_raw:
+                    actuator = 'fan'
+                elif 'MIST' in actuator_raw or 'HUMIDIFIER' in actuator_raw:
+                    actuator = 'mist'
+                elif 'LED' in actuator_raw:
+                    actuator = 'light'
+                
+                # Map source to valid CHECK constraint values ('manual', 'ml', 'schedule', 'api')
+                db_source = 'manual'
+                if 'ml' in source.lower() or 'cycle' in source.lower():
+                    db_source = 'ml'
+                elif 'mqtt' in source.lower() or 'api' in source.lower():
+                    db_source = 'api'
+                elif 'schedule' in source.lower():
+                    db_source = 'schedule'
+                    
+                command = DeviceCommand(room=room, actuator=actuator, action=action, source=db_source)
+            except Exception as e:
+                logger.error(f"[DB] Failed to parse command string: {e}")
+                return None
         
         try:
             cursor = self.conn.cursor()

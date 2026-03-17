@@ -121,7 +121,7 @@ class MASHOrchestrator:
         self.firebase = FirebaseSync(config_path=firebase_config, db_url=firebase_url)
         
         if self.firebase.is_initialized:
-            logger.info(f"[FIREBASE] ✅ Connected to Realtime Database")
+            logger.info(f"[FIREBASE] Connected to Realtime Database")
             # Update device status on startup
             device_id = device_config.get('serial_number', 'rpi_gateway_001')
             self.firebase.sync_device_status(device_id, 'ONLINE', {
@@ -266,7 +266,7 @@ class MASHOrchestrator:
                 else:
                     self.sensor_warmup_complete = True
                     self.app.config['SENSOR_WARMUP_COMPLETE'] = True  # Update Flask config
-                    logger.info("[WARMUP] ✅ Sensor calibration complete! Starting automatic control...")
+                    logger.info("[WARMUP] Sensor calibration complete! Starting automatic control...")
             
             # Store latest data (for web UI) - use lock for thread safety
             with self.data_lock:
@@ -344,16 +344,16 @@ class MASHOrchestrator:
                             }
                         
                         latest_ref.set(latest_data)
-                        logger.info(f"[FIREBASE] ✅ Uploaded to devices/{device_id}/latest_reading")
+                        logger.info(f"[FIREBASE] Uploaded to devices/{device_id}/latest_reading")
                         
                         # Also sync actuator states for mobile app
                         actuator_states = self.app.config.get('ACTUATOR_STATES', {})
                         if actuator_states:
                             self.firebase.sync_actuator_states(device_id, actuator_states)
-                            logger.debug(f"[FIREBASE] ✅ Synced actuator states")
+                            logger.debug(f"[FIREBASE] Synced actuator states")
                         
                 except Exception as e:
-                    logger.error(f"[FIREBASE] ❌ Sync failed: {e}")
+                    logger.error(f"[FIREBASE] Sync failed: {e}")
                     import traceback
                     traceback.print_exc()
             elif not firebase_sync_enabled:
@@ -471,16 +471,25 @@ class MASHOrchestrator:
                 skip_command = False
                 for room in manual_overrides:
                     for actuator in manual_overrides[room]:
+                        # Ensure we only match the specific room's actuator
+                        room_prefix = room.upper() + '_'
+                        
+                        # Special handling for shared actuators
+                        is_shared = actuator in ['mist_maker', 'humidifier_fan']
+                        
                         # Map UI actuator names to Arduino command names
                         actuator_mappings = {
-                            'exhaust_fan': ['EXHAUST_FAN', 'FRUITING_EXHAUST_FAN', 'SPAWNING_EXHAUST_FAN'],
-                            'intake_fan': ['INTAKE_FAN', 'FRUITING_INTAKE_FAN'],
+                            'exhaust_fan': [f'{room_prefix}EXHAUST_FAN'],
+                            'intake_fan': [f'{room_prefix}INTAKE_FAN'],
                             'mist_maker': ['MIST_MAKER'],
                             'humidifier_fan': ['HUMIDIFIER_FAN'],
-                            'led': ['LED', 'FRUITING_LED']
+                            'led': [f'{room_prefix}LED']
                         }
+                        
                         arduino_names = actuator_mappings.get(actuator, [])
                         if any(name in command for name in arduino_names):
+                            # If it's a shared actuator, any room override should skip it.
+                            # Otherwise, the room_prefix ensures it only skips for the specific room.
                             logger.debug(f"[AUTO] Skipping command '{command}' - {room}/{actuator} has manual override")
                             skip_command = True
                             break
@@ -607,7 +616,7 @@ class MASHOrchestrator:
         """
         try:
             logger.info(f"[MQTT HANDLER] ================================")
-            logger.info(f"[MQTT HANDLER] 🎯 _handle_mqtt_command CALLED")
+            logger.info(f"[MQTT HANDLER] _handle_mqtt_command CALLED")
             logger.info(f"[MQTT HANDLER]    Payload: {payload}")
 
             room = payload.get('room', 'fruiting').lower()
@@ -618,10 +627,10 @@ class MASHOrchestrator:
             logger.info(f"[MQTT HANDLER]    Parsed - Room: {room}, Actuator: {actuator}, State: {state}, Source: {source}")
 
             if not actuator or state not in ['ON', 'OFF']:
-                logger.warning(f"[MQTT HANDLER] ❌ Invalid command payload: {payload}")
+                logger.warning(f"[MQTT HANDLER] Invalid command payload: {payload}")
                 return
 
-            logger.info(f"[MQTT HANDLER] 📱 Remote command from {source}: {room}/{actuator} -> {state}")
+            logger.info(f"[MQTT HANDLER] Remote command from {source}: {room}/{actuator} -> {state}")
 
             # Map mobile app actuator names to Arduino firmware names
             actuator_map = {
@@ -654,7 +663,7 @@ class MASHOrchestrator:
                 success = self.arduino.send_command(json_cmd)
 
                 if success:
-                    logger.info(f"[MQTT] ✅ Command executed: {json_cmd}")
+                    logger.info(f"[MQTT] Command executed: {json_cmd}")
 
                     # Update local actuator state for web UI
                     command_for_state = f"{arduino_actuator}_{state}"
@@ -677,7 +686,7 @@ class MASHOrchestrator:
                         self.app.config['MANUAL_OVERRIDES'] = manual_overrides
                         logger.debug(f"[MQTT] Set manual override: {room}/{actuator}")
                 else:
-                    logger.error(f"[MQTT] ❌ Failed to send command to Arduino")
+                    logger.error(f"[MQTT] Failed to send command to Arduino")
             else:
                 logger.warning("[MQTT] Arduino not connected - command ignored")
 
@@ -727,10 +736,10 @@ class MASHOrchestrator:
                 logger.info("[MQTT] Attempting to connect...")
                 mqtt_connected = self.mqtt.connect()
                 if mqtt_connected:
-                    logger.info("[MQTT] ✅ Connected to HiveMQ Cloud - remote control enabled")
-                    logger.info(f"[MQTT] 📡 Listening on topic: devices/{self.mqtt.device_id}/commands")
+                    logger.info("[MQTT] Connected to HiveMQ Cloud - remote control enabled")
+                    logger.info(f"[MQTT] Listening on topic: devices/{self.mqtt.device_id}/commands")
                 else:
-                    logger.warning("[MQTT] ⚠️ Failed to connect - remote control unavailable")
+                    logger.warning("[MQTT] Failed to connect - remote control unavailable")
 
             # Connect to database
             self.db.connect()
