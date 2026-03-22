@@ -175,6 +175,7 @@ class MASHOrchestrator:
 
         # Thread safety for data access (prevents race conditions when mobile app polls rapidly)
         self.data_lock = Lock()
+        self.firebase_command_thread = None
     
     def _load_config(self, config_path):
         """Load configuration from YAML file."""
@@ -406,6 +407,163 @@ class MASHOrchestrator:
             
         except Exception as e:
             logger.error(f"[ERROR] Failed to process sensor data: {e}")
+
+    def _normalize_command_state(self, state_value):
+        """Normalize command state values to ON/OFF."""
+        if isinstance(state_value, bool):
+            return 'ON' if state_value else 'OFF'
+
+        if isinstance(state_value, (int, float)):
+            return 'ON' if state_value else 'OFF'
+
+        if isinstance(state_value, str):
+            normalized = state_value.strip().upper()
+            if normalized in ('ON', 'OFF'):
+                return normalized
+            if normalized in ('TRUE', '1', 'YES'):
+                return 'ON'
+            if normalized in ('FALSE', '0', 'NO'):
+                return 'OFF'
+
+        return None
+
+    def _execute_remote_command(self, payload, source='mqtt'):
+        """Execute a remote command from MQTT or Firebase."""
+        try:
+            logger.info(f"[REMOTE COMMAND] ================================")
+            logger.info(f"[REMOTE COMMAND] Source: {source}")
+            logger.info(f"[REMOTE COMMAND] Payload: {payload}")
+
+            room = str(payload.get('room', 'fruiting')).lower()
+            actuator = str(payload.get('actuator', '')).lower()
+            state = self._normalize_command_state(payload.get('state'))
+            source_name = str(payload.get('source', source))
+
+            logger.info(f"[REMOTE COMMAND] Parsed - Room: {room}, Actuator: {actuator}, State: {state}, Source: {source_name}")
+
+            if not actuator or state not in ['ON', 'OFF']:
+                logger.warning(f"[REMOTE COMMAND] Invalid command payload: {payload}")
+                return False, True
+
+            actuator_map = {
+                'mist_maker': 'MIST_MAKER',
+                'humidifier_fan': 'HUMIDIFIER_FAN',
+                'blower_fan': 'BLOWER_FAN',
+                'led': 'FRUITING_LED',
+            }
+
+            if actuator == 'exhaust_fan':
+                if room == 'fruiting':
+                    actuator_map['exhaust_fan'] = 'FRUITING_EXHAUST_FAN'
+                elif room == 'spawning':
+                    actuator_map['exhaust_fan'] = 'SPAWNING_EXHAUST_FAN'
+                elif room == 'device':
+                    actuator_map['exhaust_fan'] = 'DEVICE_EXHAUST_FAN'
+            elif actuator == 'intake_fan':
+                actuator_map['intake_fan'] = 'FRUITING_INTAKE_FAN'
+
+            arduino_actuator = actuator_map.get(actuator)
+            if not arduino_actuator:
+                logger.warning(f"[REMOTE COMMAND] Unknown actuator: {actuator}")
+                return False, True
+
+            if self.arduino and self.arduino.is_connected:
+                import json
+
+                json_cmd = json.dumps({"actuator": arduino_actuator, "state": state})
+                success = self.arduino.send_command(json_cmd)
+
+                if success:
+                    logger.info(f"[REMOTE COMMAND] Command executed: {json_cmd}")
+
+                    command_for_state = f"{arduino_actuator}_{state}"
+                    self._update_actuator_state_from_command(command_for_state)
+
+                    self.db.insert_command(json_cmd, source=f'{source}_{source_name}')
+
+                    with self.app.app_context():
+                        manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
+                        if room not in manual_overrides:
+                            manual_overrides[room] = {}
+
+                        manual_overrides[room][actuator] = {
+                            'timestamp': time.time(),
+                            'state': state,
+                            'source': source_name
+                        }
+                        self.app.config['MANUAL_OVERRIDES'] = manual_overrides
+                        logger.debug(f"[REMOTE COMMAND] Set manual override: {room}/{actuator}")
+
+                    return True, True
+
+                logger.error(f"[REMOTE COMMAND] Failed to send command to Arduino")
+                return False, False
+
+            logger.warning("[REMOTE COMMAND] Arduino not connected - command deferred")
+            return False, False
+
+        except Exception as e:
+            logger.error(f"[REMOTE COMMAND] Command handling error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, False
+
+    def _firebase_command_queue_loop(self):
+        """Poll Firebase command_queue and execute queued actuator commands."""
+        if not self.firebase or not self.firebase.is_initialized:
+            return
+
+        try:
+            from firebase_admin import db as firebase_db
+        except Exception as e:
+            logger.error(f"[FIREBASE] Firebase DB import failed: {e}")
+            return
+
+        device_id = self.config.get('device', {}).get('serial_number', 'rpi_gateway_001')
+        queue_ref = firebase_db.reference(f'devices/{device_id}/command_queue')
+        logger.info(f"[FIREBASE] Command queue listener started for devices/{device_id}/command_queue")
+
+        while self.is_running:
+            try:
+                snapshot = queue_ref.get()
+
+                if not snapshot:
+                    time.sleep(2)
+                    continue
+
+                if not isinstance(snapshot, dict):
+                    logger.warning(f"[FIREBASE] Unexpected command_queue format: {type(snapshot)}")
+                    time.sleep(2)
+                    continue
+
+                for command_id, command_data in list(snapshot.items()):
+                    if not self.is_running:
+                        break
+
+                    if not isinstance(command_data, dict):
+                        logger.warning(f"[FIREBASE] Skipping invalid command payload: {command_id}")
+                        try:
+                            queue_ref.child(command_id).set(None)
+                        except Exception as delete_err:
+                            logger.warning(f"[FIREBASE] Failed to remove invalid command {command_id}: {delete_err}")
+                        continue
+
+                    handled, delete_after = self._execute_remote_command(command_data, source='firebase')
+
+                    if handled or delete_after:
+                        try:
+                            queue_ref.child(command_id).set(None)
+                            logger.info(f"[FIREBASE] Removed processed command {command_id}")
+                        except Exception as delete_err:
+                            logger.warning(f"[FIREBASE] Failed to delete command {command_id}: {delete_err}")
+                    else:
+                        logger.info(f"[FIREBASE] Deferred command {command_id} for retry")
+
+                time.sleep(2)
+
+            except Exception as e:
+                logger.error(f"[FIREBASE] Command queue loop error: {e}")
+                time.sleep(5)
     
     def _run_automation(self, data):
         """Run ML-powered automation on sensor data."""
@@ -591,86 +749,7 @@ class MASHOrchestrator:
             "timestamp": "ISO8601"      # Timestamp
         }
         """
-        try:
-            logger.info(f"[MQTT HANDLER] ================================")
-            logger.info(f"[MQTT HANDLER] _handle_mqtt_command CALLED")
-            logger.info(f"[MQTT HANDLER]    Payload: {payload}")
-
-            room = payload.get('room', 'fruiting').lower()
-            actuator = payload.get('actuator', '').lower()
-            state = payload.get('state', '').upper()
-            source = payload.get('source', 'unknown')
-
-            logger.info(f"[MQTT HANDLER]    Parsed - Room: {room}, Actuator: {actuator}, State: {state}, Source: {source}")
-
-            if not actuator or state not in ['ON', 'OFF']:
-                logger.warning(f"[MQTT HANDLER] Invalid command payload: {payload}")
-                return
-
-            logger.info(f"[MQTT HANDLER] Remote command from {source}: {room}/{actuator} -> {state}")
-
-            # Map mobile app actuator names to Arduino firmware names
-            actuator_map = {
-                'mist_maker': 'MIST_MAKER',
-                'humidifier_fan': 'HUMIDIFIER_FAN',
-                'blower_fan': 'BLOWER_FAN',
-                'led': 'FRUITING_LED',
-            }
-
-            # Room-specific actuators
-            if actuator == 'exhaust_fan':
-                if room == 'fruiting':
-                    actuator_map['exhaust_fan'] = 'FRUITING_EXHAUST_FAN'
-                elif room == 'spawning':
-                    actuator_map['exhaust_fan'] = 'SPAWNING_EXHAUST_FAN'
-                elif room == 'device':
-                    actuator_map['exhaust_fan'] = 'DEVICE_EXHAUST_FAN'
-            elif actuator == 'intake_fan':
-                actuator_map['intake_fan'] = 'FRUITING_INTAKE_FAN'
-
-            arduino_actuator = actuator_map.get(actuator)
-            if not arduino_actuator:
-                logger.warning(f"[MQTT] Unknown actuator: {actuator}")
-                return
-
-            # Send command to Arduino
-            if self.arduino and self.arduino.is_connected:
-                import json
-                json_cmd = json.dumps({"actuator": arduino_actuator, "state": state})
-                success = self.arduino.send_command(json_cmd)
-
-                if success:
-                    logger.info(f"[MQTT] Command executed: {json_cmd}")
-
-                    # Update local actuator state for web UI
-                    command_for_state = f"{arduino_actuator}_{state}"
-                    self._update_actuator_state_from_command(command_for_state)
-
-                    # Log command to database
-                    self.db.insert_command(json_cmd, source=f'mqtt_{source}')
-
-                    # Track manual override with room context
-                    with self.app.app_context():
-                        manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
-                        if room not in manual_overrides:
-                            manual_overrides[room] = {}
-
-                        manual_overrides[room][actuator] = {
-                            'timestamp': time.time(),
-                            'state': state,
-                            'source': source
-                        }
-                        self.app.config['MANUAL_OVERRIDES'] = manual_overrides
-                        logger.debug(f"[MQTT] Set manual override: {room}/{actuator}")
-                else:
-                    logger.error(f"[MQTT] Failed to send command to Arduino")
-            else:
-                logger.warning("[MQTT] Arduino not connected - command ignored")
-
-        except Exception as e:
-            logger.error(f"[MQTT] Command handling error: {e}")
-            import traceback
-            traceback.print_exc()
+        self._execute_remote_command(payload, source='mqtt')
     
     def start_serial_listener(self):
         """Start Arduino serial communication in background thread."""
@@ -723,6 +802,15 @@ class MASHOrchestrator:
             # Start serial communication
             self.is_running = True
             self.start_serial_listener()
+
+            # Start Firebase command queue listener for web fallback commands
+            if self.firebase and self.firebase.is_initialized:
+                logger.info("[FIREBASE] Starting command queue listener...")
+                self.firebase_command_thread = Thread(
+                    target=self._firebase_command_queue_loop,
+                    daemon=True
+                )
+                self.firebase_command_thread.start()
             # Make components available to Flask routes via app context
             self.app.serial_comm = self.arduino
             self.app.backend_client = self.backend
@@ -797,6 +885,10 @@ class MASHOrchestrator:
         # Disconnect MQTT
         if self.mqtt:
             self.mqtt.disconnect()
+
+        # Wait for Firebase command queue thread to finish
+        if self.firebase_command_thread:
+            self.firebase_command_thread.join(timeout=5)
 
         # Close backend connection
         if self.backend:

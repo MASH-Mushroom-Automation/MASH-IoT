@@ -6,7 +6,7 @@ Semantic Versioning: MAJOR.MINOR.PATCH
 - MINOR: New features (backward compatible)
 - PATCH: Bug fixes, small improvements
 
-Last updated: 2026-02-11
+Last updated: 2026-03-22
 """
 
 import os
@@ -14,15 +14,15 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 9
-PATCH = 4
+PATCH = 5
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-03-17"
-RELEASE_NAME = "Fix RTDB Export Data Leaks"
+RELEASE_DATE = "2026-03-22"
+RELEASE_NAME = "Firebase Queue Command Control"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -76,6 +76,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.5", "date": "2026-03-22", "name": "Firebase Queue Command Control", "priority": "high"},
     {"version": "2.9.4", "date": "2026-03-17", "name": "Fix RTDB Export Data Leaks", "priority": "high"},
     {"version": "2.9.3", "date": "2026-03-17", "name": "Stop Unnecessary Sensor Data Push", "priority": "low"},
     {"version": "2.9.2", "date": "2026-03-17", "name": "Actuator Automation Fixes", "priority": "high"},
