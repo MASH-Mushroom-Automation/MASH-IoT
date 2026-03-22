@@ -275,13 +275,13 @@ def controls():
     # Get auto mode status from config
     config = current_app.config.get('MUSHROOM_CONFIG', {})
     auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
-    
-    return render_template('controls.html', 
-                           **context,
-                           fruiting_actuators=fruiting_actuators,
-                           spawning_actuators=spawning_actuators,
-                           device_actuators=device_actuators,
-                           auto_mode_enabled=auto_mode_enabled)
+
+    context['fruiting_actuators'] = fruiting_actuators
+    context['spawning_actuators'] = spawning_actuators
+    context['device_actuators'] = device_actuators
+    context['auto_mode_enabled'] = auto_mode_enabled
+
+    return render_template('controls.html', **context)
 
 @web_bp.route('/ai_insights')
 def ai_insights():
