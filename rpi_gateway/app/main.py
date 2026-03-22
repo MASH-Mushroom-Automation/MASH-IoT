@@ -158,6 +158,9 @@ class MASHOrchestrator:
         if ml_enabled:
             self.ai = MushroomAI(config=self.config)
             self.ai.db = self.db  # Pass database reference for alerts
+            self.ai.firebase = self.firebase
+            self.ai.mqtt = self.mqtt
+            self.ai.device_id = device_config.get('serial_number', 'rpi_gateway_001')
             logger.info("[ML] MushroomAI initialized")
         else:
             self.ai = None

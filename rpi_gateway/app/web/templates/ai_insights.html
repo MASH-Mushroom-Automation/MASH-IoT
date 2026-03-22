@@ -3,6 +3,9 @@
 {% block content %}
 <h1 class="page-title">AI & Machine Learning Insights</h1>
 
+{% set anomaly_status_class = 'status-pill-active' if anomaly_model_loaded else 'status-pill-inactive' %}
+{% set actuation_status_class = 'status-pill-active' if actuation_model_loaded else 'status-pill-inactive' %}
+
 <div class="content-area">
     <!-- ML System Status -->
     <div class="info-card {% if ml_available and ml_enabled %}success{% else %}warning{% endif %}">
@@ -47,7 +50,7 @@
                 <i class="fas fa-chart-line"></i>
             </div>
             <h3 style="text-align: center; color: #e0e0e0; margin-bottom: 10px;">Anomaly Detection</h3>
-            <div style="text-align: center; padding: 8px; border-radius: 6px; margin-bottom: 15px; {% if anomaly_model_loaded %}background: rgba(76, 175, 80, 0.2); color: #4CAF50;{% else %}background: rgba(255, 152, 0, 0.2); color: #ff9800;{% endif %}">
+            <div class="status-pill {{ anomaly_status_class }}">
                 {% if anomaly_model_loaded %}
                     <i class="fas fa-check-circle"></i> Model Active
                 {% else %}
@@ -64,7 +67,7 @@
                 <i class="fas fa-cog"></i>
             </div>
             <h3 style="text-align: center; color: #e0e0e0; margin-bottom: 10px;">Actuation Model</h3>
-            <div style="text-align: center; padding: 8px; border-radius: 6px; margin-bottom: 15px; {% if actuation_model_loaded %}background: rgba(76, 175, 80, 0.2); color: #4CAF50;{% else %}background: rgba(255, 152, 0, 0.2); color: #ff9800;{% endif %}">
+            <div class="status-pill {{ actuation_status_class }}">
                 {% if actuation_model_loaded %}
                     <i class="fas fa-check-circle"></i> Model Active
                 {% else %}
@@ -74,6 +77,58 @@
             <p style="text-align: center; color: #bbb; line-height: 1.6;">
                 Predicts optimal actuator control decisions based on environmental conditions using Decision Tree.
             </p>
+        </div>
+    </div>
+
+    <!-- Live AI Snapshot -->
+    <div class="info-card info">
+        <div class="info-header">
+            <i class="fas fa-signal"></i>
+            <h3>Live AI Snapshot</h3>
+        </div>
+        <div class="info-body">
+            <p class="info-text" style="margin-bottom: 15px;">
+                Current sensor snapshot and alert state from the latest gateway readings.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                <div class="model-card" style="padding: 18px;">
+                    <strong style="display: block; margin-bottom: 8px; color: #e0e0e0;">Fruiting Room</strong>
+                    {% set fruiting = latest_data.get('fruiting') if latest_data else None %}
+                    {% if fruiting %}
+                        <div style="color: #bbb; line-height: 1.6;">
+                            <div>Temp: <strong>{{ fruiting.get('temperature', 'N/A') }}°C</strong></div>
+                            <div>Humidity: <strong>{{ fruiting.get('humidity', 'N/A') }}%</strong></div>
+                            <div>CO2: <strong>{{ fruiting.get('co2', 'N/A') }} ppm</strong></div>
+                        </div>
+                    {% else %}
+                        <span style="color: #ff9800;">Waiting for live data</span>
+                    {% endif %}
+                </div>
+
+                <div class="model-card" style="padding: 18px;">
+                    <strong style="display: block; margin-bottom: 8px; color: #e0e0e0;">Spawning Room</strong>
+                    {% set spawning = latest_data.get('spawning') if latest_data else None %}
+                    {% if spawning %}
+                        <div style="color: #bbb; line-height: 1.6;">
+                            <div>Temp: <strong>{{ spawning.get('temperature', 'N/A') }}°C</strong></div>
+                            <div>Humidity: <strong>{{ spawning.get('humidity', 'N/A') }}%</strong></div>
+                            <div>CO2: <strong>{{ spawning.get('co2', 'N/A') }} ppm</strong></div>
+                        </div>
+                    {% else %}
+                        <span style="color: #ff9800;">Waiting for live data</span>
+                    {% endif %}
+                </div>
+
+                <div class="model-card" style="padding: 18px;">
+                    <strong style="display: block; margin-bottom: 8px; color: #e0e0e0;">Notifications</strong>
+                    <div style="color: #bbb; line-height: 1.8;">
+                        <div>Active alerts: <strong>{{ active_alert_count }}</strong></div>
+                        <div>Model status: <strong>{% if ml_enabled %}Enabled{% else %}Disabled{% endif %}</strong></div>
+                        <div>Insights stream: <strong>{% if recent_ai_decisions %}Live{% else %}Waiting{% endif %}</strong></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -110,6 +165,43 @@
             </p>
         </div>
     </div>
+
+    <!-- Recent AI Decisions -->
+    <div class="info-card info">
+        <div class="info-header">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Recent AI Decisions</h3>
+        </div>
+        <div class="info-body">
+            {% if recent_ai_decisions and recent_ai_decisions|length > 0 %}
+                <div style="display: grid; gap: 12px;">
+                    {% for decision in recent_ai_decisions %}
+                        {% set data = decision.get('data') if decision else {} %}
+                        <div class="model-card decision-card {% if decision.level == 'WARNING' %}decision-warning{% else %}decision-normal{% endif %}" style="padding: 16px;">
+                            <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+                                <strong style="color: #e0e0e0;">{{ decision.message }}</strong>
+                                <span style="color: #999;">{{ decision.timestamp|int|strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                            </div>
+                            {% if data %}
+                                <div style="color: #bbb; line-height: 1.6;">
+                                    <div>Room: <strong>{{ data.get('room', 'unknown')|capitalize }}</strong></div>
+                                    <div>Strategy: <strong>{{ data.get('strategy', 'n/a') }}</strong></div>
+                                    <div>Anomaly detected: <strong>{% if data.get('anomaly_detected') %}Yes{% else %}No{% endif %}</strong></div>
+                                    <div>Recommended commands: <strong>{{ data.get('recommended_commands', [])|join(', ') if data.get('recommended_commands') else 'None' }}</strong></div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-alerts">
+                    <i class="fas fa-robot" style="font-size: 3em; color: #4CAF50; margin-bottom: 15px;"></i>
+                    <h3>No AI decisions yet</h3>
+                    <p>The gateway will show live ML decisions here after the next sensor cycle.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <style>
@@ -124,6 +216,40 @@
     align-items: center;
     gap: 10px;
     color: #e0e0e0;
+}
+
+.info-text {
+    color: #bbb;
+    line-height: 1.6;
+}
+
+.status-pill {
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.status-pill-active {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+}
+
+.status-pill-inactive {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.decision-card {
+    padding: 16px;
+}
+
+.decision-warning {
+    border-left: 4px solid #ff9800;
+}
+
+.decision-normal {
+    border-left: 4px solid #4CAF50;
 }
 </style>
 {% endblock %}

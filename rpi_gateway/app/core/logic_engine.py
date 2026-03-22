@@ -13,6 +13,7 @@ Features:
 import os
 import logging
 import time
+import json
 from typing import Dict, List, Tuple
 from datetime import datetime
 import numpy as np
@@ -143,6 +144,9 @@ class MushroomAI:
         self.actuator_model = None
         self.ml_enabled = ML_AVAILABLE
         self.db = None  # Database reference (set by orchestrator)
+        self.firebase = None
+        self.mqtt = None
+        self.device_id = None
         
         # Humidifier cycle manager
         self.humidifier_cycle = HumidifierCycleManager()
@@ -164,6 +168,54 @@ class MushroomAI:
             self._load_models()
         else:
             logger.warning("ML disabled - using rule-based logic only")
+
+    def _log_ai_decision(self, room: str, sensor_data: Dict, actuator_states: Dict[str, str], commands: List[str], anomaly_info: Tuple[bool, float], strategy: str):
+        """Persist a structured AI decision record to the system logs table."""
+        if self.db is None:
+            return
+
+        try:
+            is_anomaly, anomaly_score = anomaly_info
+            payload = {
+                'room': room,
+                'sensor_data': sensor_data,
+                'recommended_states': actuator_states,
+                'recommended_commands': commands,
+                'strategy': strategy,
+                'anomaly_detected': is_anomaly,
+                'anomaly_score': anomaly_score,
+                'model_status': {
+                    'ml_available': self.ml_enabled,
+                    'anomaly_model_loaded': self.anomaly_detector is not None,
+                    'actuation_model_loaded': self.actuator_model is not None,
+                },
+                'timestamp': datetime.now().isoformat(),
+            }
+
+            level = 'WARNING' if is_anomaly else 'INFO'
+            self.db.log(
+                level=level,
+                component='ml_engine',
+                message=f'{room.upper()} AI decision generated',
+                data=json.dumps(payload, default=str),
+            )
+
+        except Exception as e:
+            logger.error(f"[ML] Failed to log AI decision: {e}")
+
+    def _sync_alert_channels(self, room: str, alert_type: str, message: str, severity: str, active: bool):
+        """Mirror active alerts to Firebase and MQTT when available."""
+        try:
+            if self.firebase and self.device_id:
+                if active:
+                    self.firebase.sync_active_alert(self.device_id, room, alert_type, message, severity)
+                else:
+                    self.firebase.remove_active_alert(self.device_id, room, alert_type)
+
+            if active and self.mqtt and hasattr(self.mqtt, 'publish_alert'):
+                self.mqtt.publish_alert(alert_type, message, severity)
+        except Exception as e:
+            logger.error(f"[ALERT] Failed to sync alert channels: {e}")
     
     def _load_models(self):
         """Load pre-trained ML models from disk"""
@@ -520,6 +572,9 @@ class MushroomAI:
         # For example, run for 5 minutes every 4 hours.
         exhaust_fan_state = "OFF" 
 
+        # Keep spawning-room alerts and notifications in sync with the same alert pipeline.
+        self._check_and_alert("spawning", sensor_data, config)
+
         return {
             "exhaust_fan": exhaust_fan_state
         }
@@ -586,6 +641,7 @@ class MushroomAI:
             if is_active:
                 try:
                     self.db.upsert_active_alert(room, alert_type, message, severity)
+                    self._sync_alert_channels(room, alert_type, message, severity, active=True)
                     logger.warning(f"[ALERT] {message}")
                     active_alerts_list.append((room, alert_type, message, severity))
                 except Exception as e:
@@ -593,6 +649,7 @@ class MushroomAI:
             else:
                 try:
                     self.db.resolve_alert(room, alert_type)
+                    self._sync_alert_channels(room, alert_type, message, severity, active=False)
                 except Exception as e:
                     logger.error(f"[ALERT] Failed to resolve alert {alert_type}: {e}")
         
@@ -626,9 +683,11 @@ class MushroomAI:
                 continue
 
             actuator_states = self.predict_actuator_states(room, sensor_data)
+            anomaly_info = self.detect_anomaly(sensor_data) if room == 'fruiting' else self._rule_based_anomaly_check(sensor_data)
             
             # Convert states to Arduino commands
             room_prefix = room.upper()
+            room_commands = []
             
             for actuator, state in actuator_states.items():
                 # Get mapped actuator name
@@ -641,8 +700,18 @@ class MushroomAI:
                     # Shared actuators (mist_maker, humidifier_fan)
                     command = f"{arduino_actuator}_{state.upper()}"
                 
+                room_commands.append(command)
                 all_commands.append(command)
                 logger.debug(f"[COMMAND] Generated: {command} for {room}/{actuator}")
+
+            self._log_ai_decision(
+                room=room,
+                sensor_data=sensor_data,
+                actuator_states=actuator_states,
+                commands=room_commands,
+                anomaly_info=anomaly_info,
+                strategy='ml' if (room == 'fruiting' and self.ml_enabled and self.actuator_model is not None) else 'rule_based',
+            )
                 
         return all_commands
 

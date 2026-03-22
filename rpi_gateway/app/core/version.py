@@ -14,7 +14,7 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 9
-PATCH = 5
+PATCH = 6
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -22,7 +22,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-03-22"
-RELEASE_NAME = "Firebase Queue Command Control"
+RELEASE_NAME = "Real-Time AI Insights and Auto Control Fixes"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -76,6 +76,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.6", "date": "2026-03-22", "name": "Real-Time AI Insights and Auto Control Fixes", "priority": "high"},
     {"version": "2.9.5", "date": "2026-03-22", "name": "Firebase Queue Command Control", "priority": "high"},
     {"version": "2.9.4", "date": "2026-03-17", "name": "Fix RTDB Export Data Leaks", "priority": "high"},
     {"version": "2.9.3", "date": "2026-03-17", "name": "Stop Unnecessary Sensor Data Push", "priority": "low"},

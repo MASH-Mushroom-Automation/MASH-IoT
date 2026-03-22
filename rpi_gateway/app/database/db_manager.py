@@ -4,6 +4,7 @@
 import sqlite3
 import logging
 import os
+import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from .models import SCHEMA, SensorReading, DeviceCommand
@@ -289,6 +290,46 @@ class DatabaseManager:
             
         except sqlite3.Error as e:
             logger.error(f"[DB] Logs query failed: {e}")
+            return []
+
+    def get_recent_ai_decisions(self, limit: int = 20, hours: int = 24) -> List[Dict[str, Any]]:
+        """Get recent ML/automation decision logs for the AI insights page."""
+        if not self.conn:
+            return []
+
+        try:
+            threshold = datetime.now().timestamp() - (hours * 3600)
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT timestamp, level, component, message, data
+                FROM system_logs
+                WHERE timestamp > ?
+                  AND component IN ('ml_engine', 'logic_engine', 'automation')
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (threshold, limit))
+
+            rows = cursor.fetchall()
+            results = []
+
+            for row in rows:
+                try:
+                    data_value = json.loads(row[4]) if row[4] else None
+                except (json.JSONDecodeError, TypeError):
+                    data_value = row[4]
+
+                results.append({
+                    'timestamp': row[0],
+                    'level': row[1] if row[1] else 'INFO',
+                    'component': row[2] if row[2] else 'unknown',
+                    'message': row[3] if row[3] else '',
+                    'data': data_value,
+                })
+
+            return results
+
+        except sqlite3.Error as e:
+            logger.error(f"[DB] AI decision query failed: {e}")
             return []
 
     # ==================== ACTIVE ALERTS (STATEFUL) ====================

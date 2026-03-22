@@ -137,11 +137,11 @@ class FirebaseSync:
             
             # Set to Firebase
             ref.set(actuator_data)
-            logger.debug(f"[FIREBASE] ✅ Uploaded actuator states to devices/{device_id}/latest_actuators")
+            logger.debug(f"[FIREBASE] Uploaded actuator states to devices/{device_id}/latest_actuators")
             return True
             
         except Exception as e:
-            logger.error(f"[FIREBASE] ❌ Actuator sync failed: {e}")
+            logger.error(f"[FIREBASE] Actuator sync failed: {e}")
             return False
     
     def log_actuator_event(self, device_id: str, room: str, actuator: str, state: bool, mode: str = 'auto') -> bool:
@@ -179,11 +179,61 @@ class FirebaseSync:
                 'timestamp_unix': int(timestamp.timestamp())
             })
             
-            logger.debug(f"[FIREBASE] ✅ Logged actuator event: {room}/{actuator} = {state} ({mode})")
+            logger.debug(f"[FIREBASE] Logged actuator event: {room}/{actuator} = {state} ({mode})")
             return True
             
         except Exception as e:
-            logger.error(f"[FIREBASE] ❌ Actuator event logging failed: {e}")
+            logger.error(f"[FIREBASE] Actuator event logging failed: {e}")
+            return False
+
+    def sync_active_alert(self, device_id: str, room: str, alert_type: str, message: str, severity: str = 'WARNING') -> bool:
+        """
+        Sync an active alert to Firebase so connected clients can render it in real time.
+
+        Alerts are written to alerts/{device_id}/{room}_{alert_type} to match the mobile
+        alert listener path and keep the latest alert state visible.
+        """
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+
+        try:
+            alert_key = f'{room}_{alert_type}'
+            ref = firebase_db.reference(f'alerts/{device_id}/{alert_key}')
+
+            now = datetime.now()
+            ref.set({
+                'id': alert_key,
+                'room': room,
+                'alert_type': alert_type,
+                'severity': severity,
+                'message': message,
+                'is_acknowledged': False,
+                'active': True,
+                'timestamp': now.isoformat(),
+                'timestamp_unix': int(now.timestamp()),
+                'updated_at': now.isoformat(),
+            })
+
+            logger.debug(f"[FIREBASE] Synced active alert: alerts/{device_id}/{alert_key}")
+            return True
+
+        except Exception as e:
+            logger.error(f"[FIREBASE] Active alert sync failed: {e}")
+            return False
+
+    def remove_active_alert(self, device_id: str, room: str, alert_type: str) -> bool:
+        """Remove an active alert from Firebase once the condition resolves."""
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+
+        try:
+            alert_key = f'{room}_{alert_type}'
+            firebase_db.reference(f'alerts/{device_id}/{alert_key}').delete()
+            logger.debug(f"[FIREBASE] Removed active alert: alerts/{device_id}/{alert_key}")
+            return True
+
+        except Exception as e:
+            logger.error(f"[FIREBASE] Active alert removal failed: {e}")
             return False
     
     def push_hourly_aggregate(
@@ -205,10 +255,10 @@ class FirebaseSync:
         path = f'historical_aggregates/{device_id}/{room}/{year_month}/{day}/{hour_key}'
         try:
             firebase_db.reference(path).set(data)
-            logger.debug(f"[FIREBASE] ✅ Pushed aggregate: {path}")
+            logger.debug(f"[FIREBASE] Pushed aggregate: {path}")
             return True
         except Exception as e:
-            logger.error(f"[FIREBASE] ❌ aggregate push failed ({path}): {e}")
+            logger.error(f"[FIREBASE] aggregate push failed ({path}): {e}")
             return False
 
     def get_device_config(self, device_id: str) -> Optional[Dict]:

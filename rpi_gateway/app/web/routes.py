@@ -284,6 +284,7 @@ def ai_insights():
     
     # Check if ML is actually enabled and models are loaded
     logic_engine = getattr(current_app, 'logic_engine', None)
+    db_manager = current_app.config.get('DB_MANAGER') or current_app.config.get('DB')
     ml_enabled = False
     anomaly_model_loaded = False
     actuation_model_loaded = False
@@ -292,12 +293,19 @@ def ai_insights():
         ml_enabled = logic_engine.ml_enabled
         anomaly_model_loaded = logic_engine.anomaly_detector is not None
         actuation_model_loaded = logic_engine.actuator_model is not None
+
+    latest_data = current_app.config.get('LATEST_DATA', {}) or {}
+    active_alerts = db_manager.get_active_alerts() if db_manager else []
+    recent_ai_decisions = db_manager.get_recent_ai_decisions(limit=10, hours=24) if db_manager else []
         
     return render_template('ai_insights.html', 
                          ml_available=ml_available,
                          ml_enabled=ml_enabled,
                          anomaly_model_loaded=anomaly_model_loaded,
-                         actuation_model_loaded=actuation_model_loaded)
+                         actuation_model_loaded=actuation_model_loaded,
+                         latest_data=latest_data,
+                         active_alert_count=len(active_alerts),
+                         recent_ai_decisions=recent_ai_decisions)
 
 @web_bp.route('/alerts')
 def alerts():
@@ -724,6 +732,14 @@ def control_actuator():
     if state not in ['ON', 'OFF']:
         return jsonify({"success": False, "message": "Invalid state (must be ON or OFF)"}), 400
 
+    # Prevent direct manual overrides while automatic control is active.
+    config = current_app.config.get('MUSHROOM_CONFIG', {})
+    if config.get('system', {}).get('auto_mode', True):
+        return jsonify({
+            "success": False,
+            "message": "Automatic control is enabled. Switch to Manual Control before sending direct actuator commands."
+        }), 409
+
     # Map web UI actuator names to Arduino firmware names
     actuator_map = {
         'mist_maker': 'MIST_MAKER',
@@ -825,11 +841,19 @@ def set_auto_mode():
     
     enabled = bool(data['enabled'])
     
-    # Update config
+    # Update runtime config
     config = current_app.config.get('MUSHROOM_CONFIG', {})
     if 'system' not in config:
         config['system'] = {}
     config['system']['auto_mode'] = enabled
+
+    # Persist to user preferences so the setting survives restarts
+    user_prefs = current_app.config.get('USER_PREFS')
+    if user_prefs:
+        try:
+            user_prefs.set_preference('system.auto_mode', enabled)
+        except Exception as pref_err:
+            logger.warning(f"Failed to persist auto mode preference: {pref_err}")
     
     # Clear manual overrides when switching to auto mode
     if enabled:
@@ -892,6 +916,9 @@ def actuator_states():
     """
     # Get actual state from app config
     actuator_state_data = current_app.config.get('ACTUATOR_STATES', {})
+    config = current_app.config.get('MUSHROOM_CONFIG', {})
+    auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
+    manual_overrides = current_app.config.get('MANUAL_OVERRIDES', {})
     
     # Initialize default structure
     states = {
@@ -916,7 +943,9 @@ def actuator_states():
             for actuator_name, is_on in actuator_state_data[room].items():
                 if actuator_name in states[room]:
                     states[room][actuator_name]['state'] = is_on
-    
+                    has_manual_override = bool(manual_overrides.get(room, {}).get(actuator_name))
+                    states[room][actuator_name]['auto'] = auto_mode_enabled and not has_manual_override
+
     return jsonify(states)
 
 
