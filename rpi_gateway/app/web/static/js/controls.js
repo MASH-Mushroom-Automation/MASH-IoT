@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set initial disabled state
         const isAutoMode = autoControlToggle.checked;
         updateCardsDisabledState(isAutoMode);
+        refreshCalibrationBanner();
         
         autoControlToggle.addEventListener('change', function() {
             const isAutoMode = this.checked;
@@ -171,38 +172,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // Poll actuator states every 3 seconds
     setInterval(async () => {
         try {
-            const response = await fetch('/api/actuator_states');
-            if (!response.ok) return;
+            const [actuatorResponse, latestResponse] = await Promise.all([
+                fetch('/api/actuator_states'),
+                fetch('/api/latest_data')
+            ]);
+
+            if (actuatorResponse.ok) {
+                const data = await actuatorResponse.json();
             
-            const data = await response.json();
-            
-            // Update card states
-            Object.keys(data).forEach(room => {
-                const roomData = data[room];
-                Object.keys(roomData).forEach(actuator => {
-                    const state = roomData[actuator].state ? 'on' : 'off';
-                    const isAuto = roomData[actuator].auto || false;
+                // Update card states
+                Object.keys(data).forEach(room => {
+                    const roomData = data[room];
+                    Object.keys(roomData).forEach(actuator => {
+                        const state = roomData[actuator].state ? 'on' : 'off';
+                        const isAuto = roomData[actuator].auto || false;
                     
-                    const card = document.querySelector(
-                        `.actuator-card[data-room=\"${room}\"][data-actuator=\"${actuator}\"]`
-                    );
+                        const card = document.querySelector(
+                            `.actuator-card[data-room="${room}"][data-actuator="${actuator}"]`
+                        );
                     
-                    if (card) {
-                        card.dataset.state = state;
-                        const statusElement = card.querySelector('.card-status');
-                        if (statusElement) {
-                            statusElement.dataset.status = state;
-                            statusElement.querySelector('.status-text').textContent = state.toUpperCase();
-                        }
+                        if (card) {
+                            card.dataset.state = state;
+                            const statusElement = card.querySelector('.card-status');
+                            if (statusElement) {
+                                statusElement.dataset.status = state;
+                                statusElement.querySelector('.status-text').textContent = state.toUpperCase();
+                            }
                         
-                        // Update auto badge visibility
-                        const autoBadge = card.querySelector('.card-auto-badge');
-                        if (autoBadge) {
-                            autoBadge.style.display = isAuto ? 'flex' : 'none';
+                            // Update auto badge visibility
+                            const autoBadge = card.querySelector('.card-auto-badge');
+                            if (autoBadge) {
+                                autoBadge.style.display = isAuto ? 'flex' : 'none';
+                            }
                         }
-                    }
+                    });
                 });
-            });
+            }
+
+            if (latestResponse.ok) {
+                const latestData = await latestResponse.json();
+                updateCalibrationBanner(latestData);
+            }
             
         } catch (error) {
             console.error('Failed to poll actuator states:', error);
@@ -264,6 +274,42 @@ document.addEventListener('DOMContentLoaded', function() {
             info: '#3498db'
         };
         return colors[type] || colors.info;
+    }
+
+    function refreshCalibrationBanner() {
+        fetch('/api/latest_data')
+            .then(response => response.ok ? response.json() : null)
+            .then(data => {
+                if (data) {
+                    updateCalibrationBanner(data);
+                }
+            })
+            .catch(() => {
+                // Ignore warmup polling errors to avoid spamming the UI
+            });
+    }
+
+    function updateCalibrationBanner(data) {
+        const banner = document.getElementById('calibration-banner');
+        if (!banner || !data) return;
+
+        const subtitle = document.getElementById('calibration-subtitle');
+        const countdown = document.getElementById('calibration-countdown');
+        const warmupActive = Boolean(data.warmup_active);
+
+        banner.classList.toggle('is-hidden', !warmupActive);
+
+        if (subtitle) {
+            subtitle.textContent = warmupActive
+                ? 'Sensor warmup is in progress. Automation will begin once readings stabilize.'
+                : 'Sensors are ready.';
+        }
+
+        if (countdown) {
+            countdown.textContent = warmupActive
+                ? `${data.warmup_remaining ?? '--'}s remaining`
+                : 'Ready';
+        }
     }
 });
 

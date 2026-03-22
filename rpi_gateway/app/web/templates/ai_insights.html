@@ -97,7 +97,7 @@
                     {% set fruiting = latest_data.get('fruiting') if latest_data else None %}
                     {% if fruiting %}
                         <div style="color: #bbb; line-height: 1.6;">
-                            <div>Temp: <strong>{{ fruiting.get('temperature', 'N/A') }}°C</strong></div>
+                            <div>Temp: <strong>{{ fruiting.get('temp', fruiting.get('temperature', 'N/A')) }}°C</strong></div>
                             <div>Humidity: <strong>{{ fruiting.get('humidity', 'N/A') }}%</strong></div>
                             <div>CO2: <strong>{{ fruiting.get('co2', 'N/A') }} ppm</strong></div>
                         </div>
@@ -111,7 +111,7 @@
                     {% set spawning = latest_data.get('spawning') if latest_data else None %}
                     {% if spawning %}
                         <div style="color: #bbb; line-height: 1.6;">
-                            <div>Temp: <strong>{{ spawning.get('temperature', 'N/A') }}°C</strong></div>
+                            <div>Temp: <strong>{{ spawning.get('temp', spawning.get('temperature', 'N/A')) }}°C</strong></div>
                             <div>Humidity: <strong>{{ spawning.get('humidity', 'N/A') }}%</strong></div>
                             <div>CO2: <strong>{{ spawning.get('co2', 'N/A') }} ppm</strong></div>
                         </div>

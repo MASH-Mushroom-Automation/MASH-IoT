@@ -75,6 +75,9 @@ async function updateDashboardData() {
         if (uptimeEl && data.uptime) {
             uptimeEl.textContent = data.uptime;
         }
+
+        // --- UPDATE CALIBRATION / WARMUP BANNER ---
+        updateCalibrationBanner(data);
         
         // --- UPDATE ROOM CONDITIONS ---
         updateRoomCondition('#fruiting-view', data.fruiting_condition, data.fruiting_condition_class);
@@ -142,6 +145,30 @@ function updateActuatorIcons(viewSelector, actuators) {
     updateIcon('.icon-exhaust', actuators.exhaust_fan);
     updateIcon('.icon-intake', actuators.intake_fan);
     updateIcon('.icon-light', actuators.led);
+}
+
+// Helper: Update calibration/warmup banner
+function updateCalibrationBanner(data) {
+    const banner = document.getElementById('calibration-banner');
+    if (!banner || !data) return;
+
+    const subtitle = document.getElementById('calibration-subtitle');
+    const countdown = document.getElementById('calibration-countdown');
+    const warmupActive = Boolean(data.warmup_active);
+
+    banner.classList.toggle('is-hidden', !warmupActive);
+
+    if (subtitle) {
+        subtitle.textContent = warmupActive
+            ? 'Sensor warmup is in progress. Automation will begin once readings stabilize.'
+            : 'Sensors are ready.';
+    }
+
+    if (countdown) {
+        countdown.textContent = warmupActive
+            ? `${data.warmup_remaining ?? '--'}s remaining`
+            : 'Ready';
+    }
 }
 
 // --- WiFi Status Checker ---

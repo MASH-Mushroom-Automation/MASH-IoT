@@ -21,6 +21,16 @@
     </div>
 </div>
 
+<div id="calibration-banner" class="calibration-banner is-hidden">
+    <div class="calibration-icon">
+        <i class="fas fa-circle-notch fa-spin"></i>
+    </div>
+    <div class="calibration-copy">
+        <div class="calibration-title">Sensors Calibrating</div>
+        <div class="calibration-subtitle" id="calibration-subtitle">Sensor warmup is in progress. Automation will begin once readings stabilize.</div>
+    </div>
+    <div class="calibration-countdown" id="calibration-countdown">--s remaining</div>
+</div>
 
 <!-- Provisioning Status Banner (Visible only in Hotspot Mode) -->
 <div id="provisioning-banner" onclick="openWifiModal()"
@@ -112,8 +122,7 @@
                 <h3>CO2 Level</h3>
             </div>
             <div class="card-body">
-                <span id="fruiting-co2" class="sensor-value">{% if fruiting_data and fruiting_data.co2 is not none %}{{
-                    fruiting_data.co2 | int }}{% else %}--{% endif %}</span>
+                <span id="fruiting-co2" class="sensor-value">{% if fruiting_data and fruiting_data.co2 is not none %}{{ fruiting_data.co2 | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">
@@ -126,8 +135,7 @@
                 <h3>Temperature</h3>
             </div>
             <div class="card-body">
-                <span id="fruiting-temp" class="sensor-value">{% if fruiting_data and fruiting_data.temp is not none
-                    %}{{ fruiting_data.temp | round(1) }}{% else %}--{% endif %}</span>
+                <span id="fruiting-temp" class="sensor-value">{% if fruiting_data and fruiting_data.temp is not none %}{{ fruiting_data.temp | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">°C</span>
             </div>
             <div class="card-footer">
@@ -140,8 +148,7 @@
                 <h3>Humidity</h3>
             </div>
             <div class="card-body">
-                <span id="fruiting-humidity" class="sensor-value">{% if fruiting_data and fruiting_data.humidity is not
-                    none %}{{ fruiting_data.humidity | round(1) }}{% else %}--{% endif %}</span>
+                <span id="fruiting-humidity" class="sensor-value">{% if fruiting_data and fruiting_data.humidity is not none %}{{ fruiting_data.humidity | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">%</span>
             </div>
             <div class="card-footer">
@@ -165,8 +172,7 @@
                 <h3>CO2 Level</h3>
             </div>
             <div class="card-body">
-                <span id="spawning-co2" class="sensor-value">{% if spawning_data and spawning_data.co2 is not none %}{{
-                    spawning_data.co2 | int }}{% else %}--{% endif %}</span>
+                <span id="spawning-co2" class="sensor-value">{% if spawning_data and spawning_data.co2 is not none %}{{ spawning_data.co2 | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">

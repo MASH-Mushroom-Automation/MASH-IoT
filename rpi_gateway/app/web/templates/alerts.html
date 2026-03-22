@@ -203,10 +203,10 @@
                 <td>
                     {% if not alert.is_acknowledged %}
                     <button class="btn-ack" onclick="acknowledgeAlert({{ alert.id }})">
-                        <i class="fas fa-check"></i> Ack
+                        <i class="fas fa-check"></i> Acknowledge
                     </button>
                     {% else %}
-                    <span style="color: #888; font-size: 0.9em;"><i class="fas fa-check-double"></i> Ack'd</span>
+                    <span style="color: #888; font-size: 0.9em;"><i class="fas fa-check-double"></i> Acknowledged</span>
                     {% endif %}
                 </td>
             </tr>

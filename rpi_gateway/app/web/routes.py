@@ -188,6 +188,13 @@ def get_live_data():
     user_prefs = current_app.config.get('USER_PREFS')
     firebase_sync_enabled = user_prefs.get_preference('firebase_sync_enabled', default=True) if user_prefs else True
 
+    # Sensor warmup / calibration status
+    warmup_complete = current_app.config.get('SENSOR_WARMUP_COMPLETE', False)
+    warmup_duration = current_app.config.get('WARMUP_DURATION', 30)
+    start_time = current_app.config.get('START_TIME', time.time())
+    elapsed_seconds = max(0, int(time.time() - start_time))
+    warmup_remaining = max(0, int(warmup_duration - elapsed_seconds)) if not warmup_complete else 0
+
     return {
         "fruiting_data": fruiting_data,
         "spawning_data": spawning_data,
@@ -203,7 +210,10 @@ def get_live_data():
         "spawning_condition_class": spawning_condition_class,
         "backend_connected": backend_connected,  # Backend API (PostgreSQL) connection status
         "firebase_sync_enabled": firebase_sync_enabled,  # Whether Firebase sync is enabled (on_sensor_data checks this)
-        "arduino_connected": serial_comm.is_connected if serial_comm else False
+        "arduino_connected": serial_comm.is_connected if serial_comm else False,
+        "warmup_complete": warmup_complete,
+        "warmup_remaining": warmup_remaining,
+        "warmup_active": (not warmup_complete and warmup_remaining > 0)
     }
 
 # =======================================================
@@ -267,6 +277,7 @@ def controls():
     auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
     
     return render_template('controls.html', 
+                           **context,
                            fruiting_actuators=fruiting_actuators,
                            spawning_actuators=spawning_actuators,
                            device_actuators=device_actuators,

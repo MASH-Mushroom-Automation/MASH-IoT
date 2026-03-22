@@ -485,56 +485,64 @@ class MushroomAI:
         co2_hysteresis = config.get('co2_hysteresis', 100)
         exhaust_fan_state = "ON" if co2 > co2_max else ("OFF" if co2 < (co2_max - co2_hysteresis) else "OFF")
 
-        # ===== SMART HUMIDITY CONTROL WITH AI CYCLE =====
-        humidity_target = config.get('humidity_target', 90)
-        humidity_min = humidity_target - 5  # 85%
-        humidity_max = humidity_target + 5  # 95%
-        
-        # Calculate humidity trend
-        humidity_rate = self._calculate_humidity_trend(humidity)
-        
-        # Decision logic for humidifier cycle
-        cycle_info = self.humidifier_cycle.get_phase_info()
-        
-        if humidity < humidity_min:
-            # Below target - start cycle if not active
-            if not cycle_info['active']:
-                self.humidifier_cycle.start_cycle()
-                logger.info(f"[AI-HUMIDIFIER] Started cycle - Humidity {humidity:.1f}% < min {humidity_min}%")
-        
-        elif humidity >= humidity_target and cycle_info['active']:
-            # At or above target - check if we should stop
-            will_overshoot = self._predict_humidity_overshoot(humidity, humidity_max, humidity_rate)
-            
-            if will_overshoot:
-                # Stop cycle to prevent overshooting
-                self.humidifier_cycle.stop_cycle()
-                logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Predicted overshoot (humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s)")
-            elif humidity >= humidity_max:
-                # At maximum - stop immediately
-                self.humidifier_cycle.stop_cycle()
-                logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Max humidity reached ({humidity:.1f}%)")
-        
-        elif humidity > humidity_max + 2:
-            # Significantly over target - ensure cycle is stopped
-            if cycle_info['active']:
-                self.humidifier_cycle.stop_cycle()
-                logger.warning(f"[AI-HUMIDIFIER] Emergency stop - Humidity too high ({humidity:.1f}%)")
-        
-        # Get actuator states from cycle manager
-        humidifier_states = self.humidifier_cycle.get_current_states()
-        mist_maker_state = humidifier_states['mist_maker']
-        humidifier_fan_state = humidifier_states['humidifier_fan']
-        
-        # Log cycle status periodically
-        if cycle_info['active'] and int(cycle_info.get('total_runtime', 0)) % 5 == 0:
-            logger.debug(f"[HUMIDIFIER] Phase={cycle_info['phase']}, elapsed={cycle_info['elapsed']}s, humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s")
-        
         # Temperature-based fan assist
         temp_max = config.get('temp_target', 24) + 2
         if temp > temp_max:
             exhaust_fan_state = "ON"  # Emergency cooling
-        
+
+        # ===== SMART HUMIDITY CONTROL WITH AI CYCLE =====
+        humidity_target = config.get('humidity_target', 90)
+        humidity_min = humidity_target - 5  # 85%
+        humidity_max = humidity_target + 5  # 95%
+
+        # Calculate humidity trend
+        humidity_rate = self._calculate_humidity_trend(humidity)
+        cycle_info = self.humidifier_cycle.get_phase_info()
+
+        # Safety interlock: do not mist while exhaust fan is running.
+        # This prevents humid mist from being blown directly into the exhaust path,
+        # which can cause droplet buildup and long-term wear.
+        if exhaust_fan_state == "ON":
+            if cycle_info['active']:
+                self.humidifier_cycle.stop_cycle()
+                logger.info("[AI-HUMIDIFIER] Stopped cycle - exhaust fan active, preventing mist blowback")
+            humidifier_states = {"mist_maker": "OFF", "humidifier_fan": "OFF"}
+        else:
+            if humidity < humidity_min:
+                # Below target - start cycle if not active
+                if not cycle_info['active']:
+                    self.humidifier_cycle.start_cycle()
+                    logger.info(f"[AI-HUMIDIFIER] Started cycle - Humidity {humidity:.1f}% < min {humidity_min}%")
+
+            elif humidity >= humidity_target and cycle_info['active']:
+                # At or above target - check if we should stop
+                will_overshoot = self._predict_humidity_overshoot(humidity, humidity_max, humidity_rate)
+
+                if will_overshoot:
+                    # Stop cycle to prevent overshooting
+                    self.humidifier_cycle.stop_cycle()
+                    logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Predicted overshoot (humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s)")
+                elif humidity >= humidity_max:
+                    # At maximum - stop immediately
+                    self.humidifier_cycle.stop_cycle()
+                    logger.info(f"[AI-HUMIDIFIER] Stopped cycle - Max humidity reached ({humidity:.1f}%)")
+
+            elif humidity > humidity_max + 2:
+                # Significantly over target - ensure cycle is stopped
+                if cycle_info['active']:
+                    self.humidifier_cycle.stop_cycle()
+                    logger.warning(f"[AI-HUMIDIFIER] Emergency stop - Humidity too high ({humidity:.1f}%)")
+
+            # Get actuator states from cycle manager
+            humidifier_states = self.humidifier_cycle.get_current_states()
+
+        mist_maker_state = humidifier_states['mist_maker']
+        humidifier_fan_state = humidifier_states['humidifier_fan']
+
+        # Log cycle status periodically
+        if cycle_info['active'] and int(cycle_info.get('total_runtime', 0)) % 5 == 0:
+            logger.debug(f"[HUMIDIFIER] Phase={cycle_info['phase']}, elapsed={cycle_info['elapsed']}s, humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s")
+
         # Intake fan works opposite to exhaust for air circulation
         # When exhaust is ON, intake is OFF. When exhaust is OFF, intake is ON for passive airflow
         intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "ON"
