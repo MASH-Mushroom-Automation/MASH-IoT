@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.serial_comm import ArduinoSerialComm
 from core.logic_engine import MushroomAI
+from core.passive_fan_controller import PassiveFanController
 from database.db_manager import DatabaseManager
 from cloud.backend_api import BackendAPIClient
 from cloud.mqtt_client import create_mqtt_client
@@ -179,6 +180,7 @@ class MASHOrchestrator:
         # Thread safety for data access (prevents race conditions when mobile app polls rapidly)
         self.data_lock = Lock()
         self.firebase_command_thread = None
+        self.passive_fan_controller = PassiveFanController(self.config, self._execute_automatic_command)
     
     def _load_config(self, config_path):
         """Load configuration from YAML file."""
@@ -382,23 +384,14 @@ class MASHOrchestrator:
                     
                     # Only send commands when state changes (avoid redundant sends)
                     for actuator, state in cycle_states.items():
-                        if actuator == 'mist_maker':
-                            arduino_name = 'MIST_MAKER'
-                        elif actuator == 'humidifier_fan':
-                            arduino_name = 'HUMIDIFIER_FAN'
-                        else:
+                        if actuator not in ('mist_maker', 'humidifier_fan'):
                             continue
-                        
+
                         # Check if state changed since last send
                         last_state = self.ai.last_cycle_commands.get(actuator)
                         if last_state != state:
-                            json_cmd = json.dumps({"actuator": arduino_name, "state": state})
-                            if self.arduino.send_command(json_cmd):
+                            if self._execute_automatic_command('fruiting', actuator, state, source='humidifier_cycle'):
                                 logger.info(f"[CYCLE] State changed: {actuator} -> {state}")
-                                # Update UI state
-                                command_for_state = f"{arduino_name}_{state}"
-                                self._update_actuator_state_from_command(command_for_state)
-                                self.db.insert_command(json_cmd, source='humidifier_cycle')
                                 # Remember this state
                                 self.ai.last_cycle_commands[actuator] = state
             else:
@@ -485,10 +478,9 @@ class MASHOrchestrator:
                     self.db.insert_command(json_cmd, source=f'{source}_{source_name}')
 
                     with self.app.app_context():
-                        manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
+                        manual_overrides = current_app.config.get('MANUAL_OVERRIDES', {})
                         if room not in manual_overrides:
                             manual_overrides[room] = {}
-
                         manual_overrides[room][actuator] = {
                             'timestamp': time.time(),
                             'state': state,
@@ -510,6 +502,93 @@ class MASHOrchestrator:
             import traceback
             traceback.print_exc()
             return False, False
+
+    def _execute_automatic_command(self, room, actuator, state, source='ml_automation'):
+        """Execute an automation-driven actuator command without creating a manual override."""
+        try:
+            normalized_state = self._normalize_command_state(state)
+            if normalized_state not in ['ON', 'OFF']:
+                logger.warning(f"[AUTO] Invalid state for {room}/{actuator}: {state}")
+                return False
+
+            if not self.arduino or not self.arduino.is_connected:
+                logger.warning(f"[AUTO] Arduino not connected - skipping {room}/{actuator} {normalized_state}")
+                return False
+
+            ui_actuator = actuator
+            if actuator == 'fruiting_led':
+                room = 'fruiting'
+                ui_actuator = 'led'
+            elif actuator == 'fruiting_exhaust_fan':
+                room = 'fruiting'
+                ui_actuator = 'exhaust_fan'
+            elif actuator == 'spawning_exhaust_fan':
+                room = 'spawning'
+                ui_actuator = 'exhaust_fan'
+            elif actuator == 'device_exhaust_fan':
+                room = 'device'
+                ui_actuator = 'exhaust_fan'
+            elif actuator == 'fruiting_intake_fan':
+                room = 'fruiting'
+                ui_actuator = 'intake_fan'
+
+            arduino_actuator = None
+            if ui_actuator == 'mist_maker':
+                arduino_actuator = 'MIST_MAKER'
+            elif ui_actuator == 'humidifier_fan':
+                arduino_actuator = 'HUMIDIFIER_FAN'
+            elif ui_actuator == 'blower_fan':
+                arduino_actuator = 'BLOWER_FAN'
+            elif ui_actuator == 'led':
+                arduino_actuator = 'FRUITING_LED'
+            elif ui_actuator == 'intake_fan':
+                arduino_actuator = 'FRUITING_INTAKE_FAN'
+            elif ui_actuator == 'exhaust_fan':
+                if room == 'fruiting':
+                    arduino_actuator = 'FRUITING_EXHAUST_FAN'
+                elif room == 'spawning':
+                    arduino_actuator = 'SPAWNING_EXHAUST_FAN'
+                elif room == 'device':
+                    arduino_actuator = 'DEVICE_EXHAUST_FAN'
+
+            if not arduino_actuator:
+                logger.warning(f"[AUTO] Unknown actuator: {room}/{actuator}")
+                return False
+
+            import json
+            json_cmd = json.dumps({"actuator": arduino_actuator, "state": normalized_state})
+            success = self.arduino.send_command(json_cmd)
+
+            if not success:
+                logger.warning(f"[AUTO] Failed to send automation command: {json_cmd}")
+                return False
+
+            logger.info(f"[AUTO] Command executed: {json_cmd}")
+            self._update_actuator_state_from_command(f"{arduino_actuator}_{normalized_state}")
+            self.db.insert_command(json_cmd, source=source)
+
+            try:
+                if self.mqtt and self.mqtt.is_alive():
+                    self.mqtt.publish_actuator_state(room, ui_actuator, normalized_state == 'ON')
+            except Exception as mqtt_err:
+                logger.warning(f"[AUTO] MQTT sync failed: {mqtt_err}")
+
+            try:
+                if self.firebase and self.firebase.is_initialized:
+                    device_id = self.config.get('device', {}).get('serial_number', 'rpi_gateway_001')
+                    actuator_states = self.app.config.get('ACTUATOR_STATES', {})
+                    self.firebase.sync_actuator_states(device_id, actuator_states)
+                    self.firebase.log_actuator_event(device_id, room, ui_actuator, normalized_state == 'ON', 'auto')
+            except Exception as fb_err:
+                logger.warning(f"[AUTO] Firebase sync failed: {fb_err}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"[AUTO] Command handling error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     def _firebase_command_queue_loop(self):
         """Poll Firebase command_queue and execute queued actuator commands."""
@@ -572,7 +651,7 @@ class MASHOrchestrator:
         """Run ML-powered automation on sensor data."""
         try:
             # Get manual overrides and clean up old ones (>5 minutes)
-            manual_overrides = self.config.get('MANUAL_OVERRIDES', {})
+            manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
             current_time = time.time()
             for room in list(manual_overrides.keys()):
                 for actuator in list(manual_overrides[room].keys()):
@@ -601,7 +680,7 @@ class MASHOrchestrator:
             commands = self.ai.process_sensor_reading(valid_rooms)
             
             # Filter out commands for manually overridden actuators
-            manual_overrides = self.config.get('MANUAL_OVERRIDES', {})
+            manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
             filtered_commands = []
             for command in commands:
                 # Parse command to extract room and actuator
@@ -637,7 +716,6 @@ class MASHOrchestrator:
                     filtered_commands.append(command)
             
             # Send filtered commands to Arduino
-            import json
             for command in filtered_commands:
                 # Convert command format from "ACTUATOR_NAME_STATE" to JSON
                 # e.g., "MIST_MAKER_ON" -> {"actuator": "MIST_MAKER", "state": "ON"}
@@ -651,19 +729,13 @@ class MASHOrchestrator:
                     logger.warning(f"[AUTO] Invalid command format: {command}")
                     continue
                 
-                json_cmd = json.dumps({"actuator": actuator_name, "state": state})
-                success = self.arduino.send_command(json_cmd)
-                
-                if success:
-                    logger.info(f"[AUTO] Sent command: {json_cmd}")
-                    
-                    # Update actuator states in app config for UI
-                    self._update_actuator_state_from_command(command)
-                    
-                    # Log to database
-                    self.db.insert_command(json_cmd, source='ml_automation')
-                else:
-                    logger.warning(f"[AUTO] Failed to send command: {json_cmd}")
+                room = 'fruiting'
+                if command.startswith('SPAWNING_'):
+                    room = 'spawning'
+                elif command.startswith('DEVICE_'):
+                    room = 'device'
+
+                self._execute_automatic_command(room, actuator_name.lower(), state, source='ml_automation')
         
         except Exception as e:
             logger.error(f"[AUTO] Automation error: {e}")
@@ -841,6 +913,12 @@ class MASHOrchestrator:
                 }
             }
             self.app.config['DB'] = self.db
+
+            # Start passive fan automation only after app state is ready
+            if self.config.get('system', {}).get('auto_mode', True):
+                self.passive_fan_controller.start()
+            else:
+                logger.info("[AUTO] Passive fan controller paused until auto mode is enabled")
             
             # Start mDNS service advertisement for local discovery (optional)
             if MDNS_AVAILABLE:
@@ -869,6 +947,9 @@ class MASHOrchestrator:
         """Graceful shutdown."""
         logger.info("[MAIN] Shutting down M.A.S.H. system...")
         self.is_running = False
+
+        if hasattr(self, 'passive_fan_controller') and self.passive_fan_controller:
+            self.passive_fan_controller.stop()
 
         # Flush partial hour bucket so no sensor data is lost
         if hasattr(self, 'aggregator') and self.aggregator:

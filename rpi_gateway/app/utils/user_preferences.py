@@ -34,7 +34,7 @@ class UserPreferencesManager:
     def _load_default_config(self):
         """Load default configuration from config.yaml."""
         try:
-            full_path = os.path.join(os.path.dirname(__file__), '..', self.default_config_path)
+            full_path = os.path.join(os.path.dirname(__file__), '..', '..', self.default_config_path)
             if os.path.exists(full_path):
                 with open(full_path, 'r') as f:
                     return yaml.safe_load(f)
@@ -46,7 +46,7 @@ class UserPreferencesManager:
     def _load_user_preferences(self):
         """Load user preferences from user_preferences.yaml."""
         try:
-            full_path = os.path.join(os.path.dirname(__file__), '..', self.user_config_path)
+            full_path = os.path.join(os.path.dirname(__file__), '..', '..', self.user_config_path)
             if os.path.exists(full_path):
                 with open(full_path, 'r') as f:
                     prefs = yaml.safe_load(f)
@@ -62,7 +62,7 @@ class UserPreferencesManager:
     def save_user_preferences(self):
         """Save current user preferences to file."""
         try:
-            full_path = os.path.join(os.path.dirname(__file__), '..', self.user_config_path)
+            full_path = os.path.join(os.path.dirname(__file__), '..', '..', self.user_config_path)
             
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(full_path), exist_ok=True)

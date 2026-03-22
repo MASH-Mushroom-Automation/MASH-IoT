@@ -856,11 +856,28 @@ def set_auto_mode():
             logger.warning(f"Failed to persist auto mode preference: {pref_err}")
     
     # Clear manual overrides when switching to auto mode
+    orchestrator = current_app.config.get('orchestrator')
     if enabled:
         current_app.config['MANUAL_OVERRIDES'] = {}
         logger.info("Auto mode enabled - cleared manual overrides")
+        if orchestrator and hasattr(orchestrator, 'passive_fan_controller'):
+            try:
+                orchestrator.passive_fan_controller.start()
+            except Exception as ctrl_err:
+                logger.warning(f"Failed to start passive fan controller: {ctrl_err}")
     else:
         logger.info("Auto mode disabled - manual control active")
+        if orchestrator and hasattr(orchestrator, 'passive_fan_controller'):
+            try:
+                orchestrator.passive_fan_controller.stop()
+            except Exception as ctrl_err:
+                logger.warning(f"Failed to stop passive fan controller: {ctrl_err}")
+        if orchestrator and hasattr(orchestrator, 'ai') and orchestrator.ai:
+            try:
+                orchestrator.ai.humidifier_cycle.stop_cycle()
+                orchestrator.ai.last_cycle_commands = {}
+            except Exception as cycle_err:
+                logger.warning(f"Failed to stop humidifier cycle: {cycle_err}")
     
     return jsonify({"success": True, "auto_mode": enabled})
 
