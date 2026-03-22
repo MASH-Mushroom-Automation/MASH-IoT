@@ -344,11 +344,17 @@ class MushroomAI:
         is_anomaly, score = self.detect_anomaly(sensor_data)
         if is_anomaly:
             last_valid = self.last_valid_readings.get("fruiting")
-            if last_valid:
-                logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); using last valid FRUITING reading")
-                return dict(last_valid)
-            logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); no last valid FRUITING reading")
-            return None
+            physical_anomaly, _ = self._rule_based_anomaly_check(sensor_data)
+
+            if physical_anomaly:
+                if last_valid:
+                    logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); using last valid FRUITING reading")
+                    return dict(last_valid)
+                logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); no last valid FRUITING reading")
+                return None
+
+            logger.warning(f"[FILTER] Anomaly detected (score={score:.3f}); using current FRUITING reading for control")
+            return sensor_data
 
         # Store as last valid and return current
         self.last_valid_readings["fruiting"] = dict(sensor_data)
