@@ -36,7 +36,7 @@ enum ActuatorType {
 ```
 
 ### 3. Dual Sensor Implementation ([sensors.cpp/h](src/sensors.cpp))
-**Status:** ✅ FULLY ENABLED  
+**Status:** FULLY ENABLED  
 **Before:** Second sensor commented out  
 **After:** Both SCD41 sensors operational with dual I2C
 

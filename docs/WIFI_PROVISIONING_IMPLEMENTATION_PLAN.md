@@ -8,7 +8,7 @@
 
 ## Current State Analysis
 
-### ✅ Already Implemented
+### Already Implemented
 - RPi hotspot creation via NetworkManager (`utils/wifi_manager.py`)
 - WiFi scan endpoint (`/wifi-scan`)
 - WiFi connect endpoint (`/wifi-connect`)
@@ -16,7 +16,7 @@
 - Mobile app provisioning service (`services/device_provisioning_service.dart`)
 - Flask web server with routes (`web/routes.py`)
 
-### ❌ Needs Implementation
+### Needs Implementation
 1. Remove "Connect to Network" from RPi web UI
 2. Move WiFi controls to Settings page
 3. Static QR code generation/display on RPi
@@ -355,11 +355,11 @@ Future<void> connectToDevice(String deviceId) async {
 ## Implementation Priority
 
 ### Must Have (v1.1.0)
-1. ✅ Remove demo mode
-2. ✅ Use RPi WiFi scan
-3. ✅ QR code for hotspot
-4. ✅ Auto-hotspot on boot/disconnect
-5. ✅ Settings page WiFi section
+1. Remove demo mode
+2. Use RPi WiFi scan
+3. QR code for hotspot
+4. Auto-hotspot on boot/disconnect
+5. Settings page WiFi section
 
 ### Should Have (v1.1.0)
 6. Enhanced provisioning UI

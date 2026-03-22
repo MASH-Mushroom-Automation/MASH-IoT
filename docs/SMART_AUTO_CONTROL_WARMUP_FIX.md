@@ -28,7 +28,7 @@ Confusion and oscillation
 ### Root Cause
 The `on_sensor_data()` callback in main.py had **no warmup period**:
 ```python
-# ❌ BEFORE (no warmup check)
+# BEFORE (no warmup check)
 def on_sensor_data(self, data):
     # Immediately runs automation on first reading
     if self.ai is not None:
@@ -65,7 +65,7 @@ def on_sensor_data(self, data):
         else:
             self.sensor_warmup_complete = True
             self.app.config['SENSOR_WARMUP_COMPLETE'] = True
-            logger.info("[WARMUP] ✅ Sensor calibration complete! Starting automatic control...")
+            logger.info("[WARMUP] Sensor calibration complete! Starting automatic control...")
     
     # Normal operation - automation only runs after warmup
     if self.ai is not None:
@@ -99,8 +99,8 @@ Time    Event                                   Action
 15s     Third reading (stabilizing)             Stored, NOT used for control
 20s     Fourth reading (stabilizing)            Stored, NOT used for control
 25s     Fifth reading (nearly ready)            Stored, NOT used for control
-30s     Sixth reading (calibrated!)             [WARMUP] ✅ Complete!
-30s+    All subsequent readings                 ✅ Used for auto control
+30s     Sixth reading (calibrated!)             [WARMUP] Complete!
+30s+    All subsequent readings                 Used for auto control
 ```
 
 **Logs During Warmup:**
@@ -110,7 +110,7 @@ Time    Event                                   Action
 [WARMUP] Sensor calibration in progress... 20s remaining
 [DATA] Received sensor data at 2026-02-01 10:15:10
 ...
-[WARMUP] ✅ Sensor calibration complete! Starting automatic control...
+[WARMUP] Sensor calibration complete! Starting automatic control...
 [AUTO] Sent command: MIST_MAKER_ON
 ```
 
@@ -141,7 +141,7 @@ Mist Maker ON (5s) → Both OFF (nothing happens)
 The `process_sensor_reading()` method in logic_engine.py was generating **incorrect Arduino commands**:
 
 ```python
-# ❌ BEFORE (wrong command format)
+# BEFORE (wrong command format)
 for actuator, state in actuator_states.items():
     command = f"{room_prefix}_{actuator.upper()}_{state.upper()}"
     all_commands.append(command)
@@ -159,11 +159,11 @@ for actuator, state in actuator_states.items():
 **Command Mapping from routes.py:**
 ```python
 actuator_map = {
-    'mist_maker': 'MIST_MAKER',        # ✅ No room prefix
-    'humidifier_fan': 'HUMIDIFIER_FAN',  # ✅ No room prefix
-    'exhaust_fan': 'FRUITING_EXHAUST_FAN',  # ✅ Room-specific
-    'intake_fan': 'FRUITING_INTAKE_FAN',     # ✅ Room-specific
-    'led': 'FRUITING_LED'                    # ✅ Room-specific
+    'mist_maker': 'MIST_MAKER',        # No room prefix
+    'humidifier_fan': 'HUMIDIFIER_FAN',  # No room prefix
+    'exhaust_fan': 'FRUITING_EXHAUST_FAN',  # Room-specific
+    'intake_fan': 'FRUITING_INTAKE_FAN',     # Room-specific
+    'led': 'FRUITING_LED'                    # Room-specific
 }
 ```
 
@@ -208,16 +208,16 @@ for actuator, state in actuator_states.items():
 
 **Before (Broken):**
 ```
-FRUITING_MIST_MAKER_ON         ❌ Arduino doesn't recognize
-FRUITING_HUMIDIFIER_FAN_ON     ❌ Arduino doesn't recognize
-FRUITING_EXHAUST_FAN_ON        ✅ Correct (room-specific)
+FRUITING_MIST_MAKER_ON         Arduino doesn't recognize
+FRUITING_HUMIDIFIER_FAN_ON     Arduino doesn't recognize
+FRUITING_EXHAUST_FAN_ON        Correct (room-specific)
 ```
 
 **After (Fixed):**
 ```
-MIST_MAKER_ON                  ✅ Shared actuator
-HUMIDIFIER_FAN_ON              ✅ Shared actuator
-FRUITING_EXHAUST_FAN_ON        ✅ Room-specific actuator
+MIST_MAKER_ON                  Shared actuator
+HUMIDIFIER_FAN_ON              Shared actuator
+FRUITING_EXHAUST_FAN_ON        Room-specific actuator
 ```
 
 ### New Humidifier Cycle Behavior
@@ -269,7 +269,7 @@ Time    Phase    Mist Maker    Fan          Command Sent
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  WARMUP COMPLETE ✅                                             │
+│  WARMUP COMPLETE                                             │
 │  - sensor_warmup_complete = True                                │
 │  - Log: "Sensor calibration complete! Starting auto control..." │
 └────────────────┬────────────────────────────────────────────────┘
@@ -303,10 +303,10 @@ Time    Phase    Mist Maker    Fan          Command Sent
 - Expose warmup status to routes
 
 **Impact:**
-- ✅ Prevents premature automation on boot
-- ✅ Allows sensors to stabilize
-- ✅ Reduces erratic actuator behavior
-- ✅ Improves system stability
+- Prevents premature automation on boot
+- Allows sensors to stabilize
+- Reduces erratic actuator behavior
+- Improves system stability
 
 ### 2. logic_engine.py
 
@@ -320,10 +320,10 @@ Time    Phase    Mist Maker    Fan          Command Sent
 - Correct Arduino command format
 
 **Impact:**
-- ✅ Mist Maker commands work
-- ✅ Humidifier Fan commands work
-- ✅ Complete cycle operates correctly
-- ✅ Humidity control functional
+- Mist Maker commands work
+- Humidifier Fan commands work
+- Complete cycle operates correctly
+- Humidity control functional
 
 ### 3. routes.py
 
@@ -335,13 +335,13 @@ Time    Phase    Mist Maker    Fan          Command Sent
 - Expose calibration status to frontend
 
 **Impact:**
-- ✅ Dashboard can show warmup status
-- ✅ Users know when auto control starts
-- ✅ Better system transparency
+- Dashboard can show warmup status
+- Users know when auto control starts
+- Better system transparency
 
 ---
 
-## ✅ Testing Checklist
+## Testing Checklist
 
 ### Test 1: Boot Warmup Period
 
@@ -356,7 +356,7 @@ Time    Phase    Mist Maker    Fan          Command Sent
 [DATA] Received sensor data at ...
 [WARMUP] Sensor calibration in progress... 25s remaining
 ...
-[WARMUP] ✅ Sensor calibration complete! Starting automatic control...
+[WARMUP] Sensor calibration complete! Starting automatic control...
 ```
 
 **Success Criteria:**
@@ -364,7 +364,7 @@ Time    Phase    Mist Maker    Fan          Command Sent
 - [ ] No automation commands sent during warmup
 - [ ] Sensor data stored during warmup
 - [ ] Auto control starts AFTER 30 seconds
-- [ ] "✅ Sensor calibration complete" message appears
+- [ ] "Sensor calibration complete" message appears
 
 ### Test 2: Humidifier Cycle Operation
 
@@ -526,7 +526,7 @@ sudo journalctl -u mash-iot -f | grep HUMIDIFIER
 
 ---
 
-**Status:** ✅ **COMPLETE - READY FOR DEPLOYMENT**
+**Status:** **COMPLETE - READY FOR DEPLOYMENT**
 
 **Fixed by:** GitHub Copilot  
 **Tested:** Pending  

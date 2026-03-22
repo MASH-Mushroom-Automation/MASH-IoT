@@ -48,14 +48,14 @@ def diagnose_connection():
     # Initial connection
     print("Attempting initial connection...")
     if not arduino.connect(auto_detect=True):
-        print("❌ Initial connection failed!")
+        print("Initial connection failed!")
         print("\nTroubleshooting:")
         print("  1. Run: python3 scripts/find_arduino.py")
         print("  2. Check Arduino is powered on")
         print("  3. Verify USB cable supports data")
         return False
     
-    print(f"✅ Initial connection successful!")
+    print(f"Initial connection successful!")
     print(f"   Port: {arduino.port}")
     print()
     
@@ -132,9 +132,9 @@ def diagnose_connection():
         print(f"Total disconnections: {consecutive_disconnects}")
         
         if consecutive_disconnects > 0 and last_status:
-            print("\n✅ Auto-reconnect is WORKING")
+            print("\nAuto-reconnect is WORKING")
         elif consecutive_disconnects > 0 and not last_status:
-            print("\n❌ Auto-reconnect FAILED - still disconnected")
+            print("\nAuto-reconnect FAILED - still disconnected")
             print("\nTroubleshooting:")
             print("  • Check Arduino is powered on")
             print("  • Verify USB cable is data-capable")
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         success = diagnose_connection()
         sys.exit(0 if success else 1)
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

@@ -205,12 +205,12 @@ SCD41 #2 → Arduino (direct connection)
 ## Changelog
 
 ### v2.0 (January 2026)
-- ✅ Refactored for actual hardware (3 rooms, 8 relays)
-- ✅ Enabled second SCD41 sensor (Software I2C)
-- ✅ Updated relay pin mappings (IN1-IN8)
-- ✅ JSON-based commands (replaced text-based)
-- ✅ Added Device room support
-- ✅ Renamed actuators for clarity
+- Refactored for actual hardware (3 rooms, 8 relays)
+- Enabled second SCD41 sensor (Software I2C)
+- Updated relay pin mappings (IN1-IN8)
+- JSON-based commands (replaced text-based)
+- Added Device room support
+- Renamed actuators for clarity
 
 ### v1.0 (Initial)
 - Single sensor operation

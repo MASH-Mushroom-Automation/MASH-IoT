@@ -306,7 +306,7 @@ sudo systemctl restart mashiot-orchestrator
 
 ## Success Criteria
 
-✅ **System is ready for production when:**
+**System is ready for production when:**
 1. All 3 status indicators show correct state (Arduino, Backend, Uptime)
 2. Uptime increments every minute without page refresh
 3. Actuators respond to thresholds with hysteresis (no rapid cycling)

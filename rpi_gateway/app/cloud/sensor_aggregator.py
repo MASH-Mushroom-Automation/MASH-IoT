@@ -191,11 +191,11 @@ class SensorAggregator:
                     self.device_id, room, year_month, day, hour_key, data
                 )
                 logger.info(
-                    "[AGG] ✅ Final flush: %s %s (%d samples)",
+                    "[AGG] Final flush: %s %s (%d samples)",
                     room, label, data.get("sample_count", 0),
                 )
             except Exception as exc:
-                logger.error("[AGG] ❌ Final flush failed: %s %s: %s", room, label, exc)
+                logger.error("[AGG] Final flush failed: %s %s: %s", room, label, exc)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -218,11 +218,11 @@ class SensorAggregator:
                 self.device_id, room, year_month, day, hour_key, data
             )
             logger.info(
-                "[AGG] ✅ Flushed %s %s/%s/%s (%d samples)",
+                "[AGG] Flushed %s %s/%s/%s (%d samples)",
                 room, year_month, day, hour_key, data.get("sample_count", 0),
             )
         except Exception as exc:
             logger.error(
-                "[AGG] ❌ Flush failed %s %s/%s/%s: %s",
+                "[AGG] Flush failed %s %s/%s/%s: %s",
                 room, year_month, day, hour_key, exc,
             )

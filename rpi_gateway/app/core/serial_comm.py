@@ -208,10 +208,10 @@ class ArduinoSerialComm:
             # self.serial_conn.flush()  # Removed to prevent blocking on slow serial
             
             self.last_write_time = time.time()  # Update heartbeat timer
-            logger.info(f"[SERIAL] ✅ Sent command: {command}")
+            logger.info(f"[SERIAL] Sent command: {command}")
             return True
         except Exception as e:
-            logger.error(f"[SERIAL] ❌ Failed to send command '{command}': {e}")
+            logger.error(f"[SERIAL] Failed to send command '{command}': {e}")
             return False
     
     def restore_relay_states(self) -> bool:
@@ -238,7 +238,7 @@ class ArduinoSerialComm:
             else:
                 logger.warning(f"[RECOVERY] Failed to restore {actuator} = {state}")
         
-        logger.info(f"[RECOVERY] ✅ Restored {success_count}/{len(self.last_relay_states)} relay states")
+        logger.info(f"[RECOVERY] Restored {success_count}/{len(self.last_relay_states)} relay states")
         return success_count == len(self.last_relay_states)
     
     def read_line(self) -> Optional[str]:

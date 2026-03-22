@@ -5,7 +5,7 @@ System is stuck at a "Loading Screen" and won't show the dashboard.
 
 ## Possible Causes & Solutions
 
-### 1. ✅ Flask Service Not Running
+### 1. Flask Service Not Running
 
 **Check if service is running:**
 ```bash
@@ -36,7 +36,7 @@ sudo journalctl -u mash-iot -n 50
 
 ---
 
-### 2. ✅ Port 5000 Not Accessible
+### 2. Port 5000 Not Accessible
 
 **Check if Flask is listening:**
 ```bash
@@ -62,7 +62,7 @@ sudo systemctl restart mash-iot
 
 ---
 
-### 3. ✅ Browser Cache Issue
+### 3. Browser Cache Issue
 
 **Clear Chromium cache:**
 ```bash
@@ -79,7 +79,7 @@ sudo reboot
 
 ---
 
-### 4. ✅ JavaScript Error
+### 4. JavaScript Error
 
 **Check browser console (if accessible):**
 - Press `F12` to open developer tools
@@ -98,7 +98,7 @@ Should return JavaScript code, not an error.
 
 ---
 
-### 5. ✅ Kiosk Configuration Issue
+### 5. Kiosk Configuration Issue
 
 **Check if kiosk is pointing to correct URL:**
 ```bash
@@ -120,7 +120,7 @@ sudo reboot
 
 ---
 
-### 6. ✅ Network/WiFi Issue
+### 6. Network/WiFi Issue
 
 **Check WiFi connection:**
 ```bash
@@ -143,7 +143,7 @@ ping -c 3 8.8.8.8
 
 ---
 
-### 7. ✅ Database Lock or File Permission Issue
+### 7. Database Lock or File Permission Issue
 
 **Check file permissions:**
 ```bash

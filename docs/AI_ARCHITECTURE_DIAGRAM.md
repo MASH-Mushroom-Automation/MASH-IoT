@@ -195,7 +195,7 @@ DATA FLOW EXAMPLE:
 2. Isolation Forest (Stage 1)
    Input: [22.5, 83, 950]
    Output: prediction = 1 (NORMAL, not anomaly)
-   ✅ Data valid, proceed to Stage 2
+   Data valid, proceed to Stage 2
 
 3. Trend Analysis
    Last 3 readings: [82%, 82.8%, 83%]
@@ -204,7 +204,7 @@ DATA FLOW EXAMPLE:
 4. Decision Logic
    Current: 83% < 85% (target min)
    Cycle: not active
-   ✅ START CYCLE
+   START CYCLE
 
 5. State Machine → MIST Phase
    Command: {"actuator": "mist_maker", "state": "ON"}
@@ -219,7 +219,7 @@ DATA FLOW EXAMPLE:
    Humidity: 90.2%, Rate: 0.28%/s
    Predicted: 90.2 + (0.28 × 15) = 94.4%
    Safety: 94.4% > (95% max)
-   ✅ STOP CYCLE (prevent overshoot)
+   STOP CYCLE (prevent overshoot)
 
 8. Result
    Final humidity: 91.0% (in 85-95% range)
@@ -239,7 +239,7 @@ Time │ Phase    │ Mist  │ Fan   │ Humidity │ Decision
 30s  │ MIST     │ ON    │ OFF   │  89.5%   │ Misting...
 35s  │ FAN      │ OFF   │ ON    │  90.2%   │ Rate=0.28%/s, predict 94.4%
 36s  │ IDLE     │ OFF   │ OFF   │  90.4%   │ Stopped, will overshoot
-45s  │ IDLE     │ OFF   │ OFF   │  91.0%   │ ✅ Stable in range
+45s  │ IDLE     │ OFF   │ OFF   │  91.0%   │ Stable in range
 
 ═══════════════════════════════════════════════════════════════════════════════
 ```

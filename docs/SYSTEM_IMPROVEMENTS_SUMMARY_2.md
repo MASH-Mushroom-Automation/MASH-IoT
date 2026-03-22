@@ -393,11 +393,11 @@ auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
 
 ## Summary of Improvements
 
-✅ **Dynamic condition monitoring** - Accurately reflects system status  
-✅ **Control locking** - Prevents manual interference with automation  
-✅ **Toast notifications** - Clear user feedback  
-✅ **ML system verification** - Comprehensive status display  
-✅ **Enhanced alerts** - Better visualization and statistics  
-✅ **Proper integration** - All components properly connected  
+**Dynamic condition monitoring** - Accurately reflects system status  
+**Control locking** - Prevents manual interference with automation  
+**Toast notifications** - Clear user feedback  
+**ML system verification** - Comprehensive status display  
+**Enhanced alerts** - Better visualization and statistics  
+**Proper integration** - All components properly connected  
 
 The M.A.S.H. IoT system now provides reliable, intelligent, and user-friendly mushroom cultivation automation! 🍄

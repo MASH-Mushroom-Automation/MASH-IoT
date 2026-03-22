@@ -121,12 +121,12 @@ def ensure_connectivity(self):
             logger.info("[WIFI] Starting provisioning hotspot...")
             success = self.start_hotspot()
             if success:
-                logger.info("[WIFI] ✅ Hotspot started successfully")
+                logger.info("[WIFI] Hotspot started successfully")
             else:
-                logger.error("[WIFI] ❌ Failed to start hotspot")
+                logger.error("[WIFI] Failed to start hotspot")
     else:
         current_ssid = self.get_current_ssid()
-        logger.info(f"[WIFI] ✅ Connected to '{current_ssid}'")
+        logger.info(f"[WIFI] Connected to '{current_ssid}'")
 ```
 
 ---
@@ -470,13 +470,13 @@ Future<List<Map<String, dynamic>>> scanWiFiNetworks(String deviceIp) async {
           .map((n) => n as Map<String, dynamic>)
           .toList();
       
-      Logger.info('✅ Found ${networks.length} networks from device');
+      Logger.info('Found ${networks.length} networks from device');
       return networks;
     } else {
       throw Exception('Failed to scan networks: ${response.data['error']}');
     }
   } catch (e) {
-    Logger.error('❌ Network scan from device failed', e);
+    Logger.error('Network scan from device failed', e);
     throw Exception('Failed to scan networks from device: $e');
   }
 }

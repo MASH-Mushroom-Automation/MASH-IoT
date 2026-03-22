@@ -27,7 +27,7 @@ def test_connection():
     # Attempt connection with auto-detection
     print("\nConnecting to Arduino...")
     if not arduino.connect(auto_detect=True):
-        print("❌ Connection failed!")
+        print("Connection failed!")
         print("\nTroubleshooting:")
         print("  1. Run: python3 scripts/find_arduino.py")
         print("  2. Check Arduino is powered on")
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         success = test_connection()
         sys.exit(0 if success else 1)
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

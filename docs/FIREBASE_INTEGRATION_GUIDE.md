@@ -113,9 +113,9 @@ FIREBASE_CONFIG_PATH=config/firebase_config.json
 ### 2. Mobile App Firebase Setup
 
 **Already configured!** Your mobile app has:
-- ✅ Firebase initialized in `lib/main.dart`
-- ✅ Database URL configured in `lib/firebase_options.dart`
-- ✅ Google Services JSON added
+- Firebase initialized in `lib/main.dart`
+- Database URL configured in `lib/firebase_options.dart`
+- Google Services JSON added
 
 **Add Firebase Realtime Database package:**
 ```yaml
@@ -135,10 +135,10 @@ flutter pub get
 ### RPi: Enhanced Firebase Sync
 
 The RPi code in `app/cloud/firebase.py` already implements:
-- ✅ Firebase initialization with Admin SDK
-- ✅ Sensor data upload to `/sensor_data/{room}/{timestamp}`
-- ✅ Device status tracking
-- ✅ Configuration retrieval
+- Firebase initialization with Admin SDK
+- Sensor data upload to `/sensor_data/{room}/{timestamp}`
+- Device status tracking
+- Configuration retrieval
 
 **How data flows:**
 1. Arduino sends JSON → Serial → RPi
@@ -539,11 +539,11 @@ def cleanup_old_data(self, device_id: str, days_to_keep: int = 1):
 
 | Action | Use Firebase | Use MQTT | Use Backend API |
 |--------|-------------|----------|-----------------|
-| View live sensor data | ✅ Primary | ❌ | ❌ |
-| Send actuator command (Fan ON) | ❌ | ✅ Primary | ✅ Fallback |
-| View historical data | ❌ | ❌ | ✅ Primary |
-| Device status updates | ✅ | ✅ | ✅ |
-| User authentication | ❌ | ❌ | ✅ Primary |
+| View live sensor data | Primary | | |
+| Send actuator command (Fan ON) | | Primary | Fallback |
+| View historical data | | | Primary |
+| Device status updates | | | |
+| User authentication | | | Primary |
 
 **Combined flow for actuator control:**
 
@@ -572,11 +572,11 @@ Future<void> turnOnFan(String deviceId) async {
 
 ## Next Steps
 
-1. ✅ **RPi Setup**: Install firebase-admin, add config file
-2. ✅ **Mobile App**: Add firebase_database package
-3. ✅ **Create Service**: Implement `FirebaseRealtimeService`
-4. ✅ **Update Provider**: Enhance `SensorProvider` with Firebase listener
-5. ✅ **Dashboard**: Wire up real-time data display
+1. **RPi Setup**: Install firebase-admin, add config file
+2. **Mobile App**: Add firebase_database package
+3. **Create Service**: Implement `FirebaseRealtimeService`
+4. **Update Provider**: Enhance `SensorProvider` with Firebase listener
+5. **Dashboard**: Wire up real-time data display
 6. ⚠️ **Security Rules**: Configure Firebase access control
 7. ⚠️ **Testing**: Verify end-to-end data flow
 8. ⚠️ **Monitoring**: Set up Firebase Analytics

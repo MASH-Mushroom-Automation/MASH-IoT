@@ -2,7 +2,7 @@
 
 ## Issues Found
 
-### 1. ✅ FIXED: MushroomAI Method Signature Error
+### 1. FIXED: MushroomAI Method Signature Error
 **Error:** `MushroomAI.process_sensor_reading() takes 2 positional arguments but 3 were given`
 
 **Problem:**
@@ -45,14 +45,14 @@ commands = self.ai.process_sensor_reading(valid_rooms)
 ## Current Status
 
 ### Arduino Firmware
-✅ **Already supports both sensors!**
+**Already supports both sensors!**
 - Reads Sensor 1 (Fruiting) via Hardware I2C
 - Reads Sensor 2 (Spawning) via Software I2C OR multiplexer
 - Sends JSON with both rooms: `{"fruiting": {...}, "spawning": {...}}`
 - Sends `"error": "invalid_reading"` when sensor fails validation
 
 ### Raspberry Pi Gateway  
-✅ **Now properly handles two sensors!**
+**Now properly handles two sensors!**
 - Parses JSON with both fruiting and spawning rooms
 - Room-specific data access: `arduino.get_fruiting_room_data()`
 - Filters out invalid readings before automation
@@ -207,10 +207,10 @@ Then the Arduino is sending `"error": "invalid_reading"` for both sensors.
 
 | Issue | Status | Action Required |
 |-------|--------|-----------------|
-| MushroomAI signature error | ✅ Fixed | None - already updated |
+| MushroomAI signature error | Fixed | None - already updated |
 | Invalid sensor readings | ⚠️ To fix | Connect multiplexer to Arduino |
-| Auto-reconnect | ✅ Fixed | None - working |
-| Room-specific data | ✅ Ready | None - already implemented |
+| Auto-reconnect | Fixed | None - working |
+| Room-specific data | Ready | None - already implemented |
 
 **Next steps:**
 1. Connect multiplexer to Arduino

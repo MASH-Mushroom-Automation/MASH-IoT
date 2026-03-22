@@ -5,7 +5,7 @@ This document summarizes the fixes and improvements made to the MASH IoT system 
 
 ---
 
-## 1. ✅ Removed Intro Page
+## 1. Removed Intro Page
 
 ### Problem
 - Intro video page wasn't working properly
@@ -34,7 +34,7 @@ def index():
 
 ---
 
-## 2. ✅ Fixed Humidifier Cycle Behavior
+## 2. Fixed Humidifier Cycle Behavior
 
 ### Problem
 - **IN1 (Mist Maker)**: Didn't stop at 5s, stayed on continuously
@@ -132,7 +132,7 @@ HUMIDIFIER_FAN_OFF
 
 ---
 
-## 3. ✅ Improved On-Screen Keyboard (OSK) Triggering
+## 3. Improved On-Screen Keyboard (OSK) Triggering
 
 ### Problem
 - OSK doesn't trigger automatically when tapping text inputs
@@ -213,12 +213,12 @@ The `configure_osk.sh` script now:
 
 ## Testing Checklist
 
-### ✅ Intro Page Removal
+### Intro Page Removal
 - [x] System boots directly to dashboard
 - [x] No delay or video loading issues
 - [x] All navigation links work correctly
 
-### ✅ Humidifier System
+### Humidifier System
 - [ ] **Verify Mist Maker (IN1)**:
   - [ ] Turns ON for exactly 10 seconds
   - [ ] Turns OFF after 10 seconds
@@ -245,7 +245,7 @@ The `configure_osk.sh` script now:
   [HUMIDIFIER] Switching: FAN OFF -> MIST ON
   ```
 
-### ✅ On-Screen Keyboard
+### On-Screen Keyboard
 - [ ] Keyboard button visible in navigation bar
 - [ ] Clicking keyboard button toggles OSK visibility
 - [ ] Keyboard appears in proper size (not tiny)

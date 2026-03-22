@@ -20,7 +20,7 @@ echo ""
 
 # 1. Check if source image exists
 if [ ! -f "$LOGO_SOURCE" ]; then
-    echo "❌ Error: Splash image not found at $LOGO_SOURCE"
+    echo "Error: Splash image not found at $LOGO_SOURCE"
     echo "   Time to create one? Or did you move the assets folder?"
     exit 1
 fi

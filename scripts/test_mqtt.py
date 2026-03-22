@@ -60,7 +60,7 @@ def main():
     success = mqtt_client.connect()
 
     if success:
-        logger.info("✅ MQTT CONNECTED SUCCESSFULLY!")
+        logger.info("MQTT CONNECTED SUCCESSFULLY!")
         logger.info(f"📡 Now listening on: devices/{device_id}/commands")
         logger.info("")
         logger.info("=" * 60)
@@ -90,7 +90,7 @@ def main():
         except KeyboardInterrupt:
             logger.info("\n\n🛑 Stopping test...")
     else:
-        logger.error("❌ MQTT CONNECTION FAILED!")
+        logger.error("MQTT CONNECTION FAILED!")
         logger.error("Check:")
         logger.error("  - MQTT credentials in config/.env")
         logger.error("  - Network connectivity")

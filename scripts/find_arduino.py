@@ -17,7 +17,7 @@ def find_arduino_ports():
     ports = serial.tools.list_ports.comports()
     
     if not ports:
-        print("❌ No serial ports found!")
+        print("No serial ports found!")
         print("\nMake sure:")
         print("  • Arduino is plugged into USB port")
         print("  • USB cable supports data transfer (not power-only)")
@@ -59,7 +59,7 @@ def find_arduino_ports():
         return arduino_ports[0]
     else:
         print("=" * 60)
-        print("❌ No Arduino devices detected")
+        print("No Arduino devices detected")
         print("\nAvailable ports might be:")
         print("  • USB-to-Serial adapters")
         print("  • Bluetooth devices")

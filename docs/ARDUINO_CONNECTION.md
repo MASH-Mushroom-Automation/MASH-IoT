@@ -363,11 +363,11 @@ def system_status():
 
 ## Next Steps
 
-1. ✅ Connect multiplexer to Arduino (SDA→A4, SCL→A5)
-2. ✅ Upload firmware with `#define USE_MULTIPLEXER`
-3. ✅ Run `python3 scripts/find_arduino.py` on RPi
-4. ✅ Run `python3 scripts/test_arduino.py` to verify
-5. ✅ Setup kiosk mode: `bash scripts/setup_kiosk.sh`
-6. ✅ Reboot: `sudo reboot`
+1. Connect multiplexer to Arduino (SDA→A4, SCL→A5)
+2. Upload firmware with `#define USE_MULTIPLEXER`
+3. Run `python3 scripts/find_arduino.py` on RPi
+4. Run `python3 scripts/test_arduino.py` to verify
+5. Setup kiosk mode: `bash scripts/setup_kiosk.sh`
+6. Reboot: `sudo reboot`
 
 Your system will now auto-detect Arduino, auto-reconnect if disconnected, and boot directly to the dashboard!

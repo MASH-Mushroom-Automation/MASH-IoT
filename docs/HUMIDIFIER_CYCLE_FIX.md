@@ -28,9 +28,9 @@ Added special handling in the `/api/control_actuator` endpoint:
 # When user clicks Humidifier System button
 if actuator == 'mist_maker' and room == 'fruiting':
     if state == 'ON':
-        orchestrator.ai.humidifier_cycle.start_cycle()  # ✅ Start the cycle manager
+        orchestrator.ai.humidifier_cycle.start_cycle()  # Start the cycle manager
     else:
-        orchestrator.ai.humidifier_cycle.stop_cycle()   # ✅ Stop the cycle manager
+        orchestrator.ai.humidifier_cycle.stop_cycle()   # Stop the cycle manager
 ```
 
 **Before**: Sent `MIST_MAKER_ON` → Mist stayed on forever
@@ -256,7 +256,7 @@ sudo journalctl -u mash-iot -n 50 | grep HUMIDIFIER
 
 Look for:
 - `[HUMIDIFIER] Starting cycle: MIST phase` ✅
-- `[HUMIDIFIER] Switching: MIST OFF -> FAN ON` ❌ Missing?
+- `[HUMIDIFIER] Switching: MIST OFF -> FAN ON` Missing?
 
 If switching message is missing:
 - Sensor data might not be arriving (check Arduino connection)
@@ -301,10 +301,10 @@ sudo journalctl -u mash-iot -f
 
 The humidifier system now works correctly:
 
-✅ **Manual Mode**: Click button → Cycle starts → 10s mist / 30s fan / repeat → Click OFF → Stops
-✅ **Auto Mode**: Low humidity → Cycle starts → Raises humidity → Stops when target reached
-✅ **Phase Transitions**: Automatically switches between mist and fan phases
-✅ **State Tracking**: UI updates to show current state (ON/OFF)
-✅ **Logging**: All cycle transitions logged for debugging
+**Manual Mode**: Click button → Cycle starts → 10s mist / 30s fan / repeat → Click OFF → Stops
+**Auto Mode**: Low humidity → Cycle starts → Raises humidity → Stops when target reached
+**Phase Transitions**: Automatically switches between mist and fan phases
+**State Tracking**: UI updates to show current state (ON/OFF)
+**Logging**: All cycle transitions logged for debugging
 
 The key insight: **Don't send raw actuator commands - control the cycle manager instead!**

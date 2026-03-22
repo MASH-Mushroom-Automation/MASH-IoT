@@ -426,9 +426,9 @@ def wifi_disconnect():
             logger.info("[WIFI] Starting provisioning hotspot...")
             success = wifi_manager.start_hotspot()
             if success:
-                logger.info("[WIFI] ✅ Hotspot started successfully")
+                logger.info("[WIFI] Hotspot started successfully")
             else:
-                logger.error("[WIFI] ❌ Failed to start hotspot")
+                logger.error("[WIFI] Failed to start hotspot")
         
         thread = threading.Thread(target=start_hotspot_delayed)
         thread.daemon = True

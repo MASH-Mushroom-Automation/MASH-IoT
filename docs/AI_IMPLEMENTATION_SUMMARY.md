@@ -115,24 +115,24 @@ AI stops cycle when:
 
 ## 🎯 Key Features
 
-### ✅ Smart Starting
+### Smart Starting
 - Monitors humidity continuously
 - Starts cycle when humidity drops below 85%
 - Logs start event with current humidity
 
-### ✅ Predictive Stopping
+### Predictive Stopping
 - Calculates humidity rate of change
 - Predicts humidity 15 seconds ahead
 - Stops before reaching maximum threshold
 - Prevents overshoot with 2% safety margin
 
-### ✅ Phase Management
+### Phase Management
 - Automatic mist (5s) → fan (10s) transitions
 - No sleep/delay between phases (immediate switching)
 - State persistence across cycles
 - Real-time phase monitoring API
 
-### ✅ Safety Features
+### Safety Features
 - Emergency stop at 95% humidity
 - Critical stop at 97% humidity
 - Anomaly detection (Isolation Forest)
@@ -172,7 +172,7 @@ Time: 35s | Humidity: 90.2% | Status: FAN phase
 
 Time: 40s | Humidity: 91.0% | Status: IDLE
           | All OFF
-          | Result: ✅ Maintained in 85-95% range
+          | Result: Maintained in 85-95% range
 ```
 
 ---
@@ -205,26 +205,26 @@ Time: 40s | Humidity: 91.0% | Status: IDLE
 ### Manual Tests
 
 - [ ] **Test 1:** Humidity drops to 83%
-  - ✅ Cycle starts automatically
-  - ✅ Mist phase lasts ~5 seconds
-  - ✅ Fan phase lasts ~10 seconds
-  - ✅ Cycle repeats continuously
+  - Cycle starts automatically
+  - Mist phase lasts ~5 seconds
+  - Fan phase lasts ~10 seconds
+  - Cycle repeats continuously
 
 - [ ] **Test 2:** Humidity reaches 90% during cycle
-  - ✅ AI calculates trend
-  - ✅ Predicts overshoot
-  - ✅ Stops cycle proactively
-  - ✅ Humidity stabilizes at 90-93%
+  - AI calculates trend
+  - Predicts overshoot
+  - Stops cycle proactively
+  - Humidity stabilizes at 90-93%
 
 - [ ] **Test 3:** Humidity spikes to 96%
-  - ✅ Emergency stop triggered
-  - ✅ Cycle stops immediately
-  - ✅ Warning logged
+  - Emergency stop triggered
+  - Cycle stops immediately
+  - Warning logged
 
 - [ ] **Test 4:** Sensor fault (humidity = 150%)
-  - ✅ Isolation Forest detects anomaly
-  - ✅ Actuation skipped
-  - ✅ System remains safe
+  - Isolation Forest detects anomaly
+  - Actuation skipped
+  - System remains safe
 
 ### Automated Tests
 
@@ -349,7 +349,7 @@ def _predict_humidity_overshoot():
 
 ---
 
-## ✅ Implementation Checklist
+## Implementation Checklist
 
 - [x] Create HumidifierCycleManager class
 - [x] Implement state machine (idle/mist/fan)
@@ -360,7 +360,7 @@ def _predict_humidity_overshoot():
 - [x] Write documentation
 - [x] Create testing guide
 
-**Status:** ✅ **COMPLETE - READY FOR DEPLOYMENT**
+**Status:** **COMPLETE - READY FOR DEPLOYMENT**
 
 ---
 

@@ -82,7 +82,7 @@ def test_alerts():
     ack_alert = next(a for a in active_after_ack if a['id'] == alert_id)
     assert ack_alert['is_acknowledged'] == 1, "Alert should be acknowledged"
     
-    logger.info("✅ ALL TESTS PASSED")
+    logger.info("ALL TESTS PASSED")
     
     db.disconnect()
     # Cleanup

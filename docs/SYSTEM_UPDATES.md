@@ -4,11 +4,11 @@
 
 ### 🎯 Key Improvements
 
-1. **✅ Multiplexer Support Enabled**
-2. **✅ Arduino Auto-Detection**
-3. **✅ Auto-Reconnect on Disconnect**
-4. **✅ Room-Specific Data Access**
-5. **✅ Direct Kiosk Boot (No Desktop)**
+1. **Multiplexer Support Enabled**
+2. **Arduino Auto-Detection**
+3. **Auto-Reconnect on Disconnect**
+4. **Room-Specific Data Access**
+5. **Direct Kiosk Boot (No Desktop)**
 
 ---
 
@@ -40,10 +40,10 @@ TCA9548A Multiplexer:
 ```
 
 ### Benefits
-- ✅ Single I2C bus (no SoftWire overhead)
-- ✅ More stable communication
-- ✅ 6 additional channels for expansion
-- ✅ Backward compatible (works without multiplexer)
+- Single I2C bus (no SoftWire overhead)
+- More stable communication
+- 6 additional channels for expansion
+- Backward compatible (works without multiplexer)
 
 ---
 
@@ -212,7 +212,7 @@ Found 2 serial port(s):
        Description: Serial Port
        Hardware ID: ...
 ======================================================
-✅ Found 1 Arduino device(s):
+Found 1 Arduino device(s):
    /dev/ttyACM0
 ======================================================
 ```
@@ -301,11 +301,11 @@ python3 -m app.main
 ```
 
 **The system will:**
-- ✅ Auto-detect Arduino port
-- ✅ Connect and start listening
-- ✅ Auto-reconnect if disconnected
-- ✅ Provide room-specific data
-- ✅ Start web dashboard on port 5000
+- Auto-detect Arduino port
+- Connect and start listening
+- Auto-reconnect if disconnected
+- Provide room-specific data
+- Start web dashboard on port 5000
 
 ### Step 5: Setup Kiosk Mode (Optional)
 ```bash
@@ -314,9 +314,9 @@ sudo reboot
 ```
 
 **After reboot:**
-- ✅ Backend starts automatically
-- ✅ Dashboard opens in fullscreen
-- ✅ No desktop environment loaded
+- Backend starts automatically
+- Dashboard opens in fullscreen
+- No desktop environment loaded
 
 ---
 
@@ -404,21 +404,21 @@ journalctl -u mash-kiosk -n 50
 ## 📝 File Changes Summary
 
 ### Modified Files
-1. ✅ `arduino_firmware/src/sensors.cpp` - Enabled multiplexer
-2. ✅ `rpi_gateway/app/core/serial_comm.py` - Added auto-detect & reconnect
-3. ✅ `scripts/setup_kiosk.sh` - Direct kiosk boot
+1. `arduino_firmware/src/sensors.cpp` - Enabled multiplexer
+2. `rpi_gateway/app/core/serial_comm.py` - Added auto-detect & reconnect
+3. `scripts/setup_kiosk.sh` - Direct kiosk boot
 
 ### New Files Created
-1. ✅ `scripts/find_arduino.py` - Port scanner
-2. ✅ `scripts/test_arduino.py` - Connection tester
-3. ✅ `scripts/run_kiosk_x.sh` - X session script (auto-generated)
-4. ✅ `scripts/README.md` - Script documentation
-5. ✅ `docs/ARDUINO_CONNECTION.md` - Complete connection guide
-6. ✅ `docs/SYSTEM_UPDATES.md` - This file
+1. `scripts/find_arduino.py` - Port scanner
+2. `scripts/test_arduino.py` - Connection tester
+3. `scripts/run_kiosk_x.sh` - X session script (auto-generated)
+4. `scripts/README.md` - Script documentation
+5. `docs/ARDUINO_CONNECTION.md` - Complete connection guide
+6. `docs/SYSTEM_UPDATES.md` - This file
 
 ---
 
-## ✅ Testing Checklist
+## Testing Checklist
 
 - [ ] Arduino firmware uploaded with multiplexer enabled
 - [ ] Multiplexer connected (SDA→A4, SCL→A5)

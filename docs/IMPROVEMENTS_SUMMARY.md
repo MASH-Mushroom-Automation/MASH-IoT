@@ -2,11 +2,11 @@
 
 ## Overview
 This update implements 5 major improvements to the M.A.S.H. IoT system:
-1. ✅ Backend online status with connection check
-2. ✅ Uptime tracking and display
-3. ✅ Optimized actuation control with hysteresis
-4. ✅ Fixed navigation bar icon positioning
-5. ✅ Alerts system with database persistence
+1. Backend online status with connection check
+2. Uptime tracking and display
+3. Optimized actuation control with hysteresis
+4. Fixed navigation bar icon positioning
+5. Alerts system with database persistence
 
 ## Changes Made
 

@@ -290,8 +290,8 @@ sudo reboot
 
 ## Summary
 
-✅ **OSK Fixed**: Now only shows when text input is focused, appears at bottom with proper size
-✅ **Visual Indicators Enhanced**: Actuator ON state now has bright green background, glowing effect, and prominent badge
-✅ **Production Ready**: Both features tested and ready for deployment
+**OSK Fixed**: Now only shows when text input is focused, appears at bottom with proper size
+**Visual Indicators Enhanced**: Actuator ON state now has bright green background, glowing effect, and prominent badge
+**Production Ready**: Both features tested and ready for deployment
 
 The UI now provides clear visual feedback that's easily noticeable from a distance, making it suitable for touchscreen kiosk deployment in mushroom growing environments.

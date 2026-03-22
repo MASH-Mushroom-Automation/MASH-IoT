@@ -69,11 +69,11 @@ Git tracks file permissions, but GitHub doesn't preserve the `+x` (execute) bit 
 
 ## Files Updated
 
-1. ✅ `scripts/fix_permissions.sh` - **NEW** - One-command fix
-2. ✅ `scripts/setup_kiosk.sh` - Now sets permissions at start
-3. ✅ `scripts/install_dependencies.sh` - Added step [7/7] for permissions
-4. ✅ `docs/RASPBERRY_PI_SETUP.md` - **NEW** - Complete setup guide with permission fix
-5. ✅ `README.md` - Added quick start with permission fix command
+1. `scripts/fix_permissions.sh` - **NEW** - One-command fix
+2. `scripts/setup_kiosk.sh` - Now sets permissions at start
+3. `scripts/install_dependencies.sh` - Added step [7/7] for permissions
+4. `docs/RASPBERRY_PI_SETUP.md` - **NEW** - Complete setup guide with permission fix
+5. `README.md` - Added quick start with permission fix command
 
 ## Testing Your Fix
 
@@ -87,7 +87,7 @@ Git tracks file permissions, but GitHub doesn't preserve the `+x` (execute) bit 
 ```bash
 bash scripts/fix_permissions.sh
 ./scripts/find_arduino.py
-# ✅ Scans for Arduino...
+# Scans for Arduino...
 ```
 
 ## Systemd Service Files

@@ -17,15 +17,15 @@ The intro.html had **duplicate code**:
 ```javascript
 // First set of listeners (wrong redirect)
 video.addEventListener('ended', function() {
-    window.location.href = '/';  // ❌ Redirects back to intro!
+    window.location.href = '/';  // Redirects back to intro!
 });
 setTimeout(function() {
-    window.location.href = '/';  // ❌ Also redirects to intro!
+    window.location.href = '/';  // Also redirects to intro!
 }, 10000);
 
 // Second set of listeners (correct redirect)
 video.addEventListener('ended', () => {
-    redirectToDashboard();  // ✅ Redirects to /dashboard
+    redirectToDashboard();  // Redirects to /dashboard
 });
 setTimeout(() => {
     redirectToDashboard();
@@ -56,11 +56,11 @@ setTimeout(redirectToDashboard, 10000); // 10 seconds (9s video + 1s buffer)
 ```
 
 **Changes:**
-- ✅ Removed duplicate `addEventListener('ended')` calls
-- ✅ Removed duplicate `setTimeout()` calls
-- ✅ Single redirect target: `/dashboard` (not `/`)
-- ✅ Clean function definition for `redirectToDashboard()`
-- ✅ SessionStorage flag set for future improvements
+- Removed duplicate `addEventListener('ended')` calls
+- Removed duplicate `setTimeout()` calls
+- Single redirect target: `/dashboard` (not `/`)
+- Clean function definition for `redirectToDashboard()`
+- SessionStorage flag set for future improvements
 
 ---
 
@@ -76,7 +76,7 @@ setTimeout(redirectToDashboard, 10000); // 10 seconds (9s video + 1s buffer)
 The `/controls` route was **hardcoding all actuator states to `False`** instead of reading from the persisted config:
 
 ```python
-# ❌ BEFORE (hardcoded states)
+# BEFORE (hardcoded states)
 fruiting_actuators = {
     'mist_maker': False,           # Always False!
     'humidifier_fan': False,       # Always False!
@@ -95,7 +95,7 @@ Even though the `control_actuator` API was correctly saving states to `current_a
 Modified `/controls` route to read actual states from config:
 
 ```python
-# ✅ AFTER (read from config)
+# AFTER (read from config)
 # Get current actuator states from config
 actuator_states = current_app.config.get('ACTUATOR_STATES', {})
 
@@ -114,7 +114,7 @@ fruiting_actuators = {
 **Also updated main.py** to include proper actuator names:
 
 ```python
-# ✅ Updated actuator names to match UI
+# Updated actuator names to match UI
 self.app.config['ACTUATOR_STATES'] = {
     'fruiting': {
         'mist_maker': False,        # Was: 'humidifier'
@@ -179,16 +179,16 @@ self.app.config['ACTUATOR_STATES'] = {
                    ▼
 ┌─────────────────────────────────────────────────┐
 │  routes.py: controls()                          │
-│  ✅ NOW reads from config:                      │
+│  NOW reads from config:                      │
 │     actuator_states = current_app.config.get()  │
 │     fruiting_room_states.get('mist_maker')      │
-│  ✅ Returns: True (state preserved!)            │
+│  Returns: True (state preserved!)            │
 └──────────────────┬──────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────┐
 │  controls.html renders card with state="on"     │
-│  ✅ Actuator still shows ON                     │
+│  Actuator still shows ON                     │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -240,7 +240,7 @@ This ensures:
 
 ---
 
-## ✅ Testing Checklist
+## Testing Checklist
 
 ### Test Intro Fix
 - [x] Navigate to http://raspberrypi.local:5000/
@@ -257,7 +257,7 @@ This ensures:
 - [x] Card shows "ON" status
 - [x] Navigate to /dashboard
 - [x] Return to /controls
-- [x] ✅ Mist Maker still shows "ON"
+- [x] Mist Maker still shows "ON"
 
 **Test 2: Multiple Actuators**
 - [x] Turn Mist Maker ON
@@ -265,19 +265,19 @@ This ensures:
 - [x] Turn Exhaust Fan ON
 - [x] Navigate to /wifi_setup
 - [x] Return to /controls
-- [x] ✅ All three actuators still show "ON"
+- [x] All three actuators still show "ON"
 
 **Test 3: Mixed States**
 - [x] Mist Maker: ON
 - [x] Humidifier Fan: OFF
 - [x] Exhaust Fan: ON
 - [x] Navigate away and return
-- [x] ✅ States preserved correctly
+- [x] States preserved correctly
 
 **Test 4: After Page Refresh** (Note: States will reset on server restart)
 - [x] Set actuators to various states
 - [x] Press F5 to refresh page
-- [x] ✅ States preserved (uses polling)
+- [x] States preserved (uses polling)
 
 ---
 
@@ -308,11 +308,11 @@ This ensures:
 ### State Persistence Duration
 **Actuator states persist ONLY while Flask server is running.**
 
-- ✅ Survives page navigation
-- ✅ Survives page refresh (F5)
-- ✅ Survives browser close/reopen (if server still running)
-- ❌ Lost on server restart
-- ❌ Not saved to disk/database
+- Survives page navigation
+- Survives page refresh (F5)
+- Survives browser close/reopen (if server still running)
+- Lost on server restart
+- Not saved to disk/database
 
 **Future Enhancement:**
 To persist across restarts, implement state saving to:
@@ -335,11 +335,11 @@ If missing:
 
 | Component | Before | After | Status |
 |-----------|--------|-------|--------|
-| Intro Page | Infinite loop | Plays once → dashboard | ✅ Fixed |
-| Video Playback | Broken | Works | ✅ Fixed |
-| Actuator States | Lost on navigation | Persisted | ✅ Fixed |
-| State Polling | Working but overridden | Syncs correctly | ✅ Fixed |
-| Device Room | Missing | Added | ✅ Fixed |
+| Intro Page | Infinite loop | Plays once → dashboard | Fixed |
+| Video Playback | Broken | Works | Fixed |
+| Actuator States | Lost on navigation | Persisted | Fixed |
+| State Polling | Working but overridden | Syncs correctly | Fixed |
+| Device Room | Missing | Added | Fixed |
 
 ---
 
@@ -421,7 +421,7 @@ curl http://localhost:5000/api/actuator_states | jq
 
 ---
 
-**Status:** ✅ **FIXED - READY FOR DEPLOYMENT**
+**Status:** **FIXED - READY FOR DEPLOYMENT**
 
 **Fixed by:** GitHub Copilot  
 **Tested:** Pending  

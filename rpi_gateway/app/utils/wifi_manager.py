@@ -482,9 +482,9 @@ def ensure_connectivity():
             print("[WIFI] Starting provisioning hotspot...")
             success = start_hotspot()
             if success:
-                print("[WIFI] ✅ Hotspot started successfully")
+                print("[WIFI] Hotspot started successfully")
             else:
-                print("[WIFI] ❌ Failed to start hotspot")
+                print("[WIFI] Failed to start hotspot")
     else:
         current_ssid = get_current_network()
-        print(f"[WIFI] ✅ Connected to '{current_ssid}'")
+        print(f"[WIFI] Connected to '{current_ssid}'")

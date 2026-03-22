@@ -57,7 +57,7 @@ http://localhost:5000/dashboard
 
 ## Testing Checklist
 
-### ✅ Arduino Communication
+### Arduino Communication
 1. Check logs for "Connected to Arduino"
 2. Verify sensor data appears every 5 seconds:
    ```
@@ -65,13 +65,13 @@ http://localhost:5000/dashboard
    ```
 3. Dashboard should show live readings
 
-### ✅ Manual Control
+### Manual Control
 1. Navigate to Controls page: `http://localhost:5000/controls`
 2. Toggle any actuator switch
 3. Check Arduino serial monitor for relay activation
 4. Verify relay clicks (if hardware connected)
 
-### ✅ Backend Integration
+### Backend Integration
 1. Check logs for "Device registered"
 2. Dashboard status bar should show:
    - Arduino: Connected (green)
@@ -297,9 +297,9 @@ rpi_gateway/
 
 ## Next Steps
 
-1. ✅ Get basic system running
-2. ✅ Verify Arduino communication
-3. ✅ Test manual controls
+1. Get basic system running
+2. Verify Arduino communication
+3. Test manual controls
 4. 📊 Collect baseline data (1 week)
 5. 🤖 Train ML models
 6. 🚀 Deploy to production

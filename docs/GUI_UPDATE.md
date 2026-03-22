@@ -210,10 +210,10 @@ Raspberry Pi / Arduino
 **Fallback Guarantee**: If multiplexer not detected, system automatically uses SoftWire mode.
 
 ### Benefits
-✅ Both sensors on reliable Hardware I2C  
-✅ Frees up GPIO pins (D10/D11)  
-✅ Up to 8 sensors supported (expansion)  
-✅ No code changes needed - just hardware swap
+Both sensors on reliable Hardware I2C  
+Frees up GPIO pins (D10/D11)  
+Up to 8 sensors supported (expansion)  
+No code changes needed - just hardware swap
 
 ---
 
@@ -345,9 +345,9 @@ controller.start()
 **New**: Timed interval & clock-based fans
 
 ### Backward Compatibility
-✅ Arduino firmware unchanged (except multiplexer prep)  
-✅ Old routes still work (`/api/control_actuator`)  
-✅ Config fallbacks to defaults if keys missing
+Arduino firmware unchanged (except multiplexer prep)  
+Old routes still work (`/api/control_actuator`)  
+Config fallbacks to defaults if keys missing
 
 ---
 
@@ -383,11 +383,11 @@ controller.start()
 
 ## Summary
 
-✅ **Grid Card UI** - Modern, touch-friendly controls  
-✅ **Auto Control** - Toggle between manual/automatic modes  
-✅ **Passive Fans** - Interval & clock-based exhaust control  
-✅ **Flush Mode** - Emergency CO2 override for spawning room  
-✅ **Multiplexer Ready** - Easy upgrade path for dual sensors  
-✅ **3-Room Support** - Fruiting, Spawning, Device rooms  
+**Grid Card UI** - Modern, touch-friendly controls  
+**Auto Control** - Toggle between manual/automatic modes  
+**Passive Fans** - Interval & clock-based exhaust control  
+**Flush Mode** - Emergency CO2 override for spawning room  
+**Multiplexer Ready** - Easy upgrade path for dual sensors  
+**3-Room Support** - Fruiting, Spawning, Device rooms  
 
 **Next Steps**: Test UI, integrate passive fan controller into main orchestrator, order TCA9548A multiplexer!

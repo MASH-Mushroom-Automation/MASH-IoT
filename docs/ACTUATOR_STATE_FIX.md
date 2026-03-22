@@ -134,12 +134,12 @@ Added green keyboard icon button in top navigation:
 3. **Hide:** Click away from the keyboard or press the close button
 
 ### Keyboard Features:
-- ✅ Full QWERTY layout
-- ✅ Numbers and symbols
-- ✅ Shift/Caps Lock
-- ✅ Backspace, Enter, Space
-- ✅ Touch-friendly large keys
-- ✅ Extended layout for special characters
+- Full QWERTY layout
+- Numbers and symbols
+- Shift/Caps Lock
+- Backspace, Enter, Space
+- Touch-friendly large keys
+- Extended layout for special characters
 
 ---
 
@@ -328,9 +328,9 @@ Frontend: Update all cards to match server state
 
 ## Summary
 
-✅ **Fixed actuator state tracking** - UI now reflects actual relay states
-✅ **Added on-screen keyboard** - Full text input support for kiosk mode
-✅ **Keyboard toggle button** - Easy access from any page
-✅ **Auto-show keyboard** - Appears when clicking text inputs
+**Fixed actuator state tracking** - UI now reflects actual relay states
+**Added on-screen keyboard** - Full text input support for kiosk mode
+**Keyboard toggle button** - Easy access from any page
+**Auto-show keyboard** - Appears when clicking text inputs
 
 Both issues are now resolved. The system maintains proper state synchronization between Arduino hardware, Python backend, and web frontend.

@@ -131,23 +131,23 @@ class MQTTClient:
 
             # Handle commands
             if topic.endswith('/commands'):
-                logger.info(f"[MQTT] ✅ Command topic detected")
+                logger.info(f"[MQTT] Command topic detected")
                 if self.command_callback:
                     logger.info(f"[MQTT] 🔄 Calling command callback...")
                     self.command_callback(payload)
-                    logger.info(f"[MQTT] ✅ Command callback executed")
+                    logger.info(f"[MQTT] Command callback executed")
                 else:
-                    logger.error("[MQTT] ❌ Received command but NO CALLBACK REGISTERED!")
+                    logger.error("[MQTT] Received command but NO CALLBACK REGISTERED!")
             else:
                 logger.warning(f"[MQTT] ⚠️ Unknown topic: {topic}")
 
             logger.info(f"[MQTT] ================================")
 
         except json.JSONDecodeError as e:
-            logger.error(f"[MQTT] ❌ Failed to parse message: {e}")
+            logger.error(f"[MQTT] Failed to parse message: {e}")
             logger.error(f"[MQTT]    Raw payload: {msg.payload}")
         except Exception as e:
-            logger.error(f"[MQTT] ❌ Error processing message: {e}")
+            logger.error(f"[MQTT] Error processing message: {e}")
             import traceback
             logger.error(f"[MQTT]    Traceback: {traceback.format_exc()}")
     

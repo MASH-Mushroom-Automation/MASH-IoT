@@ -6,7 +6,7 @@
 
 ---
 
-## ✅ Pre-Deployment Checks
+## Pre-Deployment Checks
 
 ### 1. Code Review
 
@@ -129,10 +129,10 @@ sudo journalctl -u mash-iot -f
 ```
 
 Look for:
-- ✅ `Loaded Isolation Forest model for anomaly detection`
-- ✅ `Loaded Decision Tree model for actuation control`
-- ✅ `Flask app started on port 5000`
-- ❌ `Error:` or `Traceback:` (should not appear)
+- `Loaded Isolation Forest model for anomaly detection`
+- `Loaded Decision Tree model for actuation control`
+- `Flask app started on port 5000`
+- `Error:` or `Traceback:` (should not appear)
 
 Press `Ctrl+C` to stop watching logs.
 
@@ -384,7 +384,7 @@ echo "Error Description: [DESCRIBE ISSUE]" >> /tmp/mash-iot-error.log
 
 ---
 
-## ✅ Deployment Sign-Off
+## Deployment Sign-Off
 
 ### Completed By
 
@@ -417,7 +417,7 @@ ____________________________________________________________________________
 
 ---
 
-**Deployment Status:** ⏳ PENDING / ✅ COMPLETE / ❌ ROLLED BACK
+**Deployment Status:** ⏳ PENDING / COMPLETE / ROLLED BACK
 
 **Sign-Off Date:** ___________________
 

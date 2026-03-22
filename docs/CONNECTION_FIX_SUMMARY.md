@@ -241,14 +241,14 @@ Should show: `zeroconf    0.120.0`
 
 ## Success Criteria
 
-✅ Device appears in mobile app device list  
-✅ Mobile app can connect to device  
-✅ Mobile app shows "Connected" status  
-✅ Mobile app can fetch sensor data  
-✅ Mobile app can control actuators  
-✅ No CORS errors in logs  
-✅ /status returns 200 OK  
-✅ /provisioning/info returns device info
+Device appears in mobile app device list  
+Mobile app can connect to device  
+Mobile app shows "Connected" status  
+Mobile app can fetch sensor data  
+Mobile app can control actuators  
+No CORS errors in logs  
+/status returns 200 OK  
+/provisioning/info returns device info
 
 ---
 

@@ -29,7 +29,7 @@ python -m app.main
 
 **Look for this in logs:**
 ```
-[FIREBASE] ✅ Connected to Realtime Database
+[FIREBASE] Connected to Realtime Database
 [FIREBASE] Initialized successfully
 ```
 
@@ -182,7 +182,7 @@ test_data = [{
 }]
 
 result = firebase.sync_sensor_readings(test_data)
-print(f"✅ Synced {result} readings")
+print(f"Synced {result} readings")
 ```
 
 ### Test Mobile App → Firebase Read
@@ -196,7 +196,7 @@ void testFirebase() {
   final ref = FirebaseDatabase.instance.ref('devices/rpi_gateway_001/latest_reading');
   
   ref.onValue.listen((event) {
-    print('✅ Firebase data: ${event.snapshot.value}');
+    print('Firebase data: ${event.snapshot.value}');
   });
 }
 ```
@@ -211,22 +211,22 @@ void testFirebase() {
 
 ## Troubleshooting
 
-### ❌ "firebase-admin not installed"
+### "firebase-admin not installed"
 ```bash
 pip install firebase-admin
 ```
 
-### ❌ "[FIREBASE] Config not found"
+### "[FIREBASE] Config not found"
 - Check file exists: `config/firebase_config.json`
 - Verify file permissions (readable)
 - Ensure it's valid JSON
 
-### ❌ "[FIREBASE] Initialization failed"
+### "[FIREBASE] Initialization failed"
 - Check `.env` has `FIREBASE_DATABASE_URL`
 - Verify service account key is valid
 - Ensure internet connection works
 
-### ❌ Mobile app shows no data
+### Mobile app shows no data
 ```dart
 // Enable Firebase logging
 FirebaseDatabase.instance.setLoggingEnabled(true);
@@ -237,7 +237,7 @@ print('Firebase listening: ${sensorProvider.isFirebaseListening}');
 print('Device status: ${sensorProvider.deviceStatus}');
 ```
 
-### ❌ "Permission denied" on mobile
+### "Permission denied" on mobile
 - Check Firebase Security Rules
 - Ensure test rules allow open access (for testing)
 - Verify user is authenticated (for production)
@@ -248,7 +248,7 @@ print('Device status: ${sensorProvider.deviceStatus}');
 
 ### RPi Gateway
 ```
-[FIREBASE] ✅ Connected to Realtime Database
+[FIREBASE] Connected to Realtime Database
 [FIREBASE] Initialized successfully
 [FIREBASE] Synced 2/2 readings
 [DATA] Received sensor data at 2026-02-06T10:30:00
@@ -282,9 +282,9 @@ print('Device status: ${sensorProvider.deviceStatus}');
 
 ## What's Next?
 
-✅ Firebase Realtime Database integrated  
-✅ Mobile app receiving live data  
-✅ RPi syncing every 5 seconds  
+Firebase Realtime Database integrated  
+Mobile app receiving live data  
+RPi syncing every 5 seconds  
 
 **Optional enhancements:**
 - [ ] Set up Firebase Cloud Functions for auto-cleanup

@@ -93,10 +93,10 @@ python3 scripts/diagnose_connection.py
 Configures Raspberry Pi to boot directly to M.A.S.H. dashboard in fullscreen kiosk mode.
 
 **Features:**
-- ✅ Boots directly to browser (NO desktop environment)
-- ✅ Auto-starts M.A.S.H. backend on boot
-- ✅ Hides cursor, disables screen blanking
-- ✅ Faster boot (skips desktop loading)
+- Boots directly to browser (NO desktop environment)
+- Auto-starts M.A.S.H. backend on boot
+- Hides cursor, disables screen blanking
+- Faster boot (skips desktop loading)
 
 **Usage:**
 ```bash

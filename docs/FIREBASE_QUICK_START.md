@@ -297,11 +297,11 @@ ping firebase.googleapis.com
 
 ## 🎯 Key Benefits
 
-✅ **Real-time updates** - Dashboard updates every 5 seconds automatically  
-✅ **Offline-first** - Data saved locally if internet fails  
-✅ **No polling** - Mobile app uses push updates (efficient)  
-✅ **Low latency** - Firebase delivers data in <1 second  
-✅ **Automatic sync** - RPi handles everything in background  
+**Real-time updates** - Dashboard updates every 5 seconds automatically  
+**Offline-first** - Data saved locally if internet fails  
+**No polling** - Mobile app uses push updates (efficient)  
+**Low latency** - Firebase delivers data in <1 second  
+**Automatic sync** - RPi handles everything in background  
 
 ---
 
@@ -309,11 +309,11 @@ ping firebase.googleapis.com
 
 | Feature | Firebase | MQTT | Backend API |
 |---------|----------|------|-------------|
-| **Live sensor data** | ✅ Primary | ❌ | ❌ |
-| **Actuator commands** | ❌ | ✅ Primary | ✅ Fallback |
-| **Historical data (>24h)** | ❌ | ❌ | ✅ Primary |
-| **User authentication** | ❌ | ❌ | ✅ Primary |
+| **Live sensor data** | Primary | | |
+| **Actuator commands** | | Primary | Fallback |
+| **Historical data (>24h)** | | | Primary |
+| **User authentication** | | | Primary |
 | **Latency** | ~1s | ~100ms | ~2-5s |
-| **Offline support** | ✅ Cache | ❌ | ✅ Queue |
+| **Offline support** | Cache | | Queue |
 
 **Use all three together for best results!**
