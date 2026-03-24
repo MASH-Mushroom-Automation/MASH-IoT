@@ -235,6 +235,46 @@ class FirebaseSync:
         except Exception as e:
             logger.error(f"[FIREBASE] Active alert removal failed: {e}")
             return False
+
+    def log_alert_notification(
+        self,
+        device_id: str,
+        room: str,
+        alert_type: str,
+        message: str,
+        severity: str = 'WARNING',
+        active: bool = True,
+    ) -> bool:
+        """Write a notification history entry for a newly raised or resolved alert."""
+        if not self.is_initialized or not FIREBASE_AVAILABLE:
+            return False
+
+        try:
+            now = datetime.now()
+            timestamp_key = now.isoformat().replace(':', '-').replace('.', '-')
+            event_type = 'alert_raised' if active else 'alert_resolved'
+
+            ref = firebase_db.reference(f'notifications/{device_id}/{timestamp_key}')
+            ref.set({
+                'id': timestamp_key,
+                'device_id': device_id,
+                'room': room,
+                'alert_type': alert_type,
+                'severity': severity,
+                'message': message,
+                'event_type': event_type,
+                'active': active,
+                'read': False,
+                'timestamp': now.isoformat(),
+                'timestamp_unix': int(now.timestamp()),
+            })
+
+            logger.debug(f"[FIREBASE] Logged alert notification: notifications/{device_id}/{timestamp_key}")
+            return True
+
+        except Exception as e:
+            logger.error(f"[FIREBASE] Alert notification logging failed: {e}")
+            return False
     
     def push_hourly_aggregate(
         self,
