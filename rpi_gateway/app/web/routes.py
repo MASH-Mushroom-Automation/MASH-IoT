@@ -729,7 +729,7 @@ def control_actuator():
 
     # Prevent direct manual overrides while automatic control is active.
     config = current_app.config.get('MUSHROOM_CONFIG', {})
-    if config.get('system', {}).get('auto_mode', True):
+    if config.get('system', {}).get('auto_mode', True) and actuator != 'led':
         return jsonify({
             "success": False,
             "message": "Automatic control is enabled. Switch to Manual Control before sending direct actuator commands."

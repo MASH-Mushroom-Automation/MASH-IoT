@@ -44,8 +44,8 @@ class HumidifierCycleManager:
         self.phase_start_time = 0
         
         # Cycle timings
-        self.MIST_DURATION = 10.0  # seconds
-        self.FAN_DURATION = 30.0  # seconds
+        self.MIST_DURATION = 20.0  # seconds
+        self.FAN_DURATION = 10.0  # seconds
     
     def start_cycle(self):
         """Start the humidifier cycle"""
@@ -212,10 +212,35 @@ class MushroomAI:
                 else:
                     self.firebase.remove_active_alert(self.device_id, room, alert_type)
 
+                if hasattr(self.firebase, 'log_alert_notification'):
+                    self.firebase.log_alert_notification(
+                        self.device_id,
+                        room,
+                        alert_type,
+                        message,
+                        severity=severity,
+                        active=active,
+                    )
+
             if active and self.mqtt and hasattr(self.mqtt, 'publish_alert'):
                 self.mqtt.publish_alert(alert_type, message, severity)
         except Exception as e:
             logger.error(f"[ALERT] Failed to sync alert channels: {e}")
+
+    def _ensure_decision_tree_compatibility(self) -> bool:
+        """Patch older serialized Decision Tree models for the current sklearn runtime."""
+        if self.actuator_model is None:
+            return False
+
+        if not hasattr(self.actuator_model, 'monotonic_cst'):
+            try:
+                self.actuator_model.monotonic_cst = None
+                logger.warning("[ML] Patched missing monotonic_cst on Decision Tree model for compatibility")
+            except Exception as e:
+                logger.warning(f"[ML] Failed to patch Decision Tree compatibility: {e}")
+                return False
+
+        return True
     
     def _load_models(self):
         """Load pre-trained ML models from disk"""
@@ -233,6 +258,7 @@ class MushroomAI:
             if os.path.exists(decision_tree_path):
                 self.actuator_model = joblib.load(decision_tree_path)
                 logger.info("Loaded Decision Tree model for actuation control")
+                self._ensure_decision_tree_compatibility()
             else:
                 logger.warning(f"Actuation model not found at {decision_tree_path}")
                 self.actuator_model = None
@@ -370,6 +396,9 @@ class MushroomAI:
             return self._rule_based_fruiting_actuation(sensor_data)
 
         try:
+            if not self._ensure_decision_tree_compatibility():
+                return self._rule_based_fruiting_actuation(sensor_data)
+
             current_hour = datetime.now().hour
             features = np.array([[
                 sensor_data.get('temp', 0),
@@ -598,6 +627,16 @@ class MushroomAI:
         if self.db is None:
             return []
 
+        existing_active_alerts = set()
+        try:
+            for alert in self.db.get_active_alerts():
+                alert_room = alert.get('room')
+                alert_type = alert.get('alert_type')
+                if alert_room and alert_type:
+                    existing_active_alerts.add((alert_room, alert_type))
+        except Exception as e:
+            logger.warning(f"[ALERT] Failed to load active alert cache: {e}")
+
         temp = sensor_data.get('temp', 0)
         humidity = sensor_data.get('humidity', 0)
         co2 = sensor_data.get('co2', 0)
@@ -649,10 +688,30 @@ class MushroomAI:
         active_alerts_list = []
         
         for alert_type, is_active, message, severity in checks:
+            alert_key = (room, alert_type)
+            was_active = alert_key in existing_active_alerts
+
             if is_active:
                 try:
                     self.db.upsert_active_alert(room, alert_type, message, severity)
-                    self._sync_alert_channels(room, alert_type, message, severity, active=True)
+                    self._sync_alert_channels(
+                        room,
+                        alert_type,
+                        message,
+                        severity,
+                        active=True,
+                    )
+
+                    if not was_active and self.firebase and self.device_id and hasattr(self.firebase, 'log_alert_notification'):
+                        self.firebase.log_alert_notification(
+                            self.device_id,
+                            room,
+                            alert_type,
+                            message,
+                            severity=severity,
+                            active=True,
+                        )
+
                     logger.warning(f"[ALERT] {message}")
                     active_alerts_list.append((room, alert_type, message, severity))
                 except Exception as e:
@@ -660,7 +719,8 @@ class MushroomAI:
             else:
                 try:
                     self.db.resolve_alert(room, alert_type)
-                    self._sync_alert_channels(room, alert_type, message, severity, active=False)
+                    if was_active:
+                        self._sync_alert_channels(room, alert_type, message, severity, active=False)
                 except Exception as e:
                     logger.error(f"[ALERT] Failed to resolve alert {alert_type}: {e}")
         

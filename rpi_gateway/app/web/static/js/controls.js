@@ -30,7 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateCardsDisabledState(isAutoMode) {
         allCards.forEach(card => {
-            if (isAutoMode) {
+            const actuator = card.dataset.actuator;
+            const allowInAutoMode = actuator === 'led';
+
+            if (isAutoMode && !allowInAutoMode) {
                 card.classList.add('disabled');
                 card.style.opacity = '0.6';
                 card.style.cursor = 'not-allowed';
@@ -50,10 +53,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     allCards.forEach(card => {
         card.addEventListener('click', function() {
-            // Don't toggle if auto mode is enabled
+            // Don't toggle if auto mode is enabled for non-light actuators
             if (this.classList.contains('disabled')) {
                 showNotification(
-                    'Automatic control is enabled. Switch to Manual mode to control actuators directly.',
+                    'Automatic control is enabled. Only the LED can be manually overridden in Auto mode.',
                     'warning'
                 );
                 return;
