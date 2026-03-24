@@ -155,6 +155,7 @@ class MASHOrchestrator:
         arduino_port = 'COM3' if sys.platform == 'win32' else '/dev/ttyACM0'
         logger.info(f"[SERIAL] Using port: {arduino_port}")
         self.arduino = ArduinoSerialComm(port=arduino_port)
+        self.arduino.relay_restore_allowed_callback = lambda: self.app.config.get('SENSOR_WARMUP_COMPLETE', False)
         
         # ML Logic Engine
         ml_enabled = (self.config or {}).get('system', {}).get('ml_enabled', True)
@@ -275,6 +276,12 @@ class MASHOrchestrator:
                     self.sensor_warmup_complete = True
                     self.app.config['SENSOR_WARMUP_COMPLETE'] = True  # Update Flask config
                     logger.info("[WARMUP] Sensor calibration complete! Starting automatic control...")
+                    if self.arduino and getattr(self.arduino, 'relay_restore_pending', False):
+                        try:
+                            if self.arduino.restore_relay_states():
+                                logger.info("[WARMUP] Restored deferred relay states after calibration")
+                        except Exception as restore_err:
+                            logger.warning(f"[WARMUP] Failed to restore deferred relay states: {restore_err}")
             
             # Store latest data (for web UI) - use lock for thread safety
             with self.data_lock:
@@ -495,6 +502,11 @@ class MASHOrchestrator:
                 logger.warning(f"[REMOTE COMMAND] Invalid command payload: {payload}")
                 return False, True
 
+            warmup_complete = bool(self.app.config.get('SENSOR_WARMUP_COMPLETE', False))
+            if not warmup_complete and command_type != 'set_auto_mode':
+                logger.info(f"[REMOTE COMMAND] Deferred during sensor warmup: {payload}")
+                return False, False
+
             actuator_map = {
                 'mist_maker': 'MIST_MAKER',
                 'humidifier_fan': 'HUMIDIFIER_FAN',
@@ -683,7 +695,7 @@ class MASHOrchestrator:
                     if not isinstance(command_data, dict):
                         logger.warning(f"[FIREBASE] Skipping invalid command payload: {command_id}")
                         try:
-                            queue_ref.child(command_id).set(None)
+                            queue_ref.child(command_id).delete()
                         except Exception as delete_err:
                             logger.warning(f"[FIREBASE] Failed to remove invalid command {command_id}: {delete_err}")
                         continue
@@ -692,7 +704,7 @@ class MASHOrchestrator:
 
                     if handled or delete_after:
                         try:
-                            queue_ref.child(command_id).set(None)
+                            queue_ref.child(command_id).delete()
                             logger.info(f"[FIREBASE] Removed processed command {command_id}")
                         except Exception as delete_err:
                             logger.warning(f"[FIREBASE] Failed to delete command {command_id}: {delete_err}")

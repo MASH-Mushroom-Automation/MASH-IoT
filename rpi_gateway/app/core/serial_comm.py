@@ -64,6 +64,7 @@ class ArduinoSerialComm:
         self.is_listening = False
         self.listen_thread: Optional[threading.Thread] = None
         self.data_callback: Optional[Callable[[Dict[str, Any]], None]] = None
+        self.relay_restore_allowed_callback: Optional[Callable[[], bool]] = None
         
         # Track latest sensor data
         self.latest_data: Dict[str, Any] = {
@@ -74,6 +75,7 @@ class ArduinoSerialComm:
         
         # Relay state tracking for recovery after disconnects
         self.last_relay_states: Dict[str, str] = {}  # {"MIST_MAKER": "ON", "FRUITING_EXHAUST_FAN": "OFF", ...}
+        self.relay_restore_pending: bool = False
         
         # Heartbeat tracking
         self.last_write_time = time.time()
@@ -222,7 +224,19 @@ class ArduinoSerialComm:
         Returns:
             True if all commands sent successfully, False otherwise.
         """
+        if self.relay_restore_allowed_callback is not None:
+            try:
+                if not self.relay_restore_allowed_callback():
+                    self.relay_restore_pending = True
+                    logger.info("[RECOVERY] Relay state restore deferred until sensor warmup completes")
+                    return False
+            except Exception as e:
+                self.relay_restore_pending = True
+                logger.warning(f"[RECOVERY] Restore gate check failed: {e}")
+                return False
+
         if not self.last_relay_states:
+            self.relay_restore_pending = False
             logger.info("[RECOVERY] No relay states to restore")
             return True
         
@@ -239,6 +253,12 @@ class ArduinoSerialComm:
                 logger.warning(f"[RECOVERY] Failed to restore {actuator} = {state}")
         
         logger.info(f"[RECOVERY] Restored {success_count}/{len(self.last_relay_states)} relay states")
+        
+        if success_count == len(self.last_relay_states):
+            self.relay_restore_pending = False
+        else:
+            self.relay_restore_pending = True
+
         return success_count == len(self.last_relay_states)
     
     def read_line(self) -> Optional[str]:
@@ -354,7 +374,7 @@ class ArduinoSerialComm:
                 # Check if connection is alive
                 if not self.is_connected or not self.serial_conn or not self.serial_conn.is_open:
                     if self.auto_reconnect:
-                        logger.warning("[SERIAL] 🔴 Connection lost. Attempting to reconnect...")
+                        logger.warning("[SERIAL] Connection lost. Attempting to reconnect...")
                         
                         # Close any existing connection
                         if self.serial_conn:
@@ -366,7 +386,7 @@ class ArduinoSerialComm:
                         
                         # Attempt reconnection
                         if self.connect(auto_detect=True):
-                            logger.info("[SERIAL] 🟢 Reconnected successfully!")
+                            logger.info("[SERIAL] Reconnected successfully!")
                             consecutive_failures = 0
                             
                             # Restore relay states after reconnection
@@ -390,7 +410,7 @@ class ArduinoSerialComm:
                             keepalive_cmd = '{"keepalive":true}\n'.encode('utf-8')
                             self.serial_conn.write(keepalive_cmd)
                             self.last_write_time = time.time()
-                            logger.debug("[SERIAL] ❤️  Sent keepalive to prevent watchdog timeout (60s)")
+                            logger.debug("[SERIAL] Sent keepalive to prevent watchdog timeout (60s)")
                     except Exception as hb_err:
                         logger.warning(f"[SERIAL] Heartbeat failed: {hb_err}")
                         self.is_connected = False  # Mark as disconnected to trigger reconnect
