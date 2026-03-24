@@ -3,6 +3,7 @@
 # 1. Configures Chromium kiosk mode for touchscreen
 # 2. Sets up Flask backend service
 # 3. Includes splash screen and auto-start
+# Note: Run this script as normal user (not root)
 
 set -e
 
