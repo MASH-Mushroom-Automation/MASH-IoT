@@ -6,7 +6,7 @@ import sys
 import logging
 import time
 import yaml
-from flask import Flask
+from flask import Flask, current_app
 from flask_cors import CORS
 from threading import Thread, Lock
 from dotenv import load_dotenv
@@ -565,6 +565,10 @@ class MASHOrchestrator:
                 logger.warning(f"[AUTO] Invalid state for {room}/{actuator}: {state}")
                 return False
 
+            if not self.config.get('system', {}).get('auto_mode', True):
+                logger.info(f"[AUTO] Skipping {room}/{actuator} {normalized_state} because manual mode is active")
+                return False
+
             if not self.arduino or not self.arduino.is_connected:
                 logger.warning(f"[AUTO] Arduino not connected - skipping {room}/{actuator} {normalized_state}")
                 return False
@@ -737,6 +741,10 @@ class MASHOrchestrator:
             manual_overrides = self.app.config.get('MANUAL_OVERRIDES', {})
             filtered_commands = []
             for command in commands:
+                if not self.config.get('system', {}).get('auto_mode', True):
+                    logger.info(f"[AUTO] Automation paused while processing command queue; skipping remaining commands")
+                    break
+
                 # Parse command to extract room and actuator
                 # Commands are like: "FRUITING_EXHAUST_FAN_ON" or "MIST_MAKER_OFF"
                 skip_command = False
@@ -771,6 +779,10 @@ class MASHOrchestrator:
             
             # Send filtered commands to Arduino
             for command in filtered_commands:
+                if not self.config.get('system', {}).get('auto_mode', True):
+                    logger.info(f"[AUTO] Manual mode enabled during automation dispatch; aborting remaining commands")
+                    break
+
                 # Convert command format from "ACTUATOR_NAME_STATE" to JSON
                 # e.g., "MIST_MAKER_ON" -> {"actuator": "MIST_MAKER", "state": "ON"}
                 if '_ON' in command:
