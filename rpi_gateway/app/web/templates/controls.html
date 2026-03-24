@@ -122,59 +122,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Spawning Room Controls -->
-    <div class="room-section">
-        <h2 class="room-header"><i class="fas fa-temperature-high"></i> Spawning Room</h2>
-        <div class="actuator-grid">
-            <!-- Exhaust Fan Card (Passive with Flush) -->
-            <div class="actuator-card" data-room="spawning" data-actuator="exhaust_fan" data-state="{% if spawning_actuators.exhaust_fan %}on{% else %}off{% endif %}">
-                <div class="card-icon">
-                    <i class="fas fa-wind"></i>
-                </div>
-                <div class="card-info">
-                    <h3>Exhaust Fan</h3>
-                    <span class="card-description">Passive/Flush cycles</span>
-                </div>
-                <div class="card-status" data-status="{% if spawning_actuators.exhaust_fan %}on{% else %}off{% endif %}">
-                    <span class="status-text">{% if spawning_actuators.exhaust_fan %}ON{% else %}OFF{% endif %}</span>
-                </div>
-                <div class="card-auto-badge" style="display: {% if spawning_actuators.exhaust_fan_auto %}block{% else %}none{% endif %};">
-                    <i class="fas fa-clock"></i> TIMED
-                </div>
-                <div class="card-mode-badge" data-mode="{% if spawning_actuators.exhaust_fan_flush %}flush{% else %}passive{% endif %}">
-                    {% if spawning_actuators.exhaust_fan_flush %}
-                        <i class="fas fa-bolt"></i> FLUSH
-                    {% else %}
-                        <i class="fas fa-clock"></i> PASSIVE
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Device Room Controls -->
-    <div class="room-section">
-        <h2 class="room-header"><i class="fas fa-server"></i> Device Room</h2>
-        <div class="actuator-grid">
-            <!-- Device Exhaust Fan Card (Passive) -->
-            <div class="actuator-card" data-room="device" data-actuator="exhaust_fan" data-state="{% if device_actuators.exhaust_fan %}on{% else %}off{% endif %}">
-                <div class="card-icon">
-                    <i class="fas fa-wind"></i>
-                </div>
-                <div class="card-info">
-                    <h3>Exhaust Fan</h3>
-                    <span class="card-description">Heat & odor removal</span>
-                </div>
-                <div class="card-status" data-status="{% if device_actuators.exhaust_fan %}on{% else %}off{% endif %}">
-                    <span class="status-text">{% if device_actuators.exhaust_fan %}ON{% else %}OFF{% endif %}</span>
-                </div>
-                <div class="card-auto-badge" style="display: {% if device_actuators.exhaust_fan_auto %}block{% else %}none{% endif %};">
-                    <i class="fas fa-clock"></i> TIMED
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script src="{{ url_for('web.static', filename='js/controls.js') }}"></script>

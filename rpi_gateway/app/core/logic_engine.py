@@ -320,11 +320,11 @@ class MushroomAI:
                 }
             return self._ml_fruiting_actuation(filtered)
         elif room == "spawning":
-            # Basic anomaly screening for spawning (rule-based fallback)
+            # Spawning room is sensor-only while automatic fans are disabled.
+            # Keep the state safe and avoid generating fan activation commands.
             is_anomaly, _ = self._rule_based_anomaly_check(sensor_data)
             if is_anomaly:
                 logger.warning("Skipping actuation for anomalous spawning data")
-                return {"exhaust_fan": "OFF"}
             return self._rule_based_spawning_actuation(sensor_data)
         else:
             logger.warning(f"Unknown room '{room}', returning safe state.")
@@ -483,12 +483,12 @@ class MushroomAI:
         # CO2 Control with hysteresis (prevent rapid on/off)
         co2_max = config.get('co2_max', 1000)
         co2_hysteresis = config.get('co2_hysteresis', 100)
-        exhaust_fan_state = "ON" if co2 > co2_max else ("OFF" if co2 < (co2_max - co2_hysteresis) else "OFF")
+        exhaust_required = co2 > co2_max
 
         # Temperature-based fan assist
         temp_max = config.get('temp_target', 24) + 2
         if temp > temp_max:
-            exhaust_fan_state = "ON"  # Emergency cooling
+            exhaust_required = True  # Emergency cooling
 
         # ===== SMART HUMIDITY CONTROL WITH AI CYCLE =====
         humidity_target = config.get('humidity_target', 90)
@@ -499,14 +499,15 @@ class MushroomAI:
         humidity_rate = self._calculate_humidity_trend(humidity)
         cycle_info = self.humidifier_cycle.get_phase_info()
 
-        # Safety interlock: do not mist while exhaust fan is running.
-        # This prevents humid mist from being blown directly into the exhaust path,
-        # which can cause droplet buildup and long-term wear.
-        if exhaust_fan_state == "ON":
+        # Priority rule: exhaust runs first for high CO2 / emergency cooling.
+        # Humidification stays off whenever exhaust is required so moisture is preserved.
+        if exhaust_required:
             if cycle_info['active']:
                 self.humidifier_cycle.stop_cycle()
-                logger.info("[AI-HUMIDIFIER] Stopped cycle - exhaust fan active, preventing mist blowback")
+                logger.info("[AI-HUMIDIFIER] Stopped cycle - exhaust priority active")
             humidifier_states = {"mist_maker": "OFF", "humidifier_fan": "OFF"}
+            exhaust_fan_state = "ON"
+            intake_fan_state = "ON"
         else:
             if humidity < humidity_min:
                 # Below target - start cycle if not active
@@ -536,16 +537,18 @@ class MushroomAI:
             # Get actuator states from cycle manager
             humidifier_states = self.humidifier_cycle.get_current_states()
 
+            # Intake airflow assists circulation when we are not actively exhausting
+            # and stays off while humidity is being replenished.
+            intake_fan_state = "OFF" if humidifier_states['mist_maker'] == "ON" or humidifier_states['humidifier_fan'] == "ON" else "ON"
+
+            exhaust_fan_state = "OFF"
+
         mist_maker_state = humidifier_states['mist_maker']
         humidifier_fan_state = humidifier_states['humidifier_fan']
 
         # Log cycle status periodically
         if cycle_info['active'] and int(cycle_info.get('total_runtime', 0)) % 5 == 0:
             logger.debug(f"[HUMIDIFIER] Phase={cycle_info['phase']}, elapsed={cycle_info['elapsed']}s, humidity={humidity:.1f}%, rate={humidity_rate:.3f}%/s")
-
-        # Intake fan works opposite to exhaust for air circulation
-        # When exhaust is ON, intake is OFF. When exhaust is OFF, intake is ON for passive airflow
-        intake_fan_state = "OFF" if exhaust_fan_state == "ON" else "ON"
 
         # Time-based LED control (simulate day/night cycle)
         # Assuming 12 hours ON (8 AM to 8 PM) by default
@@ -567,24 +570,18 @@ class MushroomAI:
     def _rule_based_spawning_actuation(self, sensor_data: Dict) -> Dict[str, str]:
         """
         Rule-based logic for the spawning room.
-        - Timed exhaust fan for air exchange.
-        - Emergency exhaust fan activation if temperature is too high.
+        Automatic fan control is currently disabled, so the room remains sensor-only.
         """
         config = self.config.get("spawning_room", {})
         temp = sensor_data.get('temp', 0)
         
-        # Emergency Temperature Flush
+        # Keep alerts active, but do not activate the exhaust fan while the
+        # spawning room is operating in sensor-only mode.
         temp_emergency_threshold = config.get('temp_emergency', 28)
         if temp > temp_emergency_threshold:
-            logger.warning(f"SPAWNING EMERGENCY: Temp at {temp}°C. Forcing exhaust fan ON.")
-            return {"exhaust_fan": "ON"}
+            logger.warning(f"SPAWNING EMERGENCY: Temp at {temp}°C. Fan control remains disabled.")
 
-        # Timed Air Cycle Logic (placeholder)
-        # This logic is more complex as it requires state (last run time).
-        # For now, we'll keep it simple and turn it off. A real implementation
-        # would use a timestamp to decide when to run the timed cycle.
-        # For example, run for 5 minutes every 4 hours.
-        exhaust_fan_state = "OFF" 
+        exhaust_fan_state = "OFF"
 
         # Keep spawning-room alerts and notifications in sync with the same alert pipeline.
         self._check_and_alert("spawning", sensor_data, config)

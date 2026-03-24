@@ -23,7 +23,7 @@ system:
 # Passive Fan Configuration (Timed Intervals)
 passive_fans:
   spawning_exhaust:
-    enabled: true
+    enabled: false  # Disabled for now while spawning fan control is unavailable
     interval_minutes: 30  # Run every 30 minutes
     duration_seconds: 120  # Run for 2 minutes
     flush_mode:  # Override passive when sensor threshold exceeded
@@ -32,7 +32,7 @@ passive_fans:
       duration_seconds: 300  # Flush for 5 minutes
   
   device_exhaust:
-    enabled: true
+    enabled: false  # Disabled for now while device fan control is unavailable
     mode: "clock"  # Options: "interval" or "clock"
     # Clock-based schedule (runs at specific times)
     schedule:

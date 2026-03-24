@@ -21,12 +21,15 @@ def get_status():
         # Get Firebase sync user preference
         user_prefs = current_app.config.get('USER_PREFS')
         firebase_sync_enabled = user_prefs.get_preference('firebase_sync_enabled', default=True) if user_prefs else True
+        auto_mode_enabled = current_app.config.get('MUSHROOM_CONFIG', {}).get('system', {}).get('auto_mode', True)
 
         return jsonify({
             'success': True,
             'status': 'online',
             'device_id': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('serial_number', 'unknown'),
             'device_name': current_app.config.get('MUSHROOM_CONFIG', {}).get('device', {}).get('name', 'MASH IoT Chamber'),
+            'auto_mode': auto_mode_enabled,
+            'control_mode': 'auto' if auto_mode_enabled else 'manual',
             'firebase_sync_enabled': firebase_sync_enabled,  # NEW: Connection mode decision
             'timestamp': time.time()
         }), 200
@@ -238,18 +241,9 @@ def dashboard():
 def controls():
     """Renders the manual controls page with current actuator states."""
     context = get_live_data()
-    
-    # Get current actuator states from config
-    actuator_states = current_app.config.get('ACTUATOR_STATES', {})
-    
-    # Add device room actuators
-    device_room_states = actuator_states.get('device', {})
-    device_actuators = {
-        'exhaust_fan': device_room_states.get('exhaust_fan', False),
-        'exhaust_fan_auto': False
-    }
-    
+
     # Get fruiting room actuator states
+    actuator_states = current_app.config.get('ACTUATOR_STATES', {})
     fruiting_room_states = actuator_states.get('fruiting', {})
     fruiting_actuators = {
         'mist_maker': fruiting_room_states.get('mist_maker', False),
@@ -263,22 +257,12 @@ def controls():
         'intake_fan_auto': False,
         'led_auto': False
     }
-    
-    # Get spawning room actuator states
-    spawning_room_states = actuator_states.get('spawning', {})
-    spawning_actuators = {
-        'exhaust_fan': spawning_room_states.get('exhaust_fan', False),
-        'exhaust_fan_auto': False,
-        'exhaust_fan_flush': False  # Flush mode indicator
-    }
-    
+
     # Get auto mode status from config
     config = current_app.config.get('MUSHROOM_CONFIG', {})
     auto_mode_enabled = config.get('system', {}).get('auto_mode', True)
 
     context['fruiting_actuators'] = fruiting_actuators
-    context['spawning_actuators'] = spawning_actuators
-    context['device_actuators'] = device_actuators
     context['auto_mode_enabled'] = auto_mode_enabled
 
     return render_template('controls.html', **context)
@@ -890,6 +874,17 @@ def set_auto_mode():
             except Exception as cycle_err:
                 logger.warning(f"Failed to stop humidifier cycle: {cycle_err}")
     
+    if orchestrator and hasattr(orchestrator, 'firebase') and orchestrator.firebase:
+        try:
+            device_id = config.get('device', {}).get('serial_number', 'MASH-DEFAULT-001')
+            orchestrator.firebase.sync_device_status(device_id, 'ONLINE', {
+                'auto_mode': enabled,
+                'control_mode': 'auto' if enabled else 'manual',
+                'ml_enabled': config.get('system', {}).get('ml_enabled', True),
+            })
+        except Exception as fb_err:
+            logger.warning(f"Failed to sync auto mode status to Firebase: {fb_err}")
+
     return jsonify({"success": True, "auto_mode": enabled})
 
 

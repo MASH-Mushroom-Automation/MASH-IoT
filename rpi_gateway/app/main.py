@@ -128,6 +128,8 @@ class MASHOrchestrator:
             self.firebase.sync_device_status(device_id, 'ONLINE', {
                 'last_boot': time.strftime('%Y-%m-%d %H:%M:%S'),
                 'ml_enabled': self.config.get('system', {}).get('ml_enabled', True),
+                'auto_mode': self.config.get('system', {}).get('auto_mode', True),
+                'control_mode': 'auto' if self.config.get('system', {}).get('auto_mode', True) else 'manual',
             })
         else:
             logger.warning("[FIREBASE] Not initialized - running in offline mode only")
@@ -429,6 +431,58 @@ class MASHOrchestrator:
             logger.info(f"[REMOTE COMMAND] ================================")
             logger.info(f"[REMOTE COMMAND] Source: {source}")
             logger.info(f"[REMOTE COMMAND] Payload: {payload}")
+
+            command_type = str(payload.get('command_type', '')).lower()
+            if command_type == 'set_auto_mode' or ('enabled' in payload and 'actuator' not in payload):
+                enabled = bool(payload.get('enabled'))
+                with self.app.app_context():
+                    config = current_app.config.get('MUSHROOM_CONFIG', {})
+                    if 'system' not in config:
+                        config['system'] = {}
+                    config['system']['auto_mode'] = enabled
+
+                    user_prefs = current_app.config.get('USER_PREFS')
+                    if user_prefs:
+                        try:
+                            user_prefs.set_preference('system.auto_mode', enabled)
+                        except Exception as pref_err:
+                            logger.warning(f"[REMOTE COMMAND] Failed to persist auto mode preference: {pref_err}")
+
+                    orchestrator = current_app.config.get('orchestrator')
+                    if enabled:
+                        current_app.config['MANUAL_OVERRIDES'] = {}
+                        logger.info("[REMOTE COMMAND] Auto mode enabled - cleared manual overrides")
+                        if orchestrator and hasattr(orchestrator, 'passive_fan_controller'):
+                            try:
+                                orchestrator.passive_fan_controller.start()
+                            except Exception as ctrl_err:
+                                logger.warning(f"[REMOTE COMMAND] Failed to start passive fan controller: {ctrl_err}")
+                    else:
+                        logger.info("[REMOTE COMMAND] Auto mode disabled - manual control active")
+                        if orchestrator and hasattr(orchestrator, 'passive_fan_controller'):
+                            try:
+                                orchestrator.passive_fan_controller.stop()
+                            except Exception as ctrl_err:
+                                logger.warning(f"[REMOTE COMMAND] Failed to stop passive fan controller: {ctrl_err}")
+                        if orchestrator and hasattr(orchestrator, 'ai') and orchestrator.ai:
+                            try:
+                                orchestrator.ai.humidifier_cycle.stop_cycle()
+                                orchestrator.ai.last_cycle_commands = {}
+                            except Exception as cycle_err:
+                                logger.warning(f"[REMOTE COMMAND] Failed to stop humidifier cycle: {cycle_err}")
+
+                    if orchestrator and hasattr(orchestrator, 'firebase') and orchestrator.firebase:
+                        try:
+                            device_id = config.get('device', {}).get('serial_number', 'MASH-DEFAULT-001')
+                            orchestrator.firebase.sync_device_status(device_id, 'ONLINE', {
+                                'auto_mode': enabled,
+                                'control_mode': 'auto' if enabled else 'manual',
+                                'ml_enabled': config.get('system', {}).get('ml_enabled', True),
+                            })
+                        except Exception as fb_err:
+                            logger.warning(f"[REMOTE COMMAND] Failed to sync auto mode status to Firebase: {fb_err}")
+
+                return True, True
 
             room = str(payload.get('room', 'fruiting')).lower()
             actuator = str(payload.get('actuator', '')).lower()
