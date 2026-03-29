@@ -21,6 +21,30 @@
     </div>
 </div>
 
+<div class="insight-banner">
+    <div class="insight-banner-item">
+        <i class="fas fa-seedling"></i>
+        <div>
+            <strong>Fruiting-first control</strong>
+            <span>Humidity and CO2 are corrected in sequence, with exhaust ventilation taking priority when needed.</span>
+        </div>
+    </div>
+    <div class="insight-banner-item">
+        <i class="fas fa-vial"></i>
+        <div>
+            <strong>Spawn run guidance</strong>
+            <span>Spawning is sensor-only and tolerates higher CO2 to support mycelial growth.</span>
+        </div>
+    </div>
+    <div class="insight-banner-item">
+        <i class="fas fa-brain"></i>
+        <div>
+            <strong>AI priority</strong>
+            <span>Detect anomalies, then stabilize the chamber before allowing humidification to resume.</span>
+        </div>
+    </div>
+</div>
+
 <div id="calibration-banner" class="calibration-banner is-hidden">
     <div class="calibration-icon">
         <i class="fas fa-circle-notch fa-spin"></i>
@@ -47,7 +71,6 @@
         <i class="fas fa-fingerprint"></i> Tap to Configure WiFi
     </div>
 </div>
-
 
 <!-- WiFi Setup Modal -->
 <div id="wifiSetupModal" class="custom-modal" style="display: none;">
@@ -107,12 +130,10 @@
     </div>
 </div>
 
-
 <div id="fruiting-view" class="room-view">
     <div class="room-header">
         <h2 class="room-title">Fruiting Room</h2>
-        <div class="room-condition">Condition: <span class="status-{{ fruiting_condition_class }}">{{ fruiting_condition
-                }}</span></div>
+        <div class="room-condition">Condition: <span class="status-{{ fruiting_condition_class }}">{{ fruiting_condition }}</span></div>
     </div>
 
     <div class="sensor-grid">
@@ -126,7 +147,7 @@
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">
-                <span>Target: < {{ fruiting_targets.co2_max }} ppm</span>
+                <span>Target: &lt; {{ fruiting_targets.co2_max }} ppm</span>
             </div>
         </div>
         <div class="sensor-card temp">
@@ -156,13 +177,41 @@
             </div>
         </div>
     </div>
+
+    <div class="environment-summary-card">
+        <div class="environment-summary-header">
+            <i class="fas fa-brain"></i>
+            <h3>Environment & AI Summary</h3>
+        </div>
+        <div class="environment-summary-grid">
+            <div class="environment-summary-item">
+                <strong>Fruiting target</strong>
+                <span>{{ fruiting_targets.temp_target }}°C / {{ fruiting_targets.humidity_target }}% RH / &lt; {{ fruiting_targets.co2_max }} ppm CO2</span>
+            </div>
+            <div class="environment-summary-item">
+                <strong>AI priority</strong>
+                <span>Check for anomalous readings first, then stabilize temperature and humidity.</span>
+            </div>
+            <div class="environment-summary-item">
+                <strong>Ventilation rule</strong>
+                <span>Exhaust and intake run together when CO2 is high before humidification is allowed again.</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="spawning-view" class="room-view" style="display: none;">
     <div class="room-header">
         <h2 class="room-title">Spawning Room</h2>
-        <div class="room-condition">Condition: <span class="status-{{ spawning_condition_class }}">{{ spawning_condition
-                }}</span></div>
+        <div class="room-condition">Condition: <span class="status-{{ spawning_condition_class }}">{{ spawning_condition }}</span></div>
+    </div>
+
+    <div class="room-note-card">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <strong>Sensor-only mode</strong>
+            <span>Spawning remains monitored only. The higher CO2 range supports mycelial growth while automation stays off.</span>
+        </div>
     </div>
 
     <div class="sensor-grid">
@@ -176,7 +225,7 @@
                 <span class="sensor-unit">ppm</span>
             </div>
             <div class="card-footer">
-                <span>Target: < {{ spawning_targets.co2_max }} ppm</span>
+                <span>Target: &lt; {{ spawning_targets.co2_max }} ppm</span>
             </div>
         </div>
         <div class="sensor-card temp">
@@ -185,8 +234,7 @@
                 <h3>Temperature</h3>
             </div>
             <div class="card-body">
-                <span id="spawning-temp" class="sensor-value">{% if spawning_data and spawning_data.temp is not none
-                    %}{{ spawning_data.temp | round(1) }}{% else %}--{% endif %}</span>
+                <span id="spawning-temp" class="sensor-value">{% if spawning_data and spawning_data.temp is not none %}{{ spawning_data.temp | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">°C</span>
             </div>
             <div class="card-footer">
@@ -199,8 +247,7 @@
                 <h3>Humidity</h3>
             </div>
             <div class="card-body">
-                <span id="spawning-humidity" class="sensor-value">{% if spawning_data and spawning_data.humidity is not
-                    none %}{{ spawning_data.humidity | round(1) }}{% else %}--{% endif %}</span>
+                <span id="spawning-humidity" class="sensor-value">{% if spawning_data and spawning_data.humidity is not none %}{{ spawning_data.humidity | round(1) }}{% else %}--{% endif %}</span>
                 <span class="sensor-unit">%</span>
             </div>
             <div class="card-footer">

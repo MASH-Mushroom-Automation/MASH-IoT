@@ -3,6 +3,30 @@
 {% block content %}
 <h1 class="page-title">AI & Machine Learning Insights</h1>
 
+<div class="insight-banner" style="margin-bottom: 20px;">
+    <div class="insight-banner-item">
+        <i class="fas fa-brain"></i>
+        <div>
+            <strong>Fruiting-first automation</strong>
+            <span>The AI now ventilates before humidifying when CO2 is high, keeping intake airflow active during exhaust.</span>
+        </div>
+    </div>
+    <div class="insight-banner-item">
+        <i class="fas fa-seedling"></i>
+        <div>
+            <strong>Spawning monitoring</strong>
+            <span>Spawning stays sensor-only so higher CO2 can support mycelial growth without automatic fan control.</span>
+        </div>
+    </div>
+    <div class="insight-banner-item">
+        <i class="fas fa-robot"></i>
+        <div>
+            <strong>Model upgrade</strong>
+            <span>The actuator model now uses balanced multi-output training across tropical chamber scenarios.</span>
+        </div>
+    </div>
+</div>
+
 {% set anomaly_status_class = 'status-pill-active' if anomaly_model_loaded else 'status-pill-inactive' %}
 {% set actuation_status_class = 'status-pill-active' if actuation_model_loaded else 'status-pill-inactive' %}
 
@@ -58,7 +82,7 @@
                 {% endif %}
             </div>
             <p style="text-align: center; color: #bbb; line-height: 1.6;">
-                Monitors sensor data for unusual patterns and potential equipment failures using Isolation Forest algorithm.
+                Monitors sensor data for unusual patterns and potential equipment failures using an Isolation Forest tuned for greenhouse sensor hygiene.
             </p>
         </div>
         
@@ -75,7 +99,7 @@
                 {% endif %}
             </div>
             <p style="text-align: center; color: #bbb; line-height: 1.6;">
-                Predicts optimal actuator control decisions based on environmental conditions using Decision Tree.
+                Predicts fruiting-room ventilation, humidification, and lighting decisions using a balanced multi-output Decision Tree.
             </p>
         </div>
     </div>
@@ -121,10 +145,11 @@
                 </div>
 
                 <div class="model-card" style="padding: 18px;">
-                    <strong style="display: block; margin-bottom: 8px; color: #e0e0e0;">Notifications</strong>
+                    <strong style="display: block; margin-bottom: 8px; color: #e0e0e0;">Environment Targets</strong>
                     <div style="color: #bbb; line-height: 1.8;">
+                        <div>Fruiting: <strong>{{ fruiting_targets.temp_target }}°C / {{ fruiting_targets.humidity_target }}% RH / &lt; {{ fruiting_targets.co2_max }} ppm</strong></div>
+                        <div>Spawning: <strong>{{ spawning_targets.temp_target }}°C / {{ spawning_targets.humidity_target }}% RH / &lt; {{ spawning_targets.co2_max }} ppm</strong></div>
                         <div>Active alerts: <strong>{{ active_alert_count }}</strong></div>
-                        <div>Model status: <strong>{% if ml_enabled %}Enabled{% else %}Disabled{% endif %}</strong></div>
                         <div>Insights stream: <strong>{% if recent_ai_decisions %}Live{% else %}Waiting{% endif %}</strong></div>
                     </div>
                 </div>
@@ -140,10 +165,10 @@
         </div>
         <div class="info-body">
             <ul class="info-list">
-                <li><strong>Real-time Anomaly Detection:</strong> Continuously monitors sensor readings to detect unusual patterns</li>
-                <li><strong>Predictive Maintenance:</strong> Identifies potential equipment issues before they become critical</li>
-                <li><strong>Smart Automation:</strong> AI-driven actuator control for optimal growing conditions</li>
-                <li><strong>Learning from Data:</strong> Models improve over time as they observe more growing cycles</li>
+                <li><strong>Real-time Anomaly Detection:</strong> Continuously monitors sensor readings to detect unusual patterns and sensor faults</li>
+                <li><strong>Fruiting Priority Logic:</strong> Exhaust ventilation activates before humidification when CO2 is too high</li>
+                <li><strong>Spawn Run Guidance:</strong> Spawning remains sensor-only so high CO2 can support mycelial growth</li>
+                <li><strong>Learning from Data:</strong> Models improve over time as they observe more cultivation cycles</li>
             </ul>
         </div>
     </div>
@@ -159,9 +184,13 @@
                 ML features can be enabled/disabled in <code style="background: #333; color: #4CAF50; padding: 2px 6px; border-radius: 4px;">config/config.yaml</code>:
             </p>
             <pre style="background: #333; padding: 15px; border-radius: 6px; color: #e0e0e0; overflow-x: auto; margin: 15px 0;">system:
-  ml_enabled: true  # Set to false to disable ML features</pre>
+  ml_enabled: true  # Set to false to disable ML features
+fruiting_room:
+  co2_max: 1000
+spawning_room:
+  co2_max: 20000</pre>
             <p class="info-text">
-                Models are automatically trained and updated based on historical sensor data.
+                Models are automatically trained and updated based on historical sensor data from both fruiting and spawning conditions.
             </p>
         </div>
     </div>
@@ -188,6 +217,7 @@
                                     <div>Strategy: <strong>{{ data.get('strategy', 'n/a') }}</strong></div>
                                     <div>Anomaly detected: <strong>{% if data.get('anomaly_detected') %}Yes{% else %}No{% endif %}</strong></div>
                                     <div>Recommended commands: <strong>{{ data.get('recommended_commands', [])|join(', ') if data.get('recommended_commands') else 'None' }}</strong></div>
+                                    <div>Priority note: <strong>{% if data.get('recommended_states', {}).get('exhaust_fan') == 'ON' %}Ventilation first{% else %}Humidity or monitoring{% endif %}</strong></div>
                                 </div>
                             {% endif %}
                         </div>

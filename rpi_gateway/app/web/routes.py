@@ -290,6 +290,9 @@ def ai_insights():
         actuation_model_loaded = logic_engine.actuator_model is not None
 
     latest_data = current_app.config.get('LATEST_DATA', {}) or {}
+    mushroom_config = current_app.config.get('MUSHROOM_CONFIG', {})
+    fruiting_targets = mushroom_config.get('fruiting_room', {})
+    spawning_targets = mushroom_config.get('spawning_room', {})
     active_alerts = db_manager.get_active_alerts() if db_manager else []
     recent_ai_decisions = db_manager.get_recent_ai_decisions(limit=10, hours=24) if db_manager else []
         
@@ -299,6 +302,8 @@ def ai_insights():
                          anomaly_model_loaded=anomaly_model_loaded,
                          actuation_model_loaded=actuation_model_loaded,
                          latest_data=latest_data,
+                         fruiting_targets=fruiting_targets,
+                         spawning_targets=spawning_targets,
                          active_alert_count=len(active_alerts),
                          recent_ai_decisions=recent_ai_decisions)
 

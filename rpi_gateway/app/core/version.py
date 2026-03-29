@@ -14,7 +14,7 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 9
-PATCH = 8
+PATCH = 9
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
@@ -22,7 +22,7 @@ FULL_VERSION = f"v{VERSION}"
 
 # Release Info
 RELEASE_DATE = "2026-03-29"
-RELEASE_NAME = "White Oyster ML and Configuration Refinement"
+RELEASE_NAME = "Environment and AI GUI Refresh"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -76,6 +76,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.9", "date": "2026-03-29", "name": "Environment and AI GUI Refresh", "priority": "high"},
     {"version": "2.9.8", "date": "2026-03-29", "name": "White Oyster ML and Configuration Refinement", "priority": "high"},
     {"version": "2.9.7", "date": "2026-03-24", "name": "Humidity Priority and Control Cleanup", "priority": "high"},
     {"version": "2.9.6", "date": "2026-03-22", "name": "Real-Time AI Insights and Auto Control Fixes", "priority": "high"},
