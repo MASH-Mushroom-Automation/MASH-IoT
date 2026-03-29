@@ -59,10 +59,8 @@ void setup() {
     Serial.println(F("[INIT] Initializing sensors..."));
     if (!sensors.begin()) {
         Serial.println(F("[ERROR] Sensor initialization failed!"));
-        // Enable WDT even in error state so it can recover
-        wdt_enable(WDTO_8S);
+        // Avoid WDT on Mega as it causes bootloops
         while (1) {
-            wdt_reset();
             delay(1000);
             Serial.println(F("[ERROR] Please check sensor wiring"));
         }

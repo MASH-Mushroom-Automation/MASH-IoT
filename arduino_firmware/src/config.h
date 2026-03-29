@@ -44,7 +44,7 @@
 #define WATCHDOG_CHECK_INTERVAL 1000  // Check every 1 second
 
 // ==================== HARDWARE WATCHDOG (WDT) ====================
-#define WDT_ENABLED true             // Enable AVR hardware watchdog timer
+#define WDT_ENABLED false             // Enable AVR hardware watchdog timer
 // WDT timeout is set via wdt_enable() in main.cpp (WDTO_8S = 8 seconds)
 // If loop() hangs (e.g. I2C lockup), WDT forces a hardware reset
 

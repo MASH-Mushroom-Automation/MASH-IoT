@@ -81,22 +81,26 @@ fruiting_room:
     duration_hours: 12
 
 # Spawning Room Configuration (Sensor only, no actuators in current setup)
+# NOTE: Pleurotus florida mycelium is CO2-tolerant during spawn run.
+# Research shows 10,000-20,000 ppm CO2 promotes vigorous mycelial expansion
+# (Influence of CO2 Concentration on Mycelium Growth, MPG.PuRe).
+# Exhaust fan is suppressed to allow metabolic CO2 to accumulate intentionally.
 spawning_room:
-  temp_target: 25.0  # °C
-  temp_min: 23.0
-  temp_max: 27.0
+  temp_target: 28.0  # °C - optimal mycelial growth range: 25-30°C
+  temp_min: 25.0
+  temp_max: 30.0
   temp_tolerance: 2.0  # Alert if deviation exceeds this
-  humidity_target: 95.0  # %
-  humidity_min: 90.0
-  humidity_max: 98.0
+  humidity_target: 75.0  # %  - moderate humidity to prevent anaerobic zones
+  humidity_min: 70.0
+  humidity_max: 80.0
   humidity_hysteresis: 5.0  # Prevent rapid on/off cycling
   humidity_tolerance: 10.0  # Alert threshold
-  co2_max: 2000  # ppm (higher tolerance during spawn run)
-  co2_hysteresis: 100  # Hysteresis to prevent rapid fan cycling
+  co2_max: 20000  # ppm - spawn run optimal is 10,000-20,000 ppm; alert above max
+  co2_hysteresis: 2000  # Proportional hysteresis for high CO2 range
   
   exhaust_fan:
-    co2_trigger: 2000
-    temp_trigger: 27.0
+    co2_trigger: 20000  # Only trigger if CO2 exceeds biological optimum ceiling
+    temp_trigger: 30.0  # Trigger cooling if temp exceeds mycelial tolerance
 
 # Arduino Actuator Mappings (matches config.h)
 actuators:
@@ -124,10 +128,11 @@ actuators:
 
 # Alert Thresholds
 alerts:
-  critical_co2: 1500  # ppm
+  critical_co2: 1500  # ppm (fruiting room; CO2 far above 1000 target)
   critical_temp_high: 30.0  # °C
   critical_temp_low: 18.0  # °C
   critical_humidity_low: 70.0  # %
+  critical_humidity_high: 97.0  # % (excess condensation risk)
   
 # Database Configuration
 database:
@@ -140,8 +145,16 @@ ml_models:
     enabled: true
     model_path: "data/models/isolation_forest.pkl"
     retrain_interval: 604800  # 7 days in seconds
+    contamination: 0.05  # Expected ~5% sensor fault rate in field conditions
+    n_estimators: 100
   
   decision_tree:
     enabled: true
     model_path: "data/models/decision_tree.pkl"
-    features: ["temp", "humidity", "co2", "time_of_day"]
+    features: ["temp", "humidity", "co2", "hour_of_day"]
+    outputs: ["exhaust_fan", "mist_maker", "led"]
+    training_samples: 2500
+    max_depth: 6
+    min_samples_split: 10
+    min_samples_leaf: 5
+    # Uses MultiOutputClassifier wrapping DecisionTreeClassifier per MASH research

@@ -79,14 +79,14 @@ If a sensor reading is invalid, the JSON will indicate an error:
 
 The following `"actuator"` names are supported:
 
-| Chamber   | Actuator Name              | Description                                  |
-| :-------- | :------------------------- | :------------------------------------------- |
-| Spawning  | `SPAWNING_EXHAUST_FAN`     | Exhaust fan in the spawning room.            |
-| Fruiting  | `FRUITING_EXHAUST_FAN`     | Main exhaust fan in the fruiting room.       |
-| Fruiting  | `FRUITING_BLOWER_FAN`      | Blower fan for air circulation.              |
-| Fruiting  | `HUMIDIFIER_FAN`           | Fan that pushes mist into the pipes.         |
-| Fruiting  | `HUMIDIFIER`               | The ultrasonic mist maker itself.            |
-| Fruiting  | `FRUITING_LED`             | LED lighting for the fruiting chamber.       |
+| Chamber  | Actuator Name          | Description                            |
+| :------- | :--------------------- | :------------------------------------- |
+| Spawning | `SPAWNING_EXHAUST_FAN` | Exhaust fan in the spawning room.      |
+| Fruiting | `FRUITING_EXHAUST_FAN` | Main exhaust fan in the fruiting room. |
+| Fruiting | `FRUITING_BLOWER_FAN`  | Blower fan for air circulation.        |
+| Fruiting | `HUMIDIFIER_FAN`       | Fan that pushes mist into the pipes.   |
+| Fruiting | `HUMIDIFIER`           | The ultrasonic mist maker itself.      |
+| Fruiting | `FRUITING_LED`         | LED lighting for the fruiting chamber. |
 
 
 ## 5. Python Example Script
@@ -176,3 +176,52 @@ if __name__ == "__main__":
 ```
 
 This guide should provide a solid starting point for developing the control software on your Raspberry Pi.
+
+## 6. Laptop Debug Mode (Relay Testing Without Raspberry Pi)
+
+If you want to test relays directly from a laptop, use the dedicated debug environment.
+
+### Build and upload debug firmware
+
+```bash
+pio run -e mega-debug -t upload
+```
+
+### Open serial monitor
+
+```bash
+pio device monitor -b 9600
+```
+
+### Debug commands
+
+Enter commands in uppercase and press Enter:
+
+- `HELP`
+- `STATUS`
+- `ALL_OFF`
+- `ON <name|index>`
+- `OFF <name|index>`
+- `TOGGLE <name|index>`
+
+Valid relay names/indexes:
+
+- `MIST_MAKER` or `1`
+- `HUMIDIFIER_FAN` or `2`
+- `FRUITING_EXHAUST_FAN` or `3`
+- `FRUITING_INTAKE_FAN` or `4`
+- `SPAWNING_EXHAUST_FAN` or `5`
+- `DEVICE_EXHAUST_FAN` or `6`
+- `FRUITING_LED` or `7`
+- `RESERVED` or `8`
+
+Example:
+
+```text
+ON 7
+OFF FRUITING_LED
+STATUS
+ALL_OFF
+```
+
+In `DEBUG_MODE`, normal sensor startup, watchdog workflow, and Raspberry Pi JSON command handling are bypassed so you can safely bench-test relay outputs.

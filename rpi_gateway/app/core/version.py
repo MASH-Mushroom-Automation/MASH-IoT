@@ -6,7 +6,7 @@ Semantic Versioning: MAJOR.MINOR.PATCH
 - MINOR: New features (backward compatible)
 - PATCH: Bug fixes, small improvements
 
-Last updated: 2026-03-24
+Last updated: 2026-03-29
 """
 
 import os
@@ -14,15 +14,15 @@ import os
 # Version Components
 MAJOR = 2
 MINOR = 9
-PATCH = 7
+PATCH = 8
 
 # Formatted Versions
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 FULL_VERSION = f"v{VERSION}"
 
 # Release Info
-RELEASE_DATE = "2026-03-24"
-RELEASE_NAME = "Humidity Priority and Control Cleanup"
+RELEASE_DATE = "2026-03-29"
+RELEASE_NAME = "White Oyster ML and Configuration Refinement"
 
 # API Compatibility
 MIN_MOBILE_APP_VERSION = "1.0.0"
@@ -76,6 +76,7 @@ SENSOR_READ_INTERVAL = 5  # seconds
 # ---------------------------------------------------------------------------
 
 CHANGELOG_REGISTRY = [
+    {"version": "2.9.8", "date": "2026-03-29", "name": "White Oyster ML and Configuration Refinement", "priority": "high"},
     {"version": "2.9.7", "date": "2026-03-24", "name": "Humidity Priority and Control Cleanup", "priority": "high"},
     {"version": "2.9.6", "date": "2026-03-22", "name": "Real-Time AI Insights and Auto Control Fixes", "priority": "high"},
     {"version": "2.9.5", "date": "2026-03-22", "name": "Firebase Queue Command Control", "priority": "high"},

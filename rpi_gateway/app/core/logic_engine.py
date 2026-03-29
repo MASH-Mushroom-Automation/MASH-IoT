@@ -23,6 +23,8 @@ try:
     import joblib
     from sklearn.ensemble import IsolationForest
     from sklearn.exceptions import InconsistentVersionWarning
+    from sklearn.model_selection import cross_val_score
+    from sklearn.multioutput import MultiOutputClassifier
     from sklearn.tree import DecisionTreeClassifier
     ML_AVAILABLE = True
 except ImportError:
@@ -244,6 +246,18 @@ class MushroomAI:
         if self.actuator_model is None:
             return False
 
+        # Handle MultiOutputClassifier wrapper (new models)
+        estimators = getattr(self.actuator_model, 'estimators_', None)
+        if estimators is not None:
+            for est in estimators:
+                if not hasattr(est, 'monotonic_cst'):
+                    try:
+                        est.monotonic_cst = None
+                    except Exception:
+                        pass
+            return True
+
+        # Handle plain DecisionTreeClassifier (legacy models)
         if not hasattr(self.actuator_model, 'monotonic_cst'):
             try:
                 self.actuator_model.monotonic_cst = None
@@ -333,11 +347,13 @@ class MushroomAI:
         humidity = sensor_data.get('humidity', 0)
         co2 = sensor_data.get('co2', 0)
         
-        # Hard limits for sensor validation
+        # Hard limits for sensor validation.
+        # CO2 upper bound is 25000 ppm to accommodate spawning room readings
+        # (optimal spawn-run CO2 is 10,000-20,000 ppm per Pleurotus florida research).
         is_anomaly = (
-            temp < 0 or temp > 50 or          # Temperature out of physical range
-            humidity < 0 or humidity > 100 or # Humidity impossible values
-            co2 < 400 or co2 > 10000          # CO2 unrealistic
+            temp < 0 or temp > 50 or           # Temperature out of physical range
+            humidity < 0 or humidity > 100 or  # Humidity impossible values
+            co2 < 400 or co2 > 25000           # CO2 outside sensor operating range
         )
         
         return is_anomaly, -1.0 if is_anomaly else 0.0
@@ -452,9 +468,18 @@ class MushroomAI:
                 logger.info("[AI-HUMIDIFIER] Suppressing exhaust fan while humidifier cycle is active")
                 fan_state = "OFF"
 
+            # Intake follows exhaust for Fresh Air Exchange (FAE);
+            # stays OFF only when the humidifier cycle is actively running
+            if fan_state == "ON":
+                intake_fan_state = "ON"
+            elif humidifier_active:
+                intake_fan_state = "OFF"
+            else:
+                intake_fan_state = "ON"  # gentle circulation at equilibrium
+
             return {
                 "exhaust_fan": fan_state,
-                "intake_fan": "OFF",
+                "intake_fan": intake_fan_state,
                 "mist_maker": humidifier_states.get("mist_maker", "OFF"),
                 "humidifier_fan": humidifier_states.get("humidifier_fan", "OFF"),
                 "led": light_state
@@ -808,64 +833,160 @@ class MushroomAI:
 
 
 # Training utilities (for baseline data generation)
-def generate_baseline_training_data(num_samples: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
+def generate_baseline_training_data(num_samples: int = 2500) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Generate synthetic training data for ML models.
-    Based on ideal mushroom cultivation parameters.
-    
+    Generate synthetic training data for white oyster mushroom (Pleurotus florida)
+    fruiting room automation. Covers five key operational scenarios from the MASH
+    research framework, weighted toward Philippine tropical climate challenges.
+
+    Feature columns: [temp (C), humidity (%), co2 (ppm), hour_of_day]
+    Label columns:   [exhaust_fan (0/1), mist_maker (0/1), led (0/1)]
+
+    Scenarios:
+      1. Current Deviation  - Temp >26C, RH <85%       -> Humidify (mist=1, exhaust=0)
+      2. Pinning Trigger    - Temp normal, RH >95%      -> Sustain humidity (mist=1, exhaust=0)
+      3. Stale Air          - CO2 >1000, cond. normal   -> Ventilate (exhaust=1, mist=0)
+      4. Cooling Mode       - Temp >26C, RH already >=92% -> FAE (exhaust=1, mist=0)
+      5. Equilibrium        - All within target range    -> All OFF
+
     Returns:
         (X_features, y_labels) for model training
     """
     np.random.seed(42)
-    
-    # Normal operating ranges
-    temp_normal = np.random.normal(24, 2, num_samples)
-    humidity_normal = np.random.normal(90, 3, num_samples)
-    co2_normal = np.random.normal(800, 200, num_samples)
-    hour_normal = np.random.randint(0, 24, num_samples)
-    
-    X = np.column_stack([temp_normal, humidity_normal, co2_normal, hour_normal])
-    
-    # Labels: [fan_state, mist_state, light_state]
-    # Simple rules for labels:
-    y_fan = (co2_normal > 900).astype(int)
-    y_mist = (humidity_normal < 88).astype(int)
-    y_light = ((hour_normal >= 8) & (hour_normal < 20)).astype(int)
-    
-    y = np.column_stack([y_fan, y_mist, y_light])
-    
-    return X, y
+
+    TEMP_MIN = 22.0
+    TEMP_MAX = 26.0
+    HUMIDITY_MIN = 85.0
+    HUMIDITY_MAX = 95.0
+    CO2_MAX = 1000
+
+    base_n = num_samples // 5
+    remainder = num_samples - (5 * base_n)
+
+    all_X = []
+    all_y = []
+
+    def _led(hour_arr):
+        return ((hour_arr >= 8) & (hour_arr < 20)).astype(int)
+
+    # --- Scenario 1: Current Deviation (Philippine summer: Temp >26C, RH <85%) ---
+    # Humidify first: exhaust=OFF, mist=ON
+    n = base_n
+    temp = np.random.uniform(26.1, 32.0, n)
+    humidity = np.random.uniform(55.0, 84.9, n)
+    co2 = np.random.uniform(400, 1200, n)
+    hour = np.random.randint(0, 24, n)
+    all_X.append(np.column_stack([temp, humidity, co2, hour]))
+    all_y.append(np.column_stack([np.zeros(n, int), np.ones(n, int), _led(hour)]))
+
+    # --- Scenario 2: Pinning Trigger (Temp normal, RH spike >95% for primordia) ---
+    # Sustain high humidity: exhaust=OFF, mist=ON
+    n = base_n
+    temp = np.random.uniform(TEMP_MIN, TEMP_MAX, n)
+    humidity = np.random.uniform(95.1, 99.9, n)
+    co2 = np.random.uniform(400, 950, n)
+    hour = np.random.randint(0, 24, n)
+    all_X.append(np.column_stack([temp, humidity, co2, hour]))
+    all_y.append(np.column_stack([np.zeros(n, int), np.ones(n, int), _led(hour)]))
+
+    # --- Scenario 3: Stale Air (CO2 >1000 ppm, conditions otherwise normal) ---
+    # Ventilate: exhaust=ON, mist=OFF
+    n = base_n
+    temp = np.random.uniform(TEMP_MIN, TEMP_MAX, n)
+    humidity = np.random.uniform(HUMIDITY_MIN, HUMIDITY_MAX, n)
+    co2 = np.random.uniform(1001, 1800, n)
+    hour = np.random.randint(0, 24, n)
+    all_X.append(np.column_stack([temp, humidity, co2, hour]))
+    all_y.append(np.column_stack([np.ones(n, int), np.zeros(n, int), _led(hour)]))
+
+    # --- Scenario 4: Cooling Mode (Temp >26C, RH already >=92% - no more mist needed) ---
+    # Fresh Air Exchange for cooling: exhaust=ON, mist=OFF
+    n = base_n
+    temp = np.random.uniform(26.1, 32.0, n)
+    humidity = np.random.uniform(92.0, 99.5, n)
+    co2 = np.random.uniform(400, 1500, n)
+    hour = np.random.randint(0, 24, n)
+    all_X.append(np.column_stack([temp, humidity, co2, hour]))
+    all_y.append(np.column_stack([np.ones(n, int), np.zeros(n, int), _led(hour)]))
+
+    # --- Scenario 5: Equilibrium (24C / 90% RH / CO2 <1000 - all within targets) ---
+    # Passive monitoring: exhaust=OFF, mist=OFF
+    n = base_n + remainder
+    temp = np.random.normal(24.0, 0.8, n).clip(TEMP_MIN, TEMP_MAX)
+    humidity = np.random.normal(90.0, 2.0, n).clip(HUMIDITY_MIN, HUMIDITY_MAX)
+    co2 = np.random.normal(750, 100, n).clip(400, CO2_MAX - 1)
+    hour = np.random.randint(0, 24, n)
+    all_X.append(np.column_stack([temp, humidity, co2, hour]))
+    all_y.append(np.column_stack([np.zeros(n, int), np.zeros(n, int), _led(hour)]))
+
+    X = np.vstack(all_X)
+    y = np.vstack(all_y)
+
+    shuffle_idx = np.random.permutation(len(X))
+    return X[shuffle_idx], y[shuffle_idx]
 
 
 def train_and_save_models(model_dir: str = "rpi_gateway/data/models"):
     """
-    Train ML models on baseline data and save to disk.
-    Run this during initial setup or for model retraining.
+    Train ML models on Pleurotus florida baseline data and save to disk.
+    Run during initial setup or periodic retraining (default: every 7 days).
+
+    Models trained:
+      - IsolationForest: sensor anomaly / hardware fault detection
+      - MultiOutputClassifier(DecisionTreeClassifier): actuator state prediction
+        Outputs: [exhaust_fan, mist_maker, led]
     """
     if not ML_AVAILABLE:
         logger.error("scikit-learn not available, cannot train models")
         return
-    
+
     os.makedirs(model_dir, exist_ok=True)
-    
-    # Generate training data
-    X, y = generate_baseline_training_data(1000)
-    
-    # Train Isolation Forest (anomaly detection)
-    logger.info("Training Isolation Forest...")
-    iso_forest = IsolationForest(contamination=0.1, random_state=42)
-    iso_forest.fit(X[:, :3])  # Only temp, humidity, co2
+
+    logger.info("[TRAIN] Generating baseline training data (2500 samples, 5 scenarios)...")
+    X, y = generate_baseline_training_data(2500)
+
+    # --- Isolation Forest: sensor anomaly detection ---
+    # Trained on the full operational range (all 5 scenarios) so that genuine
+    # environmental deviations are NOT flagged - only hardware faults are.
+    logger.info("[TRAIN] Fitting Isolation Forest for anomaly detection...")
+    iso_forest = IsolationForest(
+        n_estimators=100,
+        contamination=0.05,  # ~5% expected sensor fault rate in field conditions
+        max_samples='auto',
+        random_state=42
+    )
+    iso_forest.fit(X[:, :3])  # temp, humidity, co2 only (no hour)
     joblib.dump(iso_forest, os.path.join(model_dir, "isolation_forest.pkl"))
-    logger.info("Isolation Forest saved")
-    
-    # Train Decision Tree (actuation control)
-    logger.info("Training Decision Tree...")
-    dt_model = DecisionTreeClassifier(max_depth=5, random_state=42)
+    logger.info("[TRAIN] Isolation Forest saved")
+
+    # --- MultiOutputClassifier(DecisionTree): actuator control ---
+    # One tree per output allows class_weight='balanced' per actuator channel,
+    # preventing the dominant equilibrium scenario from biasing the model.
+    logger.info("[TRAIN] Fitting MultiOutputClassifier(DecisionTree) for actuation...")
+    base_dt = DecisionTreeClassifier(
+        max_depth=6,
+        min_samples_split=10,
+        min_samples_leaf=5,
+        class_weight='balanced',
+        random_state=42
+    )
+    dt_model = MultiOutputClassifier(base_dt, n_jobs=-1)
     dt_model.fit(X, y)
+
+    try:
+        cv_dt = DecisionTreeClassifier(
+            max_depth=6, min_samples_split=10, min_samples_leaf=5,
+            class_weight='balanced', random_state=42
+        )
+        cv_model = MultiOutputClassifier(cv_dt, n_jobs=-1)
+        scores = cross_val_score(cv_model, X, y, cv=5, scoring='accuracy')
+        logger.info(f"[TRAIN] Decision Tree CV accuracy: {scores.mean():.3f} +/- {scores.std():.3f}")
+    except Exception as cv_err:
+        logger.warning(f"[TRAIN] Cross-validation skipped: {cv_err}")
+
     joblib.dump(dt_model, os.path.join(model_dir, "decision_tree.pkl"))
-    logger.info("Decision Tree saved")
-    
-    logger.info(f"Models saved to {model_dir}")
+    logger.info("[TRAIN] Decision Tree (MultiOutputClassifier) saved")
+    logger.info(f"[TRAIN] Models saved to {model_dir}")
 
 
 if __name__ == "__main__":
